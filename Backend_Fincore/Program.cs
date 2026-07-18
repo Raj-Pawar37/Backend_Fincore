@@ -1,5 +1,7 @@
 using Backend_Fincore.Data;
+using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));
+
+
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 
 
 builder.Services.AddControllers();
