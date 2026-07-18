@@ -1,0 +1,6 @@
+@Backend_Fincore_HostAddress = http://localhost:5008
+
+GET {{Backend_Fincore_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
