@@ -20,7 +20,7 @@ namespace Backend_Fincore.Models
         public decimal? Discount { get; set; }
 
         public int Qty { get; set; }
-
+            
 
         // Navigation properties
         public PurchaseOrder PurchaseOrder { get; set; } = null!;
