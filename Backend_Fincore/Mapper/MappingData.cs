@@ -57,7 +57,7 @@ public class MappingData : Profile
 
 
         //Vendor
-        // Vendor
+
         CreateMap<Vendor, VendorReadDTO>()
             .ForMember(d => d.CompanyName,
                 x => x.MapFrom(y => y.Company.CompanyName));
@@ -65,7 +65,12 @@ public class MappingData : Profile
         CreateMap<Vendor, VendorWriteDTO>()
             .ReverseMap();
 
+        // < src , dest >
+        CreateMap<Role, RoleDTO>().ReverseMap();
+        //CreateMap<RoleDTO, Role>();
+        //CreateMap<Role, RoleDTO>();
 
+        CreateMap<Permission, PermissionDTO>().ReverseMap();
 
     }
 
