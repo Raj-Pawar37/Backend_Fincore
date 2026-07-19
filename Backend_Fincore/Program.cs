@@ -16,6 +16,7 @@ builder.Services.AddAutoMapper(typeof(MappingData));
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IPurchaseOrderItemService, PurchaseOrderItemService>();
 builder.Services.AddScoped<IGRNService, GRNService>();
+builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
 
 
 builder.Services.AddControllers();

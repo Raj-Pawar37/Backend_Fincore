@@ -1,126 +1,116 @@
-﻿using Backend_Fincore.DTOs.GRN;
-using Backend_Fincore.DTOs.PurchaseOrder;
+﻿using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Service;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Backend_Fincore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GRNController : ControllerBase
+    public class APInvoiceController : ControllerBase
     {
-        private readonly IGRNService gRNService;
+        private readonly IAPInvoiceService aPInvoiceService;
 
-        public GRNController(IGRNService gRNService)
+        public APInvoiceController(IAPInvoiceService aPInvoiceService)
         {
-            this.gRNService = gRNService;
+            this.aPInvoiceService = aPInvoiceService;
         }
 
-
         [HttpGet]
-        public async Task<IActionResult> getAllGRNs()
+        public async Task<IActionResult> getAllAPInvoice()
         {
-            var data = await gRNService.GetAllGrns();
+            var data = await aPInvoiceService.GetAllAPInvoice();
 
-            return Ok(new ApiResponse<List<GRNDTO>>
+            return Ok(new ApiResponse<List<APInvoiceDTO>>
             {
                 Success = true,
-                Message = "GRNs fetched successfully.",
+                Message = "AP Invoice fetched successfully.",
                 Data = data,
                 Error = null
             });
-
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> getGrnById(int id)
-        {
-            var grn = await gRNService.GetGrnById(id);
 
-            if (grn == null)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetAPInvoiceById(int id)
+        {
+            var data = await aPInvoiceService.GetAPInvoiceById(id);
+
+            if (data == null)
             {
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "GRN not found.",
+                    Message = "AP Invoice not found.",
                     Data = null,
-                    Error = $"No GRN found with Id {id}."
+                    Error = $"No AP Invoice found with Id {id}."
                 });
             }
 
-            return Ok(new ApiResponse<GRNDTO>
+            return Ok(new ApiResponse<APInvoiceDTO>
             {
                 Success = true,
-                Message = "GRN fetched successfully.",
-                Data = grn,
+                Message = "AP Invoice fetched successfully.",
+                Data = data,
                 Error = null
             });
         }
 
-
         [HttpPost]
-        public async Task<IActionResult> addGrn(GRNCUDTO grn)
+        public async Task<IActionResult> AddAPInvoice(APInvoiceCUDTO AP)
         {
-            await gRNService.AddGrn(grn);
-
+            await aPInvoiceService.AddAPInvoice(AP);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Purchase Order created successfully.",
+                Message = "AP Invoice created successfully.",
                 Data = null,
                 Error = null
             });
-
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> updateGrn(GRNCUDTO grn,int id)
+        public async Task<IActionResult> UpdateAPInvoice(int id, APInvoiceCUDTO Ap)
         {
-
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-            await gRNService.UpdateGRN(grn, id);
+            await aPInvoiceService.UpdateAPInvoice(Ap, id);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "GRN updated successfully.",
+                Message = "AP Invoice updated successfully.",
                 Data = null,
                 Error = null
             });
         }
+
 
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> deleteById(int id)
         {
-            var data = await gRNService.DeletegrnById(id);
+            var data = await aPInvoiceService.DeleteInvoiceById(id);
 
             if (!data)
             {
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "GRN not found.",
+                    Message = "APInvoice not found.",
                     Data = null,
-                    Error = $"No GRN found with Id {id}."
+                    Error = $"No APInvoice found with Id {id}."
                 });
             }
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "GRN deleted successfully.",
+                Message = "APInvoice deleted successfully.",
                 Data = null,
                 Error = null
             });
         }
-
-
     }
 }

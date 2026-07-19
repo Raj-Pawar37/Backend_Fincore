@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
@@ -18,10 +19,15 @@ public class MappingData : Profile
         CreateMap<PurchaseOrderItemCUDTO, PurchaseOrderItem>();
 
         CreateMap<GRN, GRNDTO>().ForMember(x => x.PONumber, x => x.MapFrom(x => x.PurchaseOrder.PONumber))
-            .ForMember(x => x.Username, x => x.MapFrom(x => x.ReceivedByUser.Username));
+                                .ForMember(x => x.Username, x => x.MapFrom(x => x.ReceivedByUser.Username));
 
 
         CreateMap<GRNCUDTO, GRN>();
+
+
+        CreateMap<APInvoice, APInvoiceDTO>().ForMember(x => x.VendorName,
+                                            x => x.MapFrom(x => x.Vendor.VendorName));
+        CreateMap<APInvoiceCUDTO, APInvoice>();
 
 
     }

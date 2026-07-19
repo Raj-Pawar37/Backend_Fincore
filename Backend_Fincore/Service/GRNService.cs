@@ -51,6 +51,22 @@ namespace Backend_Fincore.Service
 
         }
 
+        public async Task<bool> DeletegrnById(int id)
+        {
+            var data = await db.GRN.FirstOrDefaultAsync(x => x.GRNId == id);
+
+            if(data != null)
+            {
+                db.GRN.Remove(data);
+                await db.SaveChangesAsync();
+
+                return true;
+            }
+
+            return false;
+
+        }
+
         public async Task<List<GRNDTO>> GetAllGrns()
         {
             var res = await db.GRN.Include(x => x.PurchaseOrder)
@@ -75,6 +91,47 @@ namespace Backend_Fincore.Service
             }
 
             return null;
+        }
+
+        public async Task UpdateGRN(GRNCUDTO grn, int id)
+        {
+            var data = await db.GRN.FirstOrDefaultAsync(x => x.GRNId == id);
+
+
+            if (data == null)
+            {
+                throw new Exception("GRN not found.");
+            }
+      
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync
+                              (x => x.PurchaseOrderId == grn.PurchaseOrderId);
+
+            if (purchaseOrder == null)
+            {
+                throw new Exception("Purchase Order not found.");
+            }
+
+            var user = await db.User.FirstOrDefaultAsync(x => x.UserId == grn.ReceivedBy);
+
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            data.PurchaseOrderId = grn.PurchaseOrderId;
+            data.ReceivedBy = grn.ReceivedBy;
+            data.ReceivedDate = grn.ReceivedDate;
+            data.Remarks = grn.Remarks;
+            data.DeliveryChallanNumber = grn.DeliveryChallanNumber;
+            data.Status = grn.Status;
+
+            // Temporary until JWT Authentication
+            //data.ModifiedBy=userid
+            data.ModifiedBy = 1;
+            data.ModifiedAt = DateTime.Now;
+
+            await db.SaveChangesAsync();
         }
     }
 }

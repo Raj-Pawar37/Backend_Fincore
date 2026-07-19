@@ -9,5 +9,9 @@ namespace Backend_Fincore.Interface
         Task<GRNDTO> GetGrnById(int id);
 
         Task AddGrn(GRNCUDTO grn);
+
+        Task UpdateGRN(GRNCUDTO grn, int id);
+
+        Task<bool> DeletegrnById(int id);
     }
 }
