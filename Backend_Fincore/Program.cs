@@ -1,5 +1,7 @@
 using Backend_Fincore.Data;
+using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +17,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
+builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
 
 var app = builder.Build();
 
