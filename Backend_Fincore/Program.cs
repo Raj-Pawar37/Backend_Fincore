@@ -3,6 +3,8 @@ using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
+using Backend_Fincore.Interface;
+using Backend_Fincore.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +17,8 @@ builder.Services.AddScoped<IVendorService, VendorService>();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));
-
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IPurchaseOrderItemService, PurchaseOrderItemService>();
