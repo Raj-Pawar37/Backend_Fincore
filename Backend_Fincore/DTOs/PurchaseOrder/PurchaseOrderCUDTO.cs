@@ -10,7 +10,7 @@
 
         public string PONumber { get; set; }
 
-        public DateTime PODate { get; set; }
+        
 
         public string Status { get; set; }
     }

@@ -7,5 +7,11 @@ namespace Backend_Fincore.Interface
         Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder();
 
         Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId);
+
+        Task<bool> DeletePurchaseOrderById(int purchasedId);
+
+        Task AddPurchaseOrderData(PurchaseOrderCUDTO PO);
+
+        Task UpdatePurchaseOrder(PurchaseOrderCUDTO Po, int id);
     }
 }

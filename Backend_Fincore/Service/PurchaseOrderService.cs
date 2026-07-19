@@ -4,6 +4,7 @@ using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration.UserSecrets;
 
 namespace Backend_Fincore.Service
 {
@@ -17,6 +18,43 @@ namespace Backend_Fincore.Service
             this.db = db;
 
             this.mapper = mapper;
+        }
+
+        public async Task AddPurchaseOrderData(PurchaseOrderCUDTO PO)
+        {
+            var data = mapper.Map<PurchaseOrder>(PO);
+
+            data.TotalAmount = 0;
+
+            data.PONumber = "";
+
+            //data.CreatedBy = userId
+            data.CreatedBy = 1;
+
+            await db.PurchaseOrder.AddAsync(data);
+
+            await db.SaveChangesAsync();
+
+            data.PONumber = $"PO{data.PurchaseOrderId:D4}";
+
+            await db.SaveChangesAsync();
+            
+        }
+
+        public async Task<bool> DeletePurchaseOrderById(int purchasedId)
+        {
+            var res = await  db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
+
+            if(res != null)
+            {
+                db.PurchaseOrder.Remove(res);
+                await db.SaveChangesAsync();
+
+                return true;
+            }
+
+            return false;
+
         }
 
         public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder()
@@ -45,6 +83,26 @@ namespace Backend_Fincore.Service
             return null;
 
            
+        }
+
+        public async Task UpdatePurchaseOrder(PurchaseOrderCUDTO Po, int id)
+        {
+            var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
+
+            if(purchasedOrder != null)
+            {
+                purchasedOrder.VendorId = Po.VendorId;
+                purchasedOrder.VendorId = Po.VendorId;
+                purchasedOrder.QuotationId = Po.QuotationId;
+            
+                purchasedOrder.Status = Po.Status;
+
+                purchasedOrder.ModifiedBy = 1;
+                purchasedOrder.ModifiedAt = DateTime.Now;
+
+
+                await db.SaveChangesAsync();
+            }
         }
     }
 }
