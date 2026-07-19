@@ -13,6 +13,12 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(buil
 builder.Services.AddAutoMapper(typeof(MappingData));
 
 
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IPurchaseOrderItemService, PurchaseOrderItemService>();
+builder.Services.AddScoped<IGRNService, GRNService>();
+builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
+
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
