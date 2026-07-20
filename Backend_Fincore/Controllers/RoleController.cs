@@ -79,7 +79,8 @@ namespace Backend_Fincore.Controllers
             catch (Exception ex)
             {
                 var response = ApiResponse<RoleDTO>.Failure($"An error occurred while retrieving the role: {ex.Message}");
-                return StatusCode(500, response); return StatusCode(500, new { message = $"An error occurred while creating the role: {ex.Message}" });
+                return StatusCode(500, response); 
+                //return StatusCode(500, new { message = $"An error occurred while creating the role: {ex.Message}" });
             }
         }
 

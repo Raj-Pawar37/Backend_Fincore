@@ -18,7 +18,6 @@ namespace Backend_Fincore.Service
             _mapper = mapper;
         }
 
-        
        public async Task<Permission> CreatePermissionAsync(PermissionDTO dto)
         {
             var permission = _mapper.Map<Permission>(dto);

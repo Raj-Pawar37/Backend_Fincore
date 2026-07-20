@@ -65,6 +65,9 @@ public class MappingData : Profile
         CreateMap<Vendor, VendorWriteDTO>()
             .ReverseMap();
 
+        CreateMap<Role, RoleDTO>().ReverseMap();
+      
+        CreateMap<Permission,PermissionDTO>().ReverseMap();
 
 
     }
