@@ -1,14 +1,14 @@
 ﻿using Backend_Fincore.DTOs;
-using Backend_Fincore.Models;
+
 
 namespace Backend_Fincore.Interface
 {
     public interface IOpexRequestService
     {
-        Task<List<OpexRequest>> GetAllRequests();
+        Task<List<OpexRequestDto>> GetAllRequests();
         Task Create(OpexRequestDto opd);
 
-        Task<OpexRequest> GetById(int id);
+        Task<OpexRequestDto> GetById(int id);
 
         Task Update(OpexRequestDto dto);
 

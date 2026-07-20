@@ -61,5 +61,25 @@ namespace Backend_Fincore.Service
             await _db.SaveChangesAsync();
             return true;
         }
+
+        Task<IEnumerable<RoleDTO>> IRoleService.GetAllRolesAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<RoleDTO?> IRoleService.GetRoleByIdAsync(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<RoleDTO> IRoleService.CreateRoleAsync(RoleDTO dto)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<RoleDTO?> IRoleService.UpdateRoleAsync(int id, RoleDTO dto)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

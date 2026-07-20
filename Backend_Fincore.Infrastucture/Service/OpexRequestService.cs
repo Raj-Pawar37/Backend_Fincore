@@ -2,8 +2,6 @@
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend_Fincore.Service
@@ -75,6 +73,16 @@ namespace Backend_Fincore.Service
                 db.SaveChanges();
 
             }
+        }
+
+        Task<List<OpexRequestDto>> IOpexRequestService.GetAllRequests()
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<OpexRequestDto> IOpexRequestService.GetById(int id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

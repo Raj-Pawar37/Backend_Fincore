@@ -50,19 +50,19 @@ namespace Backend_Fincore.Service
             }
         }
 
-        public async Task<List<ExpenseClaim>> GetAllExpenseClaims()
-        {
-           return await db.ExpenseClaim.ToListAsync();
+        //public async Task<List<ExpenseClaim>> GetAllExpenseClaims()
+        //{
+        //   return await db.ExpenseClaim.ToListAsync();
             
-        }
+        //}
 
-        public async Task<ExpenseClaim> GetById(int id)
-        {
+        //public async Task<ExpenseClaim> GetById(int id)
+        //{
            
-            var dt = await db.ExpenseClaim.FindAsync(id);
-            return dt;
+        //    var dt = await db.ExpenseClaim.FindAsync(id);
+        //    return dt;
                     
-        }
+        //}
 
         public async Task Update(ExpenseClaimDto ec)
         {
@@ -85,6 +85,16 @@ namespace Backend_Fincore.Service
             ;
             await db.SaveChangesAsync();
 
+        }
+
+        Task<List<ExpenseClaimDto>> IExpenseClaimService.GetAllExpenseClaims()
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<ExpenseClaimDto> IExpenseClaimService.GetById(int id)
+        {
+            throw new NotImplementedException();
         }
         //        public Task Create(ExpenseClaimDto opd)
         //        {
