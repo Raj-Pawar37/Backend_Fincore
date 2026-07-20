@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;
@@ -14,22 +15,33 @@ public class MappingData : Profile
 
     public MappingData()
     {
+        //PurchaseOrder
         CreateMap<PurchaseOrder, PurchaseOrderDTO>();
         CreateMap<PurchaseOrderCUDTO, PurchaseOrder>();
 
+        //PurchaseOrderItem
         CreateMap<PurchaseOrderItem, PurchaseOrderItemDTO>();
         CreateMap<PurchaseOrderItemCUDTO, PurchaseOrderItem>();
 
+        //GRN
         CreateMap<GRN, GRNDTO>().ForMember(x => x.PONumber, x => x.MapFrom(x => x.PurchaseOrder.PONumber))
                                 .ForMember(x => x.Username, x => x.MapFrom(x => x.ReceivedByUser.Username));
 
 
         CreateMap<GRNCUDTO, GRN>();
 
-
+        //APInvoice
         CreateMap<APInvoice, APInvoiceDTO>().ForMember(x => x.VendorName,
                                             x => x.MapFrom(x => x.Vendor.VendorName));
         CreateMap<APInvoiceCUDTO, APInvoice>();
+
+        //Assets
+
+        CreateMap<Asset, AssetsDTO>().ForMember(x => x.GRNNumber, x => x.MapFrom(x => x.GRN.GRNNumber))
+                                     .ForMember(x => x.ItemName, x => x.MapFrom(x => x.PurchaseOrderItem.ItemName))
+                                     .ForMember(x => x.AssignedUserName, x => x.MapFrom(x => x.AssignedToUser.Username));
+
+        CreateMap<AssetsCUDTO, Asset>();
 
 
         //employee

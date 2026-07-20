@@ -5,6 +5,8 @@ using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Service;
+using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Infrastucture.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,9 @@ builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IPurchaseOrderItemService, PurchaseOrderItemService>();
 builder.Services.AddScoped<IGRNService, GRNService>();
 builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
+builder.Services.AddScoped<IAssetsService, AssetsService>();
+
+
 
 
 builder.Services.AddControllers();

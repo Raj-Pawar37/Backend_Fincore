@@ -4,6 +4,7 @@ using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Backend_Fincore.Service
 {
@@ -55,11 +56,22 @@ namespace Backend_Fincore.Service
 
             var invoice = mapper.Map<APInvoice>(AP);
 
-            int currentYear = DateTime.Now.Year;
+   
+            var currentYear = DateTime.Now.Year;
 
-            int count = await db.APInvoice.CountAsync(x => x.CreatedAt.Year == currentYear);
+            var lastINV = await db.APInvoice.Where(x => x.CreatedAt.Year == currentYear)
+                                  .OrderByDescending(x => x.APInvoiceId)
+                                  .FirstOrDefaultAsync();
 
-            invoice.InvoiceNumber = $"AP-{currentYear}-{(count + 1):D4}";
+            int nextNumber = 1;
+
+            if (lastINV != null)
+            {
+                var parts = lastINV.InvoiceNumber.Split('-');
+                nextNumber = int.Parse(parts[2]) + 1;
+            }
+
+            invoice.InvoiceNumber = $"AST-{currentYear}-{nextNumber:D4}";
 
             // Temporary until JWT Authentication
             //invoice.CreatedBy=userid

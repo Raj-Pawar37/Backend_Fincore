@@ -27,8 +27,8 @@ namespace Backend_Fincore.Service
                        - ((x.UnitPrice * x.Qty) * (x.Discount ?? 0) / 100));
 
 
-            var purchaseOrder = await db.PurchaseOrder
-                               .FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
+
 
             if (purchaseOrder != null)
             {
@@ -74,22 +74,22 @@ namespace Backend_Fincore.Service
             await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
         }
 
-        public async Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO dto, int id)
+        public async Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO POI, int id)
         {
-            var item = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
+            var item = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == id);
 
             if( item == null)
             {
                 throw new Exception("Purchase Order Item not found.");
             }
 
-            item.ItemName = dto.ItemName;
-            item.ItemType = dto.ItemType;
-            item.UnitPrice = dto.UnitPrice;
-            item.Tax = dto.Tax;
-            item.Discount = dto.Discount;
-            item.Qty = dto.Qty;
-            //item.PurchaseOrderId = dto.PurchaseOrderId;
+            item.ItemName = POI.ItemName;
+            item.ItemType = POI.ItemType;
+            item.UnitPrice = POI.UnitPrice;
+            item.Tax = POI.Tax;
+            item.Discount = POI.Discount;
+            item.Qty = POI.Qty;
+            item.PurchaseOrderId = POI.PurchaseOrderId;
 
             // Temporary until JWT authentication is implemented
 
@@ -106,7 +106,7 @@ namespace Backend_Fincore.Service
 
         public async Task<bool> DeleteItem(int id)
         {
-            var data = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
+            var data = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == id);
 
             if( data != null)
             {
