@@ -1,117 +1,114 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.Interface;
-using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.Infrastucture.Service;
-using Backend_Fincore.Service;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Backend_Fincore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AssetsController : ControllerBase
+    public class PaymentController : ControllerBase
     {
-        private readonly IAssetsService assetsService;
+        private readonly IPaymentService paymentService;
 
-        public AssetsController(IAssetsService assetsService)
+        public PaymentController(IPaymentService paymentService)
         {
-            this.assetsService = assetsService;
+            this.paymentService = paymentService;
         }
 
-
         [HttpGet]
-        public async Task<IActionResult> getAllAssets()
+        public async Task<IActionResult> getAllPayment()
         {
-            var data = await assetsService.GetAllAssetsList();
+            var payment = await paymentService.GetAllPayment();
 
-            return Ok(new ApiResponse<List<AssetsDTO>>
+            return Ok(new ApiResponse<List<PaymentDTO>>
             {
                 Success = true,
-                Message = "Assets fetched successfully.",
-                Data = data,
+                Message = "Payments fetched successfully.",
+                Data = payment,
                 Error = null
             });
         }
 
 
+
         [HttpGet("{id}")]
-        public async Task<IActionResult> getAssetsById(int id)
+        public async Task<IActionResult> getPaymentById(int id)
         {
-            var data = await assetsService.GetAssetById(id);
+            var data = await paymentService.GetPaymentById(id);
 
             if (data == null)
             {
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "AP Invoice not found.",
+                    Message = "Payment not found.",
                     Data = null,
-                    Error = $"No AP Invoice found with Id {id}."
+                    Error = $"No Payment found with Id {id}."
                 });
             }
 
-            return Ok(new ApiResponse<AssetsDTO>
+            return Ok(new ApiResponse<PaymentDTO>
             {
                 Success = true,
-                Message = "AP Invoice fetched successfully.",
+                Message = "Payment fetched successfully.",
                 Data = data,
                 Error = null
             });
         }
 
         [HttpPost]
-        public async Task<IActionResult> addAsset(AssetsCUDTO asset)
+        public async Task<IActionResult> addPayment(PaymentCUDTO payment)
         {
-            await assetsService.AddAssets(asset);
+            await paymentService.AddPayment(payment);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Asset created successfully.",
+                Message = "Payment added successfully.",
                 Data = null,
                 Error = null
             });
         }
-
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> updateAsset(int id, AssetsCUDTO assetsDto)
+        public async Task<IActionResult> updatePayment(int id, PaymentCUDTO dto)
         {
-            await assetsService.UpdateAssets(assetsDto, id);
+            await paymentService.UpdatePayment(dto, id);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Asset updated successfully.",
+                Message = "Payment updated successfully.",
                 Data = null,
                 Error = null
             });
         }
-
 
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> deleteAssetsById(int id)
+        public async Task<IActionResult> deletePaymentByid(int id)
         {
-            var data = await assetsService.DeleteAssetsByid(id);
+            var data = await paymentService.DeletePaymentById(id);
 
             if (!data)
             {
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Asset not found.",
+                    Message = "Payment not found.",
                     Data = null,
-                    Error = $"No Asset found with Id {id}."
+                    Error = $"No Payment found with Id {id}."
                 });
             }
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Asset deleted successfully.",
+                Message = "Payment deleted successfully.",
                 Data = null,
                 Error = null
             });

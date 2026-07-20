@@ -34,7 +34,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetAPInvoiceById(int id)
+        public async Task<IActionResult> getAPInvoiceById(int id)
         {
             var data = await aPInvoiceService.GetAPInvoiceById(id);
 
@@ -59,7 +59,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddAPInvoice(APInvoiceCUDTO AP)
+        public async Task<IActionResult> addAPInvoice(APInvoiceCUDTO AP)
         {
             await aPInvoiceService.AddAPInvoice(AP);
 
@@ -73,7 +73,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAPInvoice(int id, APInvoiceCUDTO Ap)
+        public async Task<IActionResult> updateAPInvoice(int id, APInvoiceCUDTO Ap)
         {
             await aPInvoiceService.UpdateAPInvoice(Ap, id);
 

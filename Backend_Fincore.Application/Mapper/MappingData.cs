@@ -43,6 +43,11 @@ public class MappingData : Profile
 
         CreateMap<AssetsCUDTO, Asset>();
 
+        //Payment
+
+        CreateMap<Payment, PaymentDTO>();
+
+        CreateMap<PaymentCUDTO, Payment>();
 
         //employee
         CreateMap<Employee, EmployeeReadDTO>()
