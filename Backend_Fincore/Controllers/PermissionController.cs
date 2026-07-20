@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using Backend_Fincore.Common;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
+using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -34,14 +34,15 @@ namespace Backend_Fincore.Controllers
 
                 var perDto = mapper.Map<IEnumerable<PermissionDTO>>(permissions);
                
-                var response = ApiResponse<IEnumerable<PermissionDTO>>.Success(perDto, "Permissions fetched successfully.");
-
-                return Ok(response);
+                //var response = ApiResponse<IEnumerable<PermissionDTO>>.Success(perDto, "Permissions fetched successfully.");
+                //return Ok(response);
+                throw new NotImplementedException();
             }
             catch (Exception ex)
             {
-                var response = ApiResponse<IEnumerable<PermissionDTO>>.Failure($"An error occurred fetching permissions: {ex.Message}");
-                return StatusCode(500, response);
+                //var response = ApiResponse<IEnumerable<PermissionDTO>>.Failure($"An error occurred fetching permissions: {ex.Message}");
+                //return StatusCode(500, response);
+                throw new NotImplementedException();
             }
         }
 

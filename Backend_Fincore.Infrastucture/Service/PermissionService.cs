@@ -66,5 +66,20 @@ namespace Backend_Fincore.Service
                 return null;
             }
         }
+
+        Task<PermissionDTO> IPermissionService.CreatePermissionAsync(PermissionDTO dto)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<IEnumerable<PermissionDTO>> IPermissionService.GetAllPermissionsAsync(int? id)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<PermissionDTO?> IPermissionService.UpdatePermissionAsync(int id, PermissionDTO dto)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

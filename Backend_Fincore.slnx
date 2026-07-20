@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="Backend_Fincore.Application/Backend_Fincore.Application.csproj" Id="634aab63-ca8b-406a-b8c4-ca32a260c355" />
+  <Project Path="Backend_Fincore.Domain/Backend_Fincore.Domain.csproj" Id="cf1f5672-36be-41b7-a5bb-549b04dc1c86" />
+  <Project Path="Backend_Fincore.Infrastucture/Backend_Fincore.Infrastucture.csproj" Id="412727f5-89b3-4c13-8e8b-d51b14895804" />
   <Project Path="Backend_Fincore/Backend_Fincore.csproj" />
 </Solution>

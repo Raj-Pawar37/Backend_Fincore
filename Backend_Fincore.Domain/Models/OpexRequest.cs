@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿
 using System.ComponentModel.DataAnnotations;
 
 namespace Backend_Fincore.Models
