@@ -1,12 +1,15 @@
 ﻿using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    
     public class CompanyController : ControllerBase
     {
         private readonly ICompanyService service;
