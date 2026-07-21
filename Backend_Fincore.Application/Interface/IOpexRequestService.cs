@@ -1,17 +1,18 @@
-﻿using Backend_Fincore.DTOs;
-
+﻿using Backend_Fincore.Application.DTOs.OpexRequest;
 
 namespace Backend_Fincore.Interface
 {
     public interface IOpexRequestService
     {
-        Task<List<OpexRequestDto>> GetAllRequests();
-        Task Create(OpexRequestDto opd);
+        Task<List<OpexRequestReadDTO>> GetAll();
 
-        Task<OpexRequestDto> GetById(int id);
+        Task<OpexRequestReadDTO?> GetById(int id);
 
-        Task Update(OpexRequestDto dto);
+        Task<OpexRequestReadDTO> Create(OpexRequestWriteDTO dto);
 
-        Task Delete(int id);
+        Task<OpexRequestReadDTO> Update(int id, OpexRequestWriteDTO dto);
+
+        Task<bool> Delete(int id);
+
     }
 }

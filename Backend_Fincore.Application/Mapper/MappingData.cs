@@ -1,10 +1,14 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
+
 
 
 namespace Backend_Fincore.Mapper;
@@ -73,6 +77,25 @@ public class MappingData : Profile
 
         CreateMap<Permission, PermissionDTO>().ReverseMap();
 
+
+        // OpexRequest 
+        // Opex Request
+        CreateMap<OpexRequest, OpexRequestReadDTO>();
+
+        CreateMap<OpexRequestWriteDTO, OpexRequest>().ReverseMap();
+
+
+        // Expense Claim
+        CreateMap<ExpenseClaim, ExpenseClaimReadDTO>();
+
+        CreateMap<ExpenseClaim, ExpenseClaimWriteDTO>()
+            .ReverseMap();
+
+        // Work Order
+        CreateMap<WorkOrder, WorkOrderReadDTO>();
+
+        CreateMap<WorkOrder, WorkOrderWriteDTO>()
+            .ReverseMap();
     }
 
 
