@@ -21,6 +21,20 @@ public class MappingData : Profile
 
     public MappingData()
     {
+        CreateMap<ARInvoice, ARInvoiceDto>().ReverseMap();
+
+        CreateMap<ARInvoiceCreateDto, ARInvoice>();
+
+        CreateMap<ARInvoiceUpdateDto, ARInvoice>();
+
+
+        CreateMap<RevenueEntry, RevenueEntryDto>().ReverseMap();
+
+        CreateMap<RevenueEntryCreateDto, RevenueEntry>();
+
+        CreateMap<RevenueEntryUpdateDto, RevenueEntry>();
+
+
         //PurchaseOrder
         CreateMap<PurchaseOrder, PurchaseOrderDTO>();
         CreateMap<PurchaseOrderCUDTO, PurchaseOrder>();

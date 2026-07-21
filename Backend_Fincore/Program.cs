@@ -1,19 +1,13 @@
 using Backend_Fincore.Application.Interface;
-using Backend_Fincore.Application.Interfaces;
-using Backend_Fincore.Application.Services;
 using Backend_Fincore.Data;
+using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
-using Microsoft.EntityFrameworkCore;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Backend_Fincore.Application.Interface;
-using Backend_Fincore.Infrastructure.Service;
-using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Services;
+using Microsoft.EntityFrameworkCore;
+
 
 
 
@@ -33,6 +27,9 @@ builder.Services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionServi
 builder.Services.AddScoped<IRFQService, RFQService>();
 
 
+builder.Services.AddScoped<IRevenueEntryService, RevenueEntryService>();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+builder.Services.AddScoped<IARInvoiceService, ARInvoiceService>();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));

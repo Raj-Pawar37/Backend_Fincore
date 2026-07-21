@@ -17,11 +17,9 @@ namespace Backend_Fincore.Models
 
         public DateTime InvoiceDate { get; set; }
 
-        // Pending / Approved / Paid / Rejected
         public string Status { get; set; } = null!;
 
         public string? PONumber { get; set; }
-
 
         // Navigation properties
         public Customer Customer { get; set; } = null!;

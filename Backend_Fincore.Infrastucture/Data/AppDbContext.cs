@@ -86,10 +86,7 @@ namespace Backend_Fincore.Data
         public DbSet<ARInvoice> ARInvoice { get; set; }
 
         public DbSet<JournalEntry> JournalEntry { get; set; }
-
-
-
-
+        public object ARInvoices { get; internal set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
