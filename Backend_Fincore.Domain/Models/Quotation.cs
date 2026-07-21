@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System.ComponentModel.DataAnnotations;
 
 namespace Backend_Fincore.Models
 {
@@ -24,5 +25,8 @@ namespace Backend_Fincore.Models
         public RFQVendor RFQVendor { get; set; } = null!;
 
         public PurchaseOrder? PurchaseOrder { get; set; }
+
+    
+
     }
 }

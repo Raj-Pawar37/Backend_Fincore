@@ -22,7 +22,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPurchasedItem()
+        public async Task<IActionResult> getAllPurchasedItem()
         {
             var itemList = await purchaseOrderItemService.getAllItem();
 
@@ -36,7 +36,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetItemByid(int id)
+        public async Task<IActionResult> getItemByid(int id)
         {
             var item = await purchaseOrderItemService.getItemById(id);
 

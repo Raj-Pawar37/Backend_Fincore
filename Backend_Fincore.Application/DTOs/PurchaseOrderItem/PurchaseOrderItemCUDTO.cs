@@ -18,5 +18,9 @@
         public decimal Discount { get; set; }
 
         public int Qty { get; set; }
+
+        public int CreatedBy { get; set; }
+
+        public int? ModifiedBy { get; set; }
     }
 }

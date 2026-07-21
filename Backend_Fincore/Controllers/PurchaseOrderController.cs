@@ -1,4 +1,6 @@
-﻿using Backend_Fincore.DTOs.PurchaseOrder;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Backend_Fincore.WrapperClass;
@@ -21,7 +23,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPurchaseOrder()
+        public async Task<IActionResult> getAllPurchaseOrder()
         {
             var orderList = await purchaseOrderService.GetAllPurchasedOrder();
 
@@ -35,7 +37,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetPurchasedOrderById(int id)
+        public async Task<IActionResult> getPurchasedOrderById(int id)
         {
             var data = await purchaseOrderService.GetPurchaseOrderById(id);
 
@@ -89,7 +91,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> AddPurchaseOrder(PurchaseOrderCUDTO PO)
+        public async Task<IActionResult> addPurchaseOrder(PurchaseOrderCUDTO PO)
         {
             await purchaseOrderService.AddPurchaseOrderData(PO);
 
@@ -108,7 +110,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePurchaseOrder(PurchaseOrderCUDTO dto,int id)
+        public async Task<IActionResult> updatePurchaseOrder(PurchaseOrderCUDTO dto,int id)
         {
             //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
@@ -119,6 +121,76 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "Purchase Order updated successfully.",
                 Data = null,
+                Error = null
+            });
+        }
+
+
+        [HttpPost("CreateFromQuotation")]
+        public async Task<IActionResult> CreatePOFromQuotation(SelectedQuotationDTO QuoDto)
+        {
+            await purchaseOrderService.CreatePOFromQuotation(QuoDto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Purchase Order created successfully from quotation.",
+                Data = null,
+                Error = null
+            });
+        }
+
+
+        [HttpGet("DepartmentPurchaseOrders/{userId}")]
+        public async Task<IActionResult> GetPOByDepartmentWise(int userid)
+        {
+            var data = await purchaseOrderService.GetDepartmentPurchaseOrders(userid);
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Department Purchase Orders fetched successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+
+        [HttpPut("{id}/Issue")]
+
+        public async Task<IActionResult> IssuePurchaseOrder(int id, UpdatePoStatusDTO updateStatus)
+        {
+            await purchaseOrderService.UpdatePOStatus(id, updateStatus);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Purchase Order status updated successfully.",
+                Data = null,
+                Error = null
+            });
+        }
+
+        [HttpGet("VendorIssuedPO/{vendorId}")]
+        public async Task<IActionResult> VendorIssuedPO(int vendorId)
+        {
+            var data = await purchaseOrderService.GetVendorIssuedPurchaseOrders(vendorId);
+
+            if (data == null || !data.Any())
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "No Issued Purchase Orders found.",
+                    Data = null,
+                    Error = $"No issued Purchase Orders available for Vendor Id {vendorId}."
+                });
+            }
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Issued Purchase Orders fetched successfully.",
+                Data = data,
                 Error = null
             });
         }
