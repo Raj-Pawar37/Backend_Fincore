@@ -8,6 +8,7 @@ using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
 
 
+
 namespace Backend_Fincore.Mapper;
 
 public class MappingData : Profile
@@ -90,6 +91,25 @@ public class MappingData : Profile
 
         CreateMap<Permission, PermissionDTO>().ReverseMap();
 
+
+        // OpexRequest 
+        // Opex Request
+        CreateMap<OpexRequest, OpexRequestReadDTO>();
+
+        CreateMap<OpexRequestWriteDTO, OpexRequest>().ReverseMap();
+
+
+        // Expense Claim
+        CreateMap<ExpenseClaim, ExpenseClaimReadDTO>();
+
+        CreateMap<ExpenseClaim, ExpenseClaimWriteDTO>()
+            .ReverseMap();
+
+        // Work Order
+        CreateMap<WorkOrder, WorkOrderReadDTO>();
+
+        CreateMap<WorkOrder, WorkOrderWriteDTO>()
+            .ReverseMap();
     }
 
 

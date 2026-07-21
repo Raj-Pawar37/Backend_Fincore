@@ -38,6 +38,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
 builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 var app = builder.Build();
 
