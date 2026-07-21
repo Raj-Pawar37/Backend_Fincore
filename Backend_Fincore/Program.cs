@@ -5,6 +5,7 @@ using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Service;
+using Backend_Fincore.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
 builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 var app = builder.Build();
 

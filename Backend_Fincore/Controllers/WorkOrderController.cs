@@ -1,38 +1,38 @@
-﻿using Backend_Fincore.Application.DTOs.ExpenseClaim;
+﻿using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend_Fincore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ExpenseClaimController : ControllerBase
+    public class WorkOrderController : ControllerBase
     {
-        private readonly IExpenseClaimService service;
+        private readonly IWorkOrderService service;
 
-        public ExpenseClaimController(
-            IExpenseClaimService service)
+        public WorkOrderController(IWorkOrderService service)
         {
             this.service = service;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllExpenseClaims()
+        public async Task<IActionResult> GetAll()
         {
             var data = await service.GetAll();
 
-            return Ok(new ApiResponse<List<ExpenseClaimReadDTO>>
+            return Ok(new ApiResponse<List<WorkOrderReadDTO>>
             {
                 Success = true,
-                Message = "Expense claims fetched successfully.",
+                Message = "Work Orders fetched successfully.",
                 Data = data,
                 Error = null
             });
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetExpenseClaimById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
             var data = await service.GetById(id);
 
@@ -41,40 +41,37 @@ namespace Backend_Fincore.Controllers
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Expense claim not found.",
+                    Message = "Work Order not found.",
                     Data = null,
-                    Error = $"No expense claim found with Id = {id}"
+                    Error = $"No Work Order found with Id = {id}"
                 });
             }
 
-            return Ok(new ApiResponse<ExpenseClaimReadDTO>
+            return Ok(new ApiResponse<WorkOrderReadDTO>
             {
                 Success = true,
-                Message = "Expense claim fetched successfully.",
+                Message = "Work Order fetched successfully.",
                 Data = data,
                 Error = null
             });
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddExpenseClaim(
-            ExpenseClaimWriteDTO dto)
+        public async Task<IActionResult> Add(WorkOrderWriteDTO dto)
         {
             var data = await service.Create(dto);
 
-            return Ok(new ApiResponse<ExpenseClaimReadDTO>
+            return Ok(new ApiResponse<WorkOrderReadDTO>
             {
                 Success = true,
-                Message = "Expense claim created successfully.",
+                Message = "Work Order created successfully.",
                 Data = data,
                 Error = null
             });
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateExpenseClaim(
-            int id,
-            ExpenseClaimWriteDTO dto)
+        public async Task<IActionResult> Update(int id, WorkOrderWriteDTO dto)
         {
             var data = await service.Update(id, dto);
 
@@ -83,23 +80,23 @@ namespace Backend_Fincore.Controllers
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Expense claim not found.",
+                    Message = "Work Order not found.",
                     Data = null,
-                    Error = $"No expense claim found with Id = {id}"
+                    Error = $"No Work Order found with Id = {id}"
                 });
             }
 
-            return Ok(new ApiResponse<ExpenseClaimReadDTO>
+            return Ok(new ApiResponse<WorkOrderReadDTO>
             {
                 Success = true,
-                Message = "Expense claim updated successfully.",
+                Message = "Work Order updated successfully.",
                 Data = data,
                 Error = null
             });
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteExpenseClaim(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await service.Delete(id);
 
@@ -108,16 +105,16 @@ namespace Backend_Fincore.Controllers
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Expense claim not found.",
+                    Message = "Work Order not found.",
                     Data = null,
-                    Error = $"No expense claim found with Id = {id}"
+                    Error = $"No Work Order found with Id = {id}"
                 });
             }
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Expense claim deleted successfully.",
+                Message = "Work Order deleted successfully.",
                 Data = null,
                 Error = null
             });
