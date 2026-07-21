@@ -1,4 +1,8 @@
+using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Services;
 using Backend_Fincore.Data;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
@@ -24,6 +28,9 @@ builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IBudgetCategoryService, BudgetCategoryService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
+
+builder.Services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
+builder.Services.AddScoped<IRFQService, RFQService>();
 
 
 
