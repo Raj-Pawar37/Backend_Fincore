@@ -35,7 +35,22 @@ namespace Backend_Fincore.Service
 
             await db.SaveChangesAsync();
 
-            data.PONumber = $"PO{data.PurchaseOrderId:D4}";
+           
+            var currentYear = DateTime.Now.Year;
+
+            var lastPO = await db.PurchaseOrder.Where(x => x.CreatedAt.Year == currentYear)
+                                  .OrderByDescending(x => x.PurchaseOrderId)
+                                  .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (lastPO != null)
+            {
+                var parts = lastPO.PONumber.Split('-');
+                nextNumber = int.Parse(parts[2]) + 1;
+            }
+
+            data.PONumber = $"AST-{currentYear}-{nextNumber:D4}";
 
             await db.SaveChangesAsync();
             

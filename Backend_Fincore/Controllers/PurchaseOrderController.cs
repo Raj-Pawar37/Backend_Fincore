@@ -21,7 +21,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPurchaseOrder()
+        public async Task<IActionResult> getAllPurchaseOrder()
         {
             var orderList = await purchaseOrderService.GetAllPurchasedOrder();
 
@@ -35,7 +35,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetPurchasedOrderById(int id)
+        public async Task<IActionResult> getPurchasedOrderById(int id)
         {
             var data = await purchaseOrderService.GetPurchaseOrderById(id);
 
@@ -89,7 +89,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> AddPurchaseOrder(PurchaseOrderCUDTO PO)
+        public async Task<IActionResult> addPurchaseOrder(PurchaseOrderCUDTO PO)
         {
             await purchaseOrderService.AddPurchaseOrderData(PO);
 
@@ -108,7 +108,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePurchaseOrder(PurchaseOrderCUDTO dto,int id)
+        public async Task<IActionResult> updatePurchaseOrder(PurchaseOrderCUDTO dto,int id)
         {
             //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 

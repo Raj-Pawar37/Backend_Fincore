@@ -1,5 +1,7 @@
-﻿using Backend_Fincore.DTOs.APInvoice;
-using Backend_Fincore.Interface;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
+using Backend_Fincore.DTOs.APInvoice;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Service;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Http;
@@ -9,24 +11,25 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class APInvoiceController : ControllerBase
+    public class AssetsController : ControllerBase
     {
-        private readonly IAPInvoiceService aPInvoiceService;
+        private readonly IAssetsService assetsService;
 
-        public APInvoiceController(IAPInvoiceService aPInvoiceService)
+        public AssetsController(IAssetsService assetsService)
         {
-            this.aPInvoiceService = aPInvoiceService;
+            this.assetsService = assetsService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> getAllAPInvoice()
-        {
-            var data = await aPInvoiceService.GetAllAPInvoice();
 
-            return Ok(new ApiResponse<List<APInvoiceDTO>>
+        [HttpGet]
+        public async Task<IActionResult> getAllAssets()
+        {
+            var data = await assetsService.GetAllAssetsList();
+
+            return Ok(new ApiResponse<List<AssetsDTO>>
             {
                 Success = true,
-                Message = "AP Invoice fetched successfully.",
+                Message = "Assets fetched successfully.",
                 Data = data,
                 Error = null
             });
@@ -34,9 +37,9 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> getAPInvoiceById(int id)
+        public async Task<IActionResult> getAssetsById(int id)
         {
-            var data = await aPInvoiceService.GetAPInvoiceById(id);
+            var data = await assetsService.GetAssetById(id);
 
             if (data == null)
             {
@@ -49,7 +52,7 @@ namespace Backend_Fincore.Controllers
                 });
             }
 
-            return Ok(new ApiResponse<APInvoiceDTO>
+            return Ok(new ApiResponse<AssetsDTO>
             {
                 Success = true,
                 Message = "AP Invoice fetched successfully.",
@@ -59,28 +62,29 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> addAPInvoice(APInvoiceCUDTO AP)
+        public async Task<IActionResult> addAsset(AssetsCUDTO asset)
         {
-            await aPInvoiceService.AddAPInvoice(AP);
+            await assetsService.AddAssets(asset);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "AP Invoice created successfully.",
+                Message = "Asset created successfully.",
                 Data = null,
                 Error = null
             });
         }
 
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> updateAPInvoice(int id, APInvoiceCUDTO Ap)
+        public async Task<IActionResult> updateAsset(int id, AssetsCUDTO assetsDto)
         {
-            await aPInvoiceService.UpdateAPInvoice(Ap, id);
+            await assetsService.UpdateAssets(assetsDto, id);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "AP Invoice updated successfully.",
+                Message = "Asset updated successfully.",
                 Data = null,
                 Error = null
             });
@@ -89,25 +93,25 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> deleteById(int id)
+        public async Task<IActionResult> deleteAssetsById(int id)
         {
-            var data = await aPInvoiceService.DeleteInvoiceById(id);
+            var data = await assetsService.DeleteAssetsByid(id);
 
             if (!data)
             {
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "APInvoice not found.",
+                    Message = "Asset not found.",
                     Data = null,
-                    Error = $"No APInvoice found with Id {id}."
+                    Error = $"No Asset found with Id {id}."
                 });
             }
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "APInvoice deleted successfully.",
+                Message = "Asset deleted successfully.",
                 Data = null,
                 Error = null
             });
