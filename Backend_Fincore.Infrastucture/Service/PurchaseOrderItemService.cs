@@ -59,11 +59,11 @@ namespace Backend_Fincore.Service
             return null;
         }
 
-        public async Task AddPurchasedItem(PurchaseOrderItemCUDTO PT)
+        public async Task AddPurchasedItem(PurchaseOrderItemCUDTO POI)
         {
-            var item = mapper.Map<PurchaseOrderItem>(PT);
+            var item = mapper.Map<PurchaseOrderItem>(POI);
 
-            item.CreatedBy = 1;
+            item.CreatedBy = POI.CreatedBy;
 
             await db.PurchaseOrderItem.AddAsync(item);
 
@@ -95,7 +95,7 @@ namespace Backend_Fincore.Service
 
             //item.ModifiedBy = userid
 
-            item.ModifiedBy = 1;
+            item.ModifiedBy = POI.ModifiedBy;
             item.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

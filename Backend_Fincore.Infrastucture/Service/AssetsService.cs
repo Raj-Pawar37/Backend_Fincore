@@ -70,7 +70,7 @@ namespace Backend_Fincore.Infrastucture.Service
             res.AssetCode = $"AST-{currentYear}-{nextNumber:D4}";
 
             //res.CreatedBy=userid
-            res.CreatedBy = 1;
+            res.CreatedBy = assetDto.CreatedBy;
 
             await db.Asset.AddAsync(res);
             await db.SaveChangesAsync();
@@ -165,7 +165,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
            
             //assets.ModifiedBy = userid
-            assets.ModifiedBy = 1;
+            assets.ModifiedBy = assetDto.ModifiedBy;
             assets.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

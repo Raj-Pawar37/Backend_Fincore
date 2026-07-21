@@ -27,5 +27,9 @@ namespace Backend_Fincore.Application.DTOs
 
         public int? AssignedTo { get; set; }
 
+        public int CreatedBy { get; set; }
+
+        public int? ModifiedBy { get; set; }
+
     }
 }
