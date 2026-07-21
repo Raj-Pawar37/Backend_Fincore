@@ -1,5 +1,6 @@
-﻿using Backend_Fincore.Data;
-using Backend_Fincore.DTOs;
+﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Data;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
@@ -9,80 +10,71 @@ namespace Backend_Fincore.Service
     public class OpexRequestService : IOpexRequestService
     {
         private readonly AppDbContext db;
-        public OpexRequestService(AppDbContext db)
+        private readonly IMapper mapper;
+
+        public OpexRequestService(AppDbContext db, IMapper mapper)
         {
             this.db = db;
-            
+            this.mapper = mapper;
         }
 
-        public  Task Create(OpexRequestDto opd)
+        public async Task<List<OpexRequestReadDTO>> GetAll()
         {
-            var OpexRequest =  new OpexRequest()
+            var data = await db.OpexRequest.ToListAsync();
+
+            return mapper.Map<List<OpexRequestReadDTO>>(data);
+        }
+
+        public async Task<OpexRequestReadDTO?> GetById(int id)
+        {
+            var data = await db.OpexRequest.FindAsync(id);
+
+            if (data == null)
+                return null;
+
+            return mapper.Map<OpexRequestReadDTO>(data);
+        }
+        public async Task<OpexRequestReadDTO> Create(OpexRequestWriteDTO dto)
+        {
+            var data = mapper.Map<OpexRequest>(dto);
+
+            data.Status = "Pending";
+
+            db.OpexRequest.Add(data);
+
+            await db.SaveChangesAsync();
+
+            return mapper.Map<OpexRequestReadDTO>(data);
+        }
+
+        public async Task<OpexRequestReadDTO> Update(int id, OpexRequestWriteDTO dto)
+        {
+            var data = await db.OpexRequest.FindAsync(id);
+
+            if (data == null)
             {
-                BudgetLineId = opd.BudgetLineId,
-                Title = opd.Title,
-                Amount = opd.Amount,
-                RequestedBy = opd.RequestedBy,
-                Status = opd.Status,
-                ApprovedBy= opd.ApprovedBy,
-                ApprovedDate= opd.ApprovedDate,
-
-
-            };
-           db.OpexRequest.Add(OpexRequest);
-            db.SaveChanges();
-            return Task.CompletedTask;
-        }
-
-        public async Task<List<OpexRequest>> GetAllRequests()
-        {
-          var data =  await db.OpexRequest.ToListAsync();
-            return data;
-        }
-
-        public async Task Update(OpexRequestDto dto)
-        {
-            var id = await db.OpexRequest.FindAsync(dto.OpexRequestId);
-            if (id != null)
-            {
-              id.BudgetLineId = dto.BudgetLineId;
-                id.Title = dto.Title;
-                id.Amount = dto.Amount;
-                id.RequestedBy = dto.RequestedBy;
-                id.Status = dto.Status;
-                id.ApprovedBy = dto.ApprovedBy;
-                id.ApprovedDate = dto.ApprovedDate;
-
+                return null;
             }
-           await  db.SaveChangesAsync();
-             
+
+            mapper.Map(dto, data);
+
+            await db.SaveChangesAsync();
+            return mapper.Map<OpexRequestReadDTO>(data);
         }
 
-        public async Task<OpexRequest>GetById(int id)
+        public async Task<bool> Delete(int id)
         {
-            var dt = await db.OpexRequest.FindAsync(id);
-            return dt;
-        }
+            var data = await db.OpexRequest.FindAsync(id);
 
-        public async Task Delete(int id)
-        {
-            var dt = await db.OpexRequest.FindAsync(id);
-            if(dt != null)
-            {
-                db.OpexRequest.Remove(dt);
-                db.SaveChanges();
+            if (data == null)
+                return false;
 
-            }
-        }
+            db.OpexRequest.Remove(data);
 
-        Task<List<OpexRequestDto>> IOpexRequestService.GetAllRequests()
-        {
-            throw new NotImplementedException();
-        }
+            await db.SaveChangesAsync();
 
-        Task<OpexRequestDto> IOpexRequestService.GetById(int id)
-        {
-            throw new NotImplementedException();
+            return true;
         }
     }
+
 }

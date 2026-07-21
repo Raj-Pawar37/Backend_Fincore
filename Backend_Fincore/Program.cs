@@ -4,6 +4,10 @@ using Backend_Fincore.Interface;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
+using Microsoft.EntityFrameworkCore;
+using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Infrastucture.Service;
+using Backend_Fincore.Services;
 using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +33,10 @@ builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IPurchaseOrderItemService, PurchaseOrderItemService>();
 builder.Services.AddScoped<IGRNService, GRNService>();
 builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
+builder.Services.AddScoped<IAssetsService, AssetsService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+
 
 
 builder.Services.AddControllers();
@@ -37,6 +45,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
 builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 var app = builder.Build();
 
