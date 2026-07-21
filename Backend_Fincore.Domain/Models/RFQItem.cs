@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System.ComponentModel.DataAnnotations;
 
 namespace Backend_Fincore.Models
 {
@@ -20,5 +21,8 @@ namespace Backend_Fincore.Models
 
         // Navigation property
         public RFQ RFQ { get; set; } = null!;
+
+       
+
     }
 }
