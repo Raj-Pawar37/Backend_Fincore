@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;

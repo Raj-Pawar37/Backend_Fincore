@@ -3,10 +3,9 @@ using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
-using Backend_Fincore.Interface;
-using Backend_Fincore.Service;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Infrastucture.Service;
+using Backend_Fincore.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
