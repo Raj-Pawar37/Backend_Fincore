@@ -53,6 +53,9 @@ public class MappingData : Profile
 
         CreateMap<PaymentCUDTO, Payment>();
 
+
+        //CreateMap<QuotationItem, PurchaseOrderItem>();
+
         //employee
         CreateMap<Employee, EmployeeReadDTO>()
             .ForMember(d => d.CompanyName, x => x.MapFrom(y => y.Company.CompanyName))

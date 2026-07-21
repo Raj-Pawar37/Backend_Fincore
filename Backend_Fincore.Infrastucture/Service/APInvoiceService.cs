@@ -75,7 +75,7 @@ namespace Backend_Fincore.Service
 
             // Temporary until JWT Authentication
             //invoice.CreatedBy=userid
-            invoice.CreatedBy = 1;
+            invoice.CreatedBy = AP.CreatedBy;
 
             await db.APInvoice.AddAsync(invoice);
             await db.SaveChangesAsync();
@@ -107,7 +107,7 @@ namespace Backend_Fincore.Service
             // Temporary until JWT Authentication
             //invoice.ModifiedBy=userid
 
-            invoice.ModifiedBy = 1;
+            invoice.ModifiedBy = AP.ModifiedBy;
             invoice.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

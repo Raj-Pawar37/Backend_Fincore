@@ -1,4 +1,6 @@
-﻿using Backend_Fincore.DTOs.PurchaseOrder;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Backend_Fincore.WrapperClass;
@@ -119,6 +121,76 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "Purchase Order updated successfully.",
                 Data = null,
+                Error = null
+            });
+        }
+
+
+        [HttpPost("CreateFromQuotation")]
+        public async Task<IActionResult> CreatePOFromQuotation(SelectedQuotationDTO QuoDto)
+        {
+            await purchaseOrderService.CreatePOFromQuotation(QuoDto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Purchase Order created successfully from quotation.",
+                Data = null,
+                Error = null
+            });
+        }
+
+
+        [HttpGet("DepartmentPurchaseOrders/{userId}")]
+        public async Task<IActionResult> GetPOByDepartmentWise(int userid)
+        {
+            var data = await purchaseOrderService.GetDepartmentPurchaseOrders(userid);
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Department Purchase Orders fetched successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+
+        [HttpPut("{id}/Issue")]
+
+        public async Task<IActionResult> IssuePurchaseOrder(int id, UpdatePoStatusDTO updateStatus)
+        {
+            await purchaseOrderService.UpdatePOStatus(id, updateStatus);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Purchase Order status updated successfully.",
+                Data = null,
+                Error = null
+            });
+        }
+
+        [HttpGet("VendorIssuedPO/{vendorId}")]
+        public async Task<IActionResult> VendorIssuedPO(int vendorId)
+        {
+            var data = await purchaseOrderService.GetVendorIssuedPurchaseOrders(vendorId);
+
+            if (data == null || !data.Any())
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "No Issued Purchase Orders found.",
+                    Data = null,
+                    Error = $"No issued Purchase Orders available for Vendor Id {vendorId}."
+                });
+            }
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Issued Purchase Orders fetched successfully.",
+                Data = data,
                 Error = null
             });
         }

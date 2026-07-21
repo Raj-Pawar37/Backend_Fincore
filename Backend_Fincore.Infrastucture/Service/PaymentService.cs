@@ -52,7 +52,7 @@ namespace Backend_Fincore.Infrastucture.Service
             var data = mapper.Map<Payment>(paymentDTO);
 
             //data.CreatedBy=userid
-            data.CreatedBy = 1;
+            data.CreatedBy = paymentDTO.CreatedBy;
 
             await db.Payment.AddAsync(data);
             await db.SaveChangesAsync();
@@ -134,7 +134,7 @@ namespace Backend_Fincore.Infrastucture.Service
             payment.PaymentMode = paymentDto.PaymentMode;
             payment.Remarks = paymentDto.Remarks;
 
-            payment.ModifiedBy = 1;
+            payment.ModifiedBy = paymentDto.ModifiedBy;
             payment.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
