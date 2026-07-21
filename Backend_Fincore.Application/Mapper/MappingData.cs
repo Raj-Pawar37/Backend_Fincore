@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.PurchaseRequisition;
+using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;
@@ -19,6 +21,15 @@ public class MappingData : Profile
 
         CreateMap<PurchaseOrderItem, PurchaseOrderItemDTO>();
         CreateMap<PurchaseOrderItemCUDTO, PurchaseOrderItem>();
+
+        CreateMap<PurchaseRequisitionCreateDto, PurchaseRequisition>();
+        CreateMap<PurchaseRequisitionUpdateDto, PurchaseRequisition>();
+        CreateMap<PurchaseRequisition, PurchaseRequisitionResponseDto>();
+
+        CreateMap<RFQCreateDto, RFQ>();
+        CreateMap<RFQItemCreateDto, RFQItem>();
+        CreateMap<RFQ, RFQResponseDto>();
+
 
         CreateMap<GRN, GRNDTO>().ForMember(x => x.PONumber, x => x.MapFrom(x => x.PurchaseOrder.PONumber))
                                 .ForMember(x => x.Username, x => x.MapFrom(x => x.ReceivedByUser.Username));

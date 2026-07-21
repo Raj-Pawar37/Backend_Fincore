@@ -1,10 +1,12 @@
+using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Services;
 using Backend_Fincore.Data;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
-using Backend_Fincore.Interface;
-using Backend_Fincore.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +26,8 @@ builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IPurchaseOrderItemService, PurchaseOrderItemService>();
 builder.Services.AddScoped<IGRNService, GRNService>();
 builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
-
+builder.Services.AddScoped<IPurchaseRequisitionService,PurchaseRequisitionService>();
+builder.Services.AddScoped<IRFQService, RFQService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
