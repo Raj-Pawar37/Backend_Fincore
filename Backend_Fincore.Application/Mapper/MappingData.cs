@@ -73,6 +73,32 @@ public class MappingData : Profile
 
         CreateMap<Permission, PermissionDTO>().ReverseMap();
 
+        CreateMap<BudgetCategory, BudgetCategoryReadDTO>();//Ritik
+
+        CreateMap<BudgetCategoryWriteDTO, BudgetCategory>().ReverseMap();//Ritik
+
+        CreateMap<BudgetWriteDTO, Budget>();//Ritik
+
+        CreateMap<Budget, BudgetReadDTO>()
+            .ForMember(dest => dest.CompanyName,
+                opt => opt.MapFrom(src => src.Company.CompanyName))
+            .ForMember(dest => dest.DepartmentName,
+                opt => opt.MapFrom(src => src.Department.DepartmentName))
+            .ForMember(dest => dest.ApprovedByName,
+                opt => opt.MapFrom(src =>src.ApprovedByUser != null? src.ApprovedByUser.Username:null));//Ritik
+
+        CreateMap<BudgetLineWriteDTO, BudgetLine>();
+
+        CreateMap<BudgetLine, BudgetLineReadDTO>()
+            .ForMember(dest => dest.FinancialYear,
+                opt => opt.MapFrom(src => src.Budget.FinancialYear))
+            .ForMember(dest => dest.CompanyName,
+                opt => opt.MapFrom(src => src.Budget.Company.CompanyName))
+            .ForMember(dest => dest.DepartmentName,
+                opt => opt.MapFrom(src => src.Budget.Department.DepartmentName))
+            .ForMember(dest => dest.BudgetCategoryName,
+                opt => opt.MapFrom(src => src.BudgetCategory.CategoryName));
+
     }
 
 
