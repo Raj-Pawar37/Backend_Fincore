@@ -1,15 +1,14 @@
 using Backend_Fincore.Data;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
-using Backend_Fincore.Interface;
+
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
 using Microsoft.EntityFrameworkCore;
 using Backend_Fincore.Application.Interface;
-using Backend_Fincore.Infrastucture.Service;
+
 using Backend_Fincore.Services;
-using Backend_Fincore.Service;
-using Microsoft.EntityFrameworkCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +20,7 @@ builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IBudgetCategoryService, BudgetCategoryService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
-builder.Services.AddAutoMapper(typeof(MappingData));
+
 
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
