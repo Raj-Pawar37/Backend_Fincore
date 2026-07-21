@@ -45,7 +45,7 @@ builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
 builder.Services.AddScoped<IAssetsService, AssetsService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
-
+builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
