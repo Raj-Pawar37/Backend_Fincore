@@ -2,6 +2,8 @@
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Application.DTOs.PurchaseRequisition;
+using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
@@ -52,6 +54,8 @@ public class MappingData : Profile
         CreateMap<Payment, PaymentDTO>();
 
         CreateMap<PaymentCUDTO, Payment>();
+
+
 
 
         //CreateMap<QuotationItem, PurchaseOrderItem>();
@@ -143,6 +147,16 @@ public class MappingData : Profile
                 opt => opt.MapFrom(src => src.Budget.Department.DepartmentName))
             .ForMember(dest => dest.BudgetCategoryName,
                 opt => opt.MapFrom(src => src.BudgetCategory.CategoryName));
+
+
+
+        CreateMap<PurchaseRequisitionCreateDto, PurchaseRequisition>();
+        CreateMap<PurchaseRequisitionUpdateDto, PurchaseRequisition>();
+        CreateMap<PurchaseRequisition, PurchaseRequisitionResponseDto>();
+
+        CreateMap<RFQCreateDto, RFQ>();
+        CreateMap<RFQItemCreateDto, RFQItem>();
+        CreateMap<RFQ, RFQResponseDto>();
 
 
     }
