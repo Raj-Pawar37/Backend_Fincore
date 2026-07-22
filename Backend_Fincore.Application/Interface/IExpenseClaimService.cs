@@ -1,17 +1,23 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.DTOs;
 
 
 namespace Backend_Fincore.Interface
 {
-    public interface IExpenseClaimService
-    {
-        Task<List<ExpenseClaimDto>> GetAllExpenseClaims();
-        Task Create(ExpenseClaimDto opd);
+        public interface IExpenseClaimService
+        {
+            Task<List<ExpenseClaimReadDTO>> GetAll();
 
-        Task<ExpenseClaimDto> GetById(int id);
+            Task<ExpenseClaimReadDTO?> GetById(int id);
 
-        Task Update(ExpenseClaimDto dto);
+            Task<ExpenseClaimReadDTO> Create(
+                ExpenseClaimWriteDTO dto);
 
-        Task Delete(int id);
-    }
+            Task<ExpenseClaimReadDTO?> Update(
+                int id,
+                ExpenseClaimWriteDTO dto);
+
+            Task<bool> Delete(int id);
+        }
+  
 }

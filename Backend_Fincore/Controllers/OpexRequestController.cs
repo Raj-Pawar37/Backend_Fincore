@@ -1,6 +1,6 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Interface;
-using Microsoft.AspNetCore.Http;
+using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend_Fincore.Controllers
@@ -9,7 +9,8 @@ namespace Backend_Fincore.Controllers
     [ApiController]
     public class OpexRequestController : ControllerBase
     {
-        IOpexRequestService service;
+        private readonly IOpexRequestService service;
+
         public OpexRequestController(IOpexRequestService service)
         {
             this.service = service;
@@ -18,41 +19,105 @@ namespace Backend_Fincore.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllRequests()
         {
-            var data = await service.GetAllRequests();
-            return Ok(data);
+            var data = await service.GetAll();
 
+            return Ok(new ApiResponse<List<OpexRequestReadDTO>>
+            {
+                Success = true,
+                Message = "Opex Requests fetched successfully.",
+                Data = data,
+                Error = null
+            });
         }
-        [HttpPost]
-        public async Task<IActionResult> AddOpexRequest(OpexRequestDto dto)
-        {
-            await service.Create(dto);
-            return Ok("Added Successfully ");
 
-        }
-        [HttpGet("/{id}")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetRequestById(int id)
         {
-            var dt = await service.GetById(id);
-            if (id == null)
+            var data = await service.GetById(id);
+
+            if (data == null)
             {
-                return NotFound();
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Opex Request not found.",
+                    Data = null,
+                    Error = $"No Opex Request found with Id = {id}"
+                });
             }
-            return Ok(dt);
 
+            return Ok(new ApiResponse<OpexRequestReadDTO>
+            {
+                Success = true,
+                Message = "Opex Request fetched successfully.",
+                Data = data,
+                Error = null
+            });
         }
-        [HttpPut]
-        public async Task<IActionResult> UpdateOpexRequest(OpexRequestDto opd)
+
+        [HttpPost]
+        [HttpPost]
+        public async Task<IActionResult> AddOpexRequest(OpexRequestWriteDTO dto)
         {
-            await service.Update(opd);
-            return Ok("Updated Successfully");
+            await service.Create(dto);
 
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Opex Request created successfully.",
+                Data = null,
+                Error = null
+            });
         }
-        [HttpDelete("/{id}")]
-         public async Task<IActionResult> DeleteOpexRequest(int id)
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateOpexRequest(int id, OpexRequestWriteDTO dto)
         {
-           await service.Delete(id);
-            return Ok("Deleted Successfully");
+            var result = await service.Update(id, dto);
+
+            if (result == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Opex Request not found.",
+                    Data = null,
+                    Error = $"No Opex Request found with Id = {id}"
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Opex Request updated successfully.",
+                Data = null,
+                Error = null
+            });
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteOpexRequest(int id)
+        {
+            var result = await service.Delete(id);
+
+            if (!result)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Opex Request not found.",
+                    Data = null,
+                    Error = $"No Opex Request found with Id = {id}"
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Opex Request deleted successfully.",
+                Data = null,
+                Error = null
+            });
+        }
     }
 }

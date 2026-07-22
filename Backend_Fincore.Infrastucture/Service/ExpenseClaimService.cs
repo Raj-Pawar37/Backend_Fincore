@@ -1,4 +1,6 @@
-﻿using Backend_Fincore.Data;
+﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
@@ -8,158 +10,87 @@ namespace Backend_Fincore.Service
 {
     public class ExpenseClaimService : IExpenseClaimService
     {
-
-
         private readonly AppDbContext db;
-        public ExpenseClaimService(AppDbContext db)
+        private readonly IMapper mapper;
+
+        public ExpenseClaimService(
+            AppDbContext db,
+            IMapper mapper)
         {
             this.db = db;
+            this.mapper = mapper;
         }
 
-        public Task Create(ExpenseClaimDto opd)
+        public async Task<List<ExpenseClaimReadDTO>> GetAll()
         {
-            var ExpenseClaim = new ExpenseClaim()
-            {
-                OpexRequestId = opd.OpexRequestId,
-                ClaimNumber = opd.ClaimNumber,
-                ExpenseAmount = opd.ExpenseAmount,
-                ExpenseDate = opd.ExpenseDate,
-                Description = opd.Description,
-                BillFilePath = opd.BillFilePath,
-                ClaimedBy = opd.ClaimedBy,
-                Status = opd.Status,
-                ApprovedBy = opd.ApprovedBy,
-                ApprovedDate = opd.ApprovedDate,
+            var data = await db.ExpenseClaim
+                .ToListAsync();
 
-
-
-            };
-            db.ExpenseClaim.Add(ExpenseClaim);
-            db.SaveChanges();
-            return Task.CompletedTask;
+            return mapper.Map<List<ExpenseClaimReadDTO>>(data);
         }
 
-        public async Task Delete(int id)
+        public async Task<ExpenseClaimReadDTO?> GetById(int id)
         {
-            var dt = await db.ExpenseClaim.FindAsync(id);
-            if (dt != null)
-            {
-                db.ExpenseClaim.Remove(dt);
-                db.SaveChanges();
+            var data = await db.ExpenseClaim
+                .FindAsync(id);
 
+            if (data == null)
+            {
+                return null;
             }
+
+            return mapper.Map<ExpenseClaimReadDTO>(data);
         }
 
-        //public async Task<List<ExpenseClaim>> GetAllExpenseClaims()
-        //{
-        //   return await db.ExpenseClaim.ToListAsync();
-            
-        //}
-
-        //public async Task<ExpenseClaim> GetById(int id)
-        //{
-           
-        //    var dt = await db.ExpenseClaim.FindAsync(id);
-        //    return dt;
-                    
-        //}
-
-        public async Task Update(ExpenseClaimDto ec)
+        public async Task<ExpenseClaimReadDTO> Create(
+            ExpenseClaimWriteDTO dto)
         {
-            var id = await db.ExpenseClaim.FindAsync(ec.ExpenseClaimId);
-            if (id != null)
-            {
-                id.ClaimNumber = ec.ClaimNumber;
-                id.ExpenseAmount = ec.ExpenseAmount;
-                id.ExpenseDate = ec.ExpenseDate;
-                id.Description = ec.Description;
-                id.BillFilePath = ec.BillFilePath;
-                id.ClaimedBy = ec.ClaimedBy;
-                id.Status = ec.Status;
-                id.ApprovedBy = ec.ApprovedBy;
-                id.ApprovedDate = ec.ApprovedDate
-;
+            var data = mapper.Map<ExpenseClaim>(dto);
 
+            data.Status = "Pending";
+            data.ApprovedBy = null;
+            data.ApprovedDate = null;
 
-            }
-            ;
+            await db.ExpenseClaim.AddAsync(data);
             await db.SaveChangesAsync();
 
+            return mapper.Map<ExpenseClaimReadDTO>(data);
         }
 
-        Task<List<ExpenseClaimDto>> IExpenseClaimService.GetAllExpenseClaims()
+        public async Task<ExpenseClaimReadDTO?> Update(
+            int id,
+            ExpenseClaimWriteDTO dto)
         {
-            throw new NotImplementedException();
+            var data = await db.ExpenseClaim
+                .FindAsync(id);
+
+            if (data == null)
+            {
+                return null;
+            }
+
+            mapper.Map(dto, data);
+
+            await db.SaveChangesAsync();
+
+            return mapper.Map<ExpenseClaimReadDTO>(data);
         }
 
-        Task<ExpenseClaimDto> IExpenseClaimService.GetById(int id)
+        public async Task<bool> Delete(int id)
         {
-            throw new NotImplementedException();
+            var data = await db.ExpenseClaim
+                .FindAsync(id);
+
+            if (data == null)
+            {
+                return false;
+            }
+
+            db.ExpenseClaim.Remove(data);
+
+            await db.SaveChangesAsync();
+
+            return true;
         }
-        //        public Task Create(ExpenseClaimDto opd)
-        //        {
-        //            var ExpenseClaim = new ExpenseClaim()
-        //            {
-        //              OpexRequestId = opd.OpexRequestId,
-        //              ClaimNumber = opd.ClaimNumber,
-        //              ExpenseAmount = opd.ExpenseAmount,    
-        //              ExpenseDate = opd.ExpenseDate,
-        //              Description = opd.Description,
-        //              BillFilePath = opd.BillFilePath,
-        //              ClaimedBy = opd.ClaimedBy,
-        //              Status = opd.Status,
-        //              ApprovedBy = opd.ApprovedBy,
-        //              ApprovedDate = opd.ApprovedDate,
-
-
-
-        //            };
-        //            db.ExpenseClaim.Add(ExpenseClaim);
-        //            db.SaveChanges();
-        //            return Task.CompletedTask;
-        //        }
-
-
-
-        //        public async Task Update(ExpenseClaimDto ec)
-        //        {
-        //            var id = await db.ExpenseClaim.FindAsync(ec.ExpenseClaimId);
-        //            if (id != null)
-        //            {
-        //                id.ClaimNumber = ec.ClaimNumber;
-        //                id.ExpenseAmount = ec.ExpenseAmount;
-        //                id.ExpenseDate = ec.ExpenseDate;
-        //                id.Description = ec.Description;
-        //                id.BillFilePath = ec.BillFilePath;
-        //                id.ClaimedBy = ec.ClaimedBy;
-        //                id.Status = ec.Status;
-        //                id.ApprovedBy = ec.ApprovedBy;
-        //                id.ApprovedDate = ec.ApprovedDate
-        //;
-
-
-        //            };
-        //            await db.SaveChangesAsync();
-
-        //        }
-
-        //        public async Task<ExpenseClaim> GetById(int id)
-        //        {
-        //            var dt = await db.ExpenseClaim.FindAsync(id);
-        //            return dt;
-        //        }
-
-        //        public async Task Delete(int id)
-        //        {
-        //            var dt = await db.ExpenseClaim.FindAsync(id);
-        //            if (dt != null)
-        //            {
-        //                db.ExpenseClaim.Remove(dt);
-        //                db.SaveChanges();
-
-        //            }
-        //        }
-
-
     }
 }
