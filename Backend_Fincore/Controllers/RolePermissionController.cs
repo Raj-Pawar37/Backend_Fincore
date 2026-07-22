@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/v1/role-permissions")]
+    [Route("api/v1/role_permissions")]
     [ApiController]
     public class RolePermissionController : ControllerBase
     {
