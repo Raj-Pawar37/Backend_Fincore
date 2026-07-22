@@ -161,6 +161,15 @@ public class MappingData : Profile
         CreateMap<RFQ, RFQResponseDto>();
 
 
+        CreateMap<RolePermissionDTOs, RolePermission>();
+
+        CreateMap<RolePermission, RolePermissionResponseDto>()
+            .ForMember(dest => dest.RoleName,
+                       opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : string.Empty))
+            .ForMember(dest => dest.PermissionName,
+                       opt => opt.MapFrom(src => src.Permission != null ? src.Permission.PermissionName : string.Empty));
+
+
 
         CreateMap<DocumentNumberMaster, DocumentNumberUpdateDTO>().ReverseMap();
         CreateMap<DocumentNumberMaster, DocumentNumberUpdateDTO>().ReverseMap();
