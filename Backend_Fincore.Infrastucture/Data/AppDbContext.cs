@@ -1,4 +1,5 @@
 ﻿using Backend_Fincore.Domain.Models;
+
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,8 @@ namespace Backend_Fincore.Data
         public DbSet<RFQItem> RFQItem { get; set; }
 
         public DbSet<Quotation> Quotation { get; set; }
+
+        
 
 
         public DbSet<PurchaseOrder> PurchaseOrder { get; set; }
@@ -1156,7 +1159,15 @@ CAPEX REQUEST
                     .IsUnique();
             });
 
+
+
+
+
+
             /*
+             * 
+             * 
+
 ----------------------------------------
 PURCHASE ORDER
 ----------------------------------------

@@ -59,7 +59,7 @@ namespace Backend_Fincore.Service
 
             // Temporary until JWT is implemented
             //data.CreatedBy=userid
-            data.CreatedBy = 1;
+            data.CreatedBy = grn.CreatedBy;
 
             await db.GRN.AddAsync(data);
             await db.SaveChangesAsync();
@@ -144,7 +144,7 @@ namespace Backend_Fincore.Service
 
             // Temporary until JWT Authentication
             //data.ModifiedBy=userid
-            data.ModifiedBy = 1;
+            data.ModifiedBy = grn.ModifiedBy;
             data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

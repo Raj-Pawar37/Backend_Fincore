@@ -1,11 +1,13 @@
-﻿
-using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace Backend_Fincore.Models
+namespace Backend_Fincore.Application.DTOs
 {
-    public class Quotation : BaseEntity
+    public class QuotationDTO
     {
-        [Key]
         public int QuotationId { get; set; }
 
         public int RFQVendorId { get; set; }
@@ -19,14 +21,5 @@ namespace Backend_Fincore.Models
         public string? AttachmentPath { get; set; }
 
         public string? Description { get; set; }
-
-
-        // Navigation property
-        public RFQVendor RFQVendor { get; set; } = null!;
-
-        public PurchaseOrder? PurchaseOrder { get; set; }
-
-    
-
     }
 }
