@@ -20,12 +20,18 @@ namespace Backend_Fincore.Service
 
         public async Task AddGrn(GRNCUDTO grn)
         {
-            var purchsedOrder = await db.PurchaseOrder.FirstOrDefaultAsync
-                          (x => x.PurchaseOrderId == grn.PurchaseOrderId);
+            var purchsedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId);
+
+
 
             if (purchsedOrder == null)
             {
                 throw new Exception("Purchase Order not found.");
+            }
+
+            if(purchsedOrder.Status != "Issued")
+            {
+                throw new Exception("Only Issued Purchase Orders can be added to GRN.");
             }
 
             var user = await db.User.FirstOrDefaultAsync(x => x.UserId == grn.ReceivedBy);
@@ -37,9 +43,7 @@ namespace Backend_Fincore.Service
 
             var data = mapper.Map<GRN>(grn);
 
-            // Generate GRN Number
-            int count = await db.GRN.CountAsync() + 1;
-            data.GRNNumber = $"GRN{count:D4}";
+           
 
             var currentYear = DateTime.Now.Year;
 
@@ -55,11 +59,13 @@ namespace Backend_Fincore.Service
                 nextNumber = int.Parse(parts[2]) + 1;
             }
 
-            data.GRNNumber = $"AST-{currentYear}-{nextNumber:D4}";
+            data.GRNNumber = $"GRN-{currentYear}-{nextNumber:D4}";
 
-            // Temporary until JWT is implemented
+            // Temporary until JWT get implemented
             //data.CreatedBy=userid
             data.CreatedBy = grn.CreatedBy;
+
+            
 
             await db.GRN.AddAsync(data);
             await db.SaveChangesAsync();
@@ -86,7 +92,10 @@ namespace Backend_Fincore.Service
         public async Task<List<GRNDTO>> GetAllGrns()
         {
             var res = await db.GRN.Include(x => x.PurchaseOrder)
-                .Include(x => x.ReceivedByUser).ToListAsync();
+                .Include(x => x.ReceivedByUser).Where(x=> x.PurchaseOrder.Status == "Issued").ToListAsync();
+
+
+            
 
             var data = mapper.Map<List<GRNDTO>>(res);
 
