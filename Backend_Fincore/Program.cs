@@ -1,11 +1,12 @@
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Middleware;
 using Backend_Fincore.Service;
-using Microsoft.EntityFrameworkCore;
-using Backend_Fincore.Application.Interface;
-using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,12 @@ builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
 builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
 builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
+
+
+builder.Services.AddScoped<IDocumentNumberService, DocumentNumberService>();
+
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -49,6 +56,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseAuthorization();
 

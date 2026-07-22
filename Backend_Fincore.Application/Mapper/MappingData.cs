@@ -9,6 +9,8 @@ using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
+using Backend_Fincore.Domain.Models;
+using Backend_Fincore.Application.DTOs.DocumentNumber;
 
 
 
@@ -113,6 +115,10 @@ public class MappingData : Profile
 
         CreateMap<WorkOrder, WorkOrderWriteDTO>()
             .ReverseMap();
+
+        CreateMap<DocumentNumberMaster, DocumentNumberUpdateDTO>().ReverseMap();
+        CreateMap<DocumentNumberMaster, DocumentNumberUpdateDTO>().ReverseMap();
+        CreateMap<DocumentNumberMaster, DocumentNumberDTO>().ReverseMap();
     }
 
 
