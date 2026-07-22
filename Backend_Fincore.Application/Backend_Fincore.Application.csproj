@@ -13,5 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Backend_Fincore.Domain\Backend_Fincore.Domain.csproj" />
   </ItemGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
 
 </Project>

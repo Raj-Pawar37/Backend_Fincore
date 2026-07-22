@@ -18,6 +18,10 @@ using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Services;
 
 
+using Backend_Fincore.Interface;
+using Backend_Fincore.Service;
+using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Infrastucture.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +55,11 @@ builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.AddScoped<IAccountMasterService, AccountMasterService>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 builder.Services.AddAuthentication(options =>
 {
