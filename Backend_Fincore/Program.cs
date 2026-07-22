@@ -5,7 +5,9 @@ using Backend_Fincore.Data;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Middleware;
 using Backend_Fincore.Service;
+using Backend_Fincore.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -78,6 +80,12 @@ builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
 builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
 builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
+
+
+builder.Services.AddScoped<IDocumentNumberService, DocumentNumberService>();
+
+
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -87,6 +95,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 
 app.UseAuthentication();

@@ -1,4 +1,5 @@
-﻿
+﻿using Backend_Fincore.Domain.Models;
+
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
@@ -87,7 +88,7 @@ namespace Backend_Fincore.Data
 
         public DbSet<JournalEntry> JournalEntry { get; set; }
 
-
+        public DbSet<DocumentNumberMaster> DocumentNumberMasters { get; set; }
 
 
 
