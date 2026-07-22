@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722014116_GRN-Items-Created")]
+    partial class GRNItemsCreated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +24,147 @@ namespace Backend_Fincore.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Backend_Fincore.Domain.Models.DocumentNumberMaster", b =>
+                {
+                    b.Property<int>("DocumentNumberId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DocumentNumberId"));
+
+                    b.Property<string>("ColumnName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DocumentName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FyYearFormat")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<byte>("IsActive")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ModifiedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NumberLength")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Prefix")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Separator")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("Suffix")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TableName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("DocumentNumberId");
+
+                    b.ToTable("DocumentNumberMasters");
+                });
+
+            modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
+                {
+                    b.Property<int>("GRNItemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GRNId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("POItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("GRNItemId");
+
+                    b.HasIndex("POItemId")
+                        .IsUnique();
+
+                    b.ToTable("GRNItem");
+                });
+
+            modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
+                {
+                    b.Property<int>("QuotationItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("QuotationItemId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Discount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte>("IsActive")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ModifiedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuotationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RFQItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Tax")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("QuotationItemId");
+
+                    b.HasIndex("QuotationId");
+
+                    b.HasIndex("RFQItemId");
+
+                    b.ToTable("QuotationItem");
+                });
 
             modelBuilder.Entity("Backend_Fincore.Models.APInvoice", b =>
                 {
@@ -2078,6 +2222,44 @@ namespace Backend_Fincore.Migrations
                     b.ToTable("WorkOrders", (string)null);
                 });
 
+            modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
+                {
+                    b.HasOne("Backend_Fincore.Models.GRN", "GRN")
+                        .WithMany("GRNItems")
+                        .HasForeignKey("GRNItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend_Fincore.Models.PurchaseOrderItem", "POItem")
+                        .WithOne("GRNItem")
+                        .HasForeignKey("Backend_Fincore.Domain.Models.GRNItem", "POItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GRN");
+
+                    b.Navigation("POItem");
+                });
+
+            modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
+                {
+                    b.HasOne("Backend_Fincore.Models.Quotation", "Quotation")
+                        .WithMany("QuotationItems")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend_Fincore.Models.RFQItem", "RFQItem")
+                        .WithMany("QuotationItems")
+                        .HasForeignKey("RFQItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Quotation");
+
+                    b.Navigation("RFQItem");
+                });
+
             modelBuilder.Entity("Backend_Fincore.Models.APInvoice", b =>
                 {
                     b.HasOne("Backend_Fincore.Models.Vendor", "Vendor")
@@ -2667,6 +2849,8 @@ namespace Backend_Fincore.Migrations
             modelBuilder.Entity("Backend_Fincore.Models.GRN", b =>
                 {
                     b.Navigation("Assets");
+
+                    b.Navigation("GRNItems");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.OpexRequest", b =>
@@ -2691,6 +2875,8 @@ namespace Backend_Fincore.Migrations
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseOrderItem", b =>
                 {
                     b.Navigation("Assets");
+
+                    b.Navigation("GRNItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseRequisition", b =>
@@ -2701,6 +2887,8 @@ namespace Backend_Fincore.Migrations
             modelBuilder.Entity("Backend_Fincore.Models.Quotation", b =>
                 {
                     b.Navigation("PurchaseOrder");
+
+                    b.Navigation("QuotationItems");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.RFQ", b =>
@@ -2708,6 +2896,11 @@ namespace Backend_Fincore.Migrations
                     b.Navigation("RFQItems");
 
                     b.Navigation("RFQVendors");
+                });
+
+            modelBuilder.Entity("Backend_Fincore.Models.RFQItem", b =>
+                {
+                    b.Navigation("QuotationItems");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.RFQVendor", b =>

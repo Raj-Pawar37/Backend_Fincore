@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Backend_Fincore.Domain.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Backend_Fincore.Models
 {
@@ -25,7 +26,8 @@ namespace Backend_Fincore.Models
         // Navigation properties
         public PurchaseOrder PurchaseOrder { get; set; } = null!;
 
-        public ICollection<Asset> Assets { get; set; }
-            = new List<Asset>();
+        public ICollection<Asset> Assets { get; set; } = new List<Asset>();
+
+        public GRNItem? GRNItem { get; set; }
     }
 }
