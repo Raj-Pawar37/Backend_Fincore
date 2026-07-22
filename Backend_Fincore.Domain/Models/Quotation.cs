@@ -1,4 +1,5 @@
 ﻿
+using Backend_Fincore.Domain.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace Backend_Fincore.Models
@@ -26,7 +27,7 @@ namespace Backend_Fincore.Models
 
         public PurchaseOrder? PurchaseOrder { get; set; }
 
-    
+        public ICollection<QuotationItem> QuotationItems { get; set; } = new List<QuotationItem>();
 
     }
 }

@@ -1,4 +1,5 @@
-﻿
+﻿using Backend_Fincore.Domain.Models;
+
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
@@ -87,9 +88,11 @@ namespace Backend_Fincore.Data
 
         public DbSet<JournalEntry> JournalEntry { get; set; }
 
+        public DbSet<DocumentNumberMaster> DocumentNumberMasters { get; set; }
 
+        public DbSet<QuotationItem> QuotationItem { get; set; }
 
-
+        public DbSet<GRNItem> GRNItem { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -1802,6 +1805,31 @@ OPEX REQUEST
                     x.MasterId
                 });
             });
+
+
+            modelBuilder.Entity<QuotationItem>(entity =>
+            {
+                entity.HasOne(x => x.RFQItem)
+                    .WithMany(x => x.QuotationItems)
+                    .HasForeignKey(x => x.RFQItemId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+            });
+
+
+            modelBuilder.Entity<GRNItem>(entity =>
+            {
+                entity.HasOne(x => x.GRN)
+                    .WithMany(x => x.GRNItems)
+                    .HasForeignKey(x => x.GRNItemId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+            });
+
+
+
+
+
 
         }
     }
