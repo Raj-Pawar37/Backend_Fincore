@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722004719_Quatation-Item-Created")]
+    partial class QuatationItemCreated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -82,31 +85,6 @@ namespace Backend_Fincore.Migrations
                     b.HasKey("DocumentNumberId");
 
                     b.ToTable("DocumentNumberMasters");
-                });
-
-            modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
-                {
-                    b.Property<int>("GRNItemId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("GRNId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("POItemId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Qty")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("GRNItemId");
-
-                    b.HasIndex("POItemId")
-                        .IsUnique();
-
-                    b.ToTable("GRNItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
@@ -2219,25 +2197,6 @@ namespace Backend_Fincore.Migrations
                     b.ToTable("WorkOrders", (string)null);
                 });
 
-            modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
-                {
-                    b.HasOne("Backend_Fincore.Models.GRN", "GRN")
-                        .WithMany("GRNItems")
-                        .HasForeignKey("GRNItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Backend_Fincore.Models.PurchaseOrderItem", "POItem")
-                        .WithOne("GRNItem")
-                        .HasForeignKey("Backend_Fincore.Domain.Models.GRNItem", "POItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("GRN");
-
-                    b.Navigation("POItem");
-                });
-
             modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
                 {
                     b.HasOne("Backend_Fincore.Models.Quotation", "Quotation")
@@ -2846,8 +2805,6 @@ namespace Backend_Fincore.Migrations
             modelBuilder.Entity("Backend_Fincore.Models.GRN", b =>
                 {
                     b.Navigation("Assets");
-
-                    b.Navigation("GRNItems");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.OpexRequest", b =>
@@ -2872,8 +2829,6 @@ namespace Backend_Fincore.Migrations
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseOrderItem", b =>
                 {
                     b.Navigation("Assets");
-
-                    b.Navigation("GRNItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseRequisition", b =>
