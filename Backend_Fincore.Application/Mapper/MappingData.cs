@@ -1,10 +1,14 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.AccountMaster;
+using Backend_Fincore.Application.DTOs.Department;
+using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
+using Backend_Fincore.Models.Backend_Fincore.Models;
 
 
 namespace Backend_Fincore.Mapper;
@@ -72,6 +76,22 @@ public class MappingData : Profile
         //CreateMap<Role, RoleDTO>();
 
         CreateMap<Permission, PermissionDTO>().ReverseMap();
+
+        // Account Master
+
+        CreateMap<AccountMaster, AccountMasterReadDTO>();
+        CreateMap<AccountMasterWriteDTO, AccountMaster>().ReverseMap();
+
+
+        // Department
+
+        CreateMap<Department, DepartmentReadDTO>().ForMember(d => d.CompanyName, x => x.MapFrom( y => y.Company.CompanyName));
+        CreateMap<DepartmentWriteDTO, Department>().ReverseMap();
+        CreateMap<DocumentType, DocumentTypeCUDTO>().ReverseMap();
+
+
+        CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName,x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
+        CreateMap<DocumentWriteDTO,Document>();
 
     }
 

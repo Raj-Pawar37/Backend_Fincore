@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Models;
+﻿using Backend_Fincore.Domain.Models;
+using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,7 @@ namespace Backend_Fincore.Data
         public DbSet<Employee> Employee { get; set; }
         public DbSet<Vendor> Vendor { get; set; }
         public DbSet<Customer> Customer { get; set; }
+        public DbSet<Approval> Approval { get; set; }
 
         // Document helpers
         public DbSet<DocumentType> DocumentType { get; set; }
@@ -91,6 +93,21 @@ namespace Backend_Fincore.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Approval>()
+                .HasOne(a => a.Role)
+                .WithMany(r => r.Approvals)
+                .HasForeignKey(a => a.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Approval>()
+                .Property(x => x.MinAmount)
+                .HasColumnType("decimal(18,2)");
+
+
+            modelBuilder.Entity<Approval>()
+                .Property(x => x.MaxAmount)
+                .HasColumnType("decimal(18,2)");
 
 
             /*
