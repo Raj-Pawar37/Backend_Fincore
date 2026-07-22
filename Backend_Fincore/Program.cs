@@ -31,8 +31,8 @@ builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
 
 builder.Services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
 builder.Services.AddScoped<IRFQService, RFQService>();
-
-
+builder.Services.AddScoped<IRFQItemService, RFQItemService>();
+builder.Services.AddScoped<IRFQVendorService,RFQVendorService>();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));

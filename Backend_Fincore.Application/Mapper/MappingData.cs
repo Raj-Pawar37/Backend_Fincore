@@ -4,6 +4,8 @@ using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
 using Backend_Fincore.Application.DTOs.RFQ;
+using Backend_Fincore.Application.DTOs.RFQItem;
+using Backend_Fincore.Application.DTOs.RFQVendor;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
@@ -150,13 +152,15 @@ public class MappingData : Profile
 
 
 
-        CreateMap<PurchaseRequisitionCreateDto, PurchaseRequisition>();
         CreateMap<PurchaseRequisitionUpdateDto, PurchaseRequisition>();
         CreateMap<PurchaseRequisition, PurchaseRequisitionResponseDto>();
 
         CreateMap<RFQCreateDto, RFQ>();
-        CreateMap<RFQItemCreateDto, RFQItem>();
         CreateMap<RFQ, RFQResponseDto>();
+        CreateMap<RFQItem, RFQItemResponseDto>();
+        CreateMap<RFQVendor, RFQVendorResponseDto>();
+
+
 
 
     }

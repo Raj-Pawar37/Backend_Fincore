@@ -1,136 +1,216 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Application.Interfaces;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Backend_Fincore.Infrastucture.Service
+namespace Backend_Fincore.Application.Services
 {
     public class RFQService : IRFQService
-
-        
     {
         private readonly AppDbContext _context;
-        IMapper _mapper;
+        private readonly IMapper _mapper;
 
-        public RFQService(AppDbContext context,IMapper mapper)
+        public RFQService(AppDbContext context, IMapper mapper)
         {
-            this._context = context;
-            this._mapper = mapper;
-        }
-        public async Task<ApiResponse<RFQResponseDto>> Create(RFQCreateDto dto)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                // 1. Map and save the main RFQ
-                var newRfq = _mapper.Map<RFQ>(dto);
-
-                int currentCount = await _context.RFQ.CountAsync();
-                newRfq.RFQNumber = $"RFQ-{DateTime.Now.Year}-{(currentCount + 1):D4}";
-                newRfq.Status = "Draft";
-
-                _context.RFQ.Add(newRfq);
-                await _context.SaveChangesAsync(); // Saves to generate the new RFQId
-
-                // 2. Map and save RFQ Items
-                if (dto.RFQItems.Any())
-                {
-                    var rfqItems = _mapper.Map<List<RFQItem>>(dto.RFQItems);
-                    foreach (var item in rfqItems)
-                    {
-                        item.RFQId = newRfq.RFQId;
-                    }
-                    _context.RFQItem.AddRange(rfqItems);
-                }
-
-                // 3. Create and save Vendor Invitations
-                if (dto.VendorIds.Any())
-                {
-                    var vendorInvitations = dto.VendorIds.Select(vendorId => new RFQVendor
-                    {
-                        RFQId = newRfq.RFQId,
-                        VendorId = vendorId,
-                        SentDate = DateTime.UtcNow,
-                        ResponseStatus = "Invited"
-                    }).ToList();
-
-                    _context.RFQVendor.AddRange(vendorInvitations);
-                }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                var rfqDto = _mapper.Map<RFQResponseDto>(newRfq);
-                return new ApiResponse<RFQResponseDto>
-                {
-                    Success = true,
-                    Message = "RFQ created successfully with items and vendors",
-                    Data = rfqDto,
-                    TotalNumberRecord = 1
-                };
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return new ApiResponse<RFQResponseDto>
-                {
-                    Success = false,
-                    Message = "Failed to create RFQ",
-                    Error = new { code = "INTERNAL_ERROR", details = ex.Message }
-                };
-            }
+            _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<ApiResponse<List<RFQResponseDto>>> GetAll()
+        // ==========================================
+        // 1. CREATE RFQ
+        // ==========================================
+        public async Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto)
         {
-            var rfqs = await _context.RFQ.ToListAsync();
-            var dtos = _mapper.Map<List<RFQResponseDto>>(rfqs).ToList();
+            // Rule 1: If RFQNumber already exists, throw error
+            if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber))
+            {
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists." };
+            }
+
+            // Rule 2: If PRId doesn't exist, throw error
+            if (!await _context.PurchaseRequisition.AnyAsync(pr => pr.PRId == dto.PRId))
+            {
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "Purchase Requisition ID not found." };
+            }
+
+            // Rule 3: If RFQ already exists with the same PRId, throw error
+            if (await _context.RFQ.AnyAsync(r => r.PRId == dto.PRId))
+            {
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "An RFQ already exists for this Purchase Requisition." };
+            }
+
+            var rfq = new RFQ
+            {
+                RFQNumber = dto.RFQNumber,
+                Title = dto.Title,
+                Description = dto.Description,
+                IssueDate = dto.IssueDate,
+                ClosingDate = dto.ClosingDate,
+                PRId = dto.PRId,
+                Status = "Pending" // Rule 4: By default Status Pending
+            };
+
+            _context.RFQ.Add(rfq);
+            await _context.SaveChangesAsync();
+
+            var responseDto = _mapper.Map<RFQResponseDto>(rfq);
+            return new ApiResponse<RFQResponseDto> { Success = true, Message = "RFQ created successfully", Data = responseDto, TotalNumberRecord = 1 };
+        }
+
+        // ==========================================
+        // 2. READ ALL (ROLE BASED)
+        // ==========================================
+        public async Task<ApiResponse<List<RFQResponseDto>>> GetAllAsync(int userId)
+        {
+            if (userId <= 0)
+                return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "User ID is missing or invalid." };
+
+            // Fetch User and Role securely
+            var user = await _context.User.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId);
+
+            // Rule 1: If userID not found throw error
+            if (user == null)
+                return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "User ID not found." };
+
+            string roleName = user.Role.RoleName;
+
+            // Rule 2: User Role throws permission error
+            if (roleName == "User")
+                return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "You do not have permission to view RFQs." };
+
+            IQueryable<RFQ> query = _context.RFQ.AsQueryable();
+
+            // Rule 3: Manager filters RFQ by Department
+            if (roleName == "Manager")
+            {
+                var employee = await _context.Employee.FirstOrDefaultAsync(e => e.EmployeeId == user.MasterId);
+                if (employee == null)
+                {
+                    return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "Manager employee record not found." };
+                }
+
+                int managerDeptId = employee.DepartmentId;
+
+                // Safely traverse RFQ -> PR -> Capex -> User -> Employee to check the department
+                query = query.Where(rfq => _context.PurchaseRequisition.Any(pr =>
+                                           pr.PRId == rfq.PRId &&
+                                           _context.CapexRequest.Any(cr =>
+                                               cr.CapexRequestId == pr.CapexRequestId &&
+                                               _context.User.Any(u =>
+                                                   u.UserId == cr.RequestedBy &&
+                                                   u.MasterType == "Employee" &&
+                                                   _context.Employee.Any(emp =>
+                                                       emp.EmployeeId == u.MasterId &&
+                                                       emp.DepartmentId == managerDeptId)))));
+            }
+            // Rule 4: CFO displays all RFQ
+            else if (roleName != "CFO")
+            {
+                return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "Invalid Role." };
+            }
+
+            var rfqs = await query.ToListAsync();
+            var rfqDtos = _mapper.Map<List<RFQResponseDto>>(rfqs).ToList();
 
             return new ApiResponse<List<RFQResponseDto>>
             {
                 Success = true,
                 Message = "RFQs fetched successfully",
-                Data = dtos,
-                TotalNumberRecord = dtos.Count()
+                Data = rfqDtos,
+                TotalNumberRecord = rfqDtos.Count
             };
-
-
         }
 
-        public async Task<ApiResponse<RFQResponseDto>> GetAllById(int id)
+        // ==========================================
+        // 3. READ BY RFQ ID
+        // ==========================================
+        public async Task<ApiResponse<RFQResponseDto>> GetByIdAsync(int id)
         {
             var rfq = await _context.RFQ.FindAsync(id);
+
+            // Rule 1: If RFQId doesn't found then throw error
             if (rfq == null)
             {
-                return new ApiResponse<RFQResponseDto>
-                {
-                    Success = false,
-                    Message = "RFQ not found",
-                    Error = new { code = "not found" }
-                };
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found." };
             }
 
-            var dto = _mapper.Map<RFQResponseDto>(rfq);
-            return new ApiResponse<RFQResponseDto>
-            {
-                Success = true,
-                Message = "RFQ found by Id success",
-                Data = dto,
-                TotalNumberRecord = 1
-            };
-
-
+            var rfqDto = _mapper.Map<RFQResponseDto>(rfq);
+            return new ApiResponse<RFQResponseDto> { Success = true, Data = rfqDto, TotalNumberRecord = 1 };
         }
 
-       
-    }
-    }
+        // ==========================================
+        // 4. UPDATE RFQ
+        // ==========================================
+        public async Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto)
+        {
+            var rfq = await _context.RFQ.FindAsync(id);
 
+            // Rule 1: If RFQId doesn't found then throw error
+            if (rfq == null)
+            {
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found." };
+            }
+
+            // Rule 3: Once status Open then you cant update the RFQ
+            if (rfq.Status == "Open")
+            {
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "Cannot update RFQ once status is Open." };
+            }
+
+            // Rule 2: If Update RFQNumber already exist then throw error (exclude current RFQ)
+            if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber && r.RFQId != id))
+            {
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists for another record." };
+            }
+
+            // Apply updates
+            rfq.RFQNumber = dto.RFQNumber;
+            rfq.Title = dto.Title;
+            rfq.Description = dto.Description;
+            rfq.IssueDate = dto.IssueDate;
+            rfq.ClosingDate = dto.ClosingDate;
+
+            if (!string.IsNullOrEmpty(dto.Status))
+            {
+                rfq.Status = dto.Status;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return await GetByIdAsync(id);
+        }
+
+        // ==========================================
+        // 5. DELETE RFQ
+        // ==========================================
+        public async Task<ApiResponse<bool>> DeleteAsync(int id)
+        {
+            var rfq = await _context.RFQ.FindAsync(id);
+
+            // Rule 1: If RFQId doesn't found then throw error
+            if (rfq == null)
+            {
+                return new ApiResponse<bool> { Success = false, Message = "RFQ ID not found.", Data = false };
+            }
+
+            // Rule 3: Once status Open then you cant Delete
+            if (rfq.Status == "Open")
+            {
+                return new ApiResponse<bool> { Success = false, Message = "Cannot delete RFQ once status is Open.", Data = false };
+            }
+
+            // Rule 2: Delete the RFQ, RFQItems, and RFQVendors
+            // Because you configured .OnDelete(DeleteBehavior.Cascade) in AppDbContext for RFQVendors and RFQItems,
+            // Entity Framework automatically deletes the child records for us!
+            _context.RFQ.Remove(rfq);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool> { Success = true, Message = "RFQ and associated items/vendors deleted successfully.", Data = true };
+        }
+
+
+    }
+}
