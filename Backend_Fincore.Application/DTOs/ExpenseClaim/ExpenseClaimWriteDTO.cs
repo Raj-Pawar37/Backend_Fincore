@@ -10,7 +10,7 @@ namespace Backend_Fincore.Application.DTOs.ExpenseClaim
     public  class ExpenseClaimWriteDTO
     {
         [Required]
-        public int OpexRequestId { get; set; }
+        public int? OpexRequestId { get; set; }
 
         [Required]
 

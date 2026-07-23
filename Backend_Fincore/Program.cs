@@ -55,6 +55,9 @@ builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
+builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 builder.Services.AddScoped<IAccountMasterService, AccountMasterService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
@@ -85,9 +88,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
-builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
-builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
+
 
 
 
