@@ -16,15 +16,16 @@ namespace Backend_Fincore.Controllers
             this.service = service;
         }
 
+
         [HttpGet]
-        public async Task<IActionResult> GetAllRequests()
+        public async Task<IActionResult> GetAll(int userId)
         {
-            var data = await service.GetAll();
+            var data = await service.GetAll(userId);
 
             return Ok(new ApiResponse<List<OpexRequestReadDTO>>
             {
                 Success = true,
-                Message = "Opex Requests fetched successfully.",
+                Message = "OPEX Requests fetched successfully.",
                 Data = data,
                 Error = null
             });
@@ -55,49 +56,62 @@ namespace Backend_Fincore.Controllers
             });
         }
 
+    
         [HttpPost]
-        [HttpPost]
-        public async Task<IActionResult> AddOpexRequest(OpexRequestWriteDTO dto)
+        public async Task<IActionResult> AddOpexRequest(
+            OpexRequestWriteDTO dto)
         {
-            await service.Create(dto);
+        
+                var data = await service.Create(dto);
 
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Opex Request created successfully.",
-                Data = null,
-                Error = null
-            });
+                return CreatedAtAction(
+                    nameof(GetRequestById),
+                    new { id = data.OpexRequestId },
+                    new ApiResponse<OpexRequestReadDTO>
+                    {
+                        Success = true,
+                        Message = "Opex Request created successfully.",
+                        Data = data,
+                        Error = null
+                    });
+       
         }
 
+   
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOpexRequest(int id, OpexRequestWriteDTO dto)
+        public async Task<IActionResult> UpdateOpexRequest(
+            int id,
+            OpexRequestWriteDTO dto)
         {
-            var result = await service.Update(id, dto);
+          
+                var data = await service.Update(id, dto);
 
-            if (result == null)
-            {
-                return NotFound(new ApiResponse<object>
+                if (data == null)
                 {
-                    Success = false,
-                    Message = "Opex Request not found.",
-                    Data = null,
-                    Error = $"No Opex Request found with Id = {id}"
-                });
-            }
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Opex Request not found.",
+                        Data = null,
+                        Error = $"No Opex Request found with Id = {id}"
+                    });
+                }
 
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Opex Request updated successfully.",
-                Data = null,
-                Error = null
-            });
+                return Ok(new ApiResponse<OpexRequestReadDTO>
+                {
+                    Success = true,
+                    Message = "Opex Request updated successfully.",
+                    Data = data,
+                    Error = null
+                });
+          
         }
 
+      
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOpexRequest(int id)
         {
+
             var result = await service.Delete(id);
 
             if (!result)
@@ -119,5 +133,36 @@ namespace Backend_Fincore.Controllers
                 Error = null
             });
         }
+        [HttpPut("{id}/verify")]
+        public async Task<IActionResult> Verify(int id,int approvedBy,OpexRequestVerifyDTO dto)
+        {
+            var data = await service.Verify(id, approvedBy, dto);
+
+            return Ok(new ApiResponse<OpexRequestReadDTO>
+            {
+                Success = true,
+                Message = $"OPEX Request {dto.Status} successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+
+
+        [HttpPost("search")]
+        public async Task<IActionResult> SearchOpex(OpexSearchDTO dto)
+        {
+            var data = await service.SearchOpex(dto);
+
+            return Ok(new ApiResponse<List<OpexRequestReadDTO>>
+            {
+                Success = true,
+                Message = "OPEX Requests fetched successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+
+
+
     }
 }

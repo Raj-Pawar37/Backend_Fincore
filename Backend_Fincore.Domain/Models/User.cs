@@ -5,6 +5,8 @@ namespace Backend_Fincore.Models
 {
     public class User : BaseEntity
     {
+        public string? TotpSecretKey { get; set; }
+        public bool Is2FAEnabled { get; set; }
         [Key]
         public int UserId { get; set; }
 

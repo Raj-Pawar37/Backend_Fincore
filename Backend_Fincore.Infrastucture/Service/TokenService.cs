@@ -7,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-
+using System.IdentityModel.Tokens.Jwt; 
 namespace Backend_Fincore.Infrastructure.Service
 {
     public class TokenService : ITokenService
@@ -21,12 +21,18 @@ namespace Backend_Fincore.Infrastructure.Service
 
         public string GenerateAccessToken(User user)
         {
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Name, user.Username ?? ""),
-                new Claim(ClaimTypes.Email, user.Email ?? "")
-            };
+                   var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+           new Claim(ClaimTypes.Name, user.Username ?? ""),
+           new Claim(ClaimTypes.Email, user.Email ?? ""),
+           new Claim("masterId", user.MasterId.ToString()),
+          new Claim("masterType", user.MasterType ?? ""),
+          new Claim(ClaimTypes.Role, user.RoleId.ToString())
+
+
+            //new Claim(ClaimTypes.Role, user.RoleId.ToString())
+        };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

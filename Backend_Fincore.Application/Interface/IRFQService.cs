@@ -1,20 +1,15 @@
 ﻿using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.Response;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Backend_Fincore.Application.Interface
+namespace Backend_Fincore.Application.Interfaces
 {
     public interface IRFQService
     {
-        Task<ApiResponse<List<RFQResponseDto>>> GetAll();
-        Task<ApiResponse<RFQResponseDto>> GetAllById(int id);
-        Task<ApiResponse<RFQResponseDto>> Create(RFQCreateDto dto);
+        Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto);
+        Task<ApiResponse<List<RFQResponseDto>>> GetAllAsync(int userId);
+        Task<ApiResponse<RFQResponseDto>> GetByIdAsync(int id);
 
-
-
+        Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto);
+        Task<ApiResponse<bool>> DeleteAsync(int id);
     }
 }

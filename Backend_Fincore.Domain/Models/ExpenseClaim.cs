@@ -7,7 +7,7 @@ namespace Backend_Fincore.Models
         [Key]
         public int ExpenseClaimId { get; set; }
 
-        public int OpexRequestId { get; set; }
+        public int? OpexRequestId { get; set; }
 
         public string ClaimNumber { get; set; } = null!;
 
