@@ -121,7 +121,7 @@ namespace Backend_Fincore.Application.Services
         }
 
         // ==========================================
-        // 4. DELETE
+        // 4. DELETE RFQ VENDOR
         // ==========================================
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
@@ -133,6 +133,7 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
             }
 
+            // Rule: else delete it
             _context.RFQVendor.Remove(rfqVendor);
             await _context.SaveChangesAsync();
 

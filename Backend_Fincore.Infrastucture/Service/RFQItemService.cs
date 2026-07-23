@@ -95,18 +95,19 @@ namespace Backend_Fincore.Application.Services
         }
 
         // ==========================================
-        // 4. DELETE
+        // 4. DELETE RFQ ITEM
         // ==========================================
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
             var rfqItem = await _context.RFQItem.FindAsync(id);
 
-            // Rule: If RFQItemId doesnt found then throw error
+            // Rule: If RFQItemId doesnt found throw error
             if (rfqItem == null)
             {
                 return new ApiResponse<bool> { Success = false, Message = "RFQ Item ID not found.", Data = false };
             }
 
+            // Rule: else delete it
             _context.RFQItem.Remove(rfqItem);
             await _context.SaveChangesAsync();
 

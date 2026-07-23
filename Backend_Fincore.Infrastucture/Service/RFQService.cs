@@ -190,25 +190,37 @@ namespace Backend_Fincore.Application.Services
         {
             var rfq = await _context.RFQ.FindAsync(id);
 
-            // Rule 1: If RFQId doesn't found then throw error
+            // Rule: If RFQId doesnt found then throw error
             if (rfq == null)
             {
                 return new ApiResponse<bool> { Success = false, Message = "RFQ ID not found.", Data = false };
             }
 
-            // Rule 3: Once status Open then you cant Delete
+            // Rule: Once status Open then you cant Delete
             if (rfq.Status == "Open")
             {
                 return new ApiResponse<bool> { Success = false, Message = "Cannot delete RFQ once status is Open.", Data = false };
             }
 
-            // Rule 2: Delete the RFQ, RFQItems, and RFQVendors
-            // Because you configured .OnDelete(DeleteBehavior.Cascade) in AppDbContext for RFQVendors and RFQItems,
-            // Entity Framework automatically deletes the child records for us!
+            // Rule: also delete RFQItems
+            var rfqItems = await _context.RFQItem.Where(x => x.RFQId == id).ToListAsync();
+            if (rfqItems.Any())
+            {
+                _context.RFQItem.RemoveRange(rfqItems);
+            }
+
+            // Rule: also delte RFQVendors
+            var rfqVendors = await _context.RFQVendor.Where(x => x.RFQId == id).ToListAsync();
+            if (rfqVendors.Any())
+            {
+                _context.RFQVendor.RemoveRange(rfqVendors);
+            }
+
+            // Rule: else delete the RFQ
             _context.RFQ.Remove(rfq);
             await _context.SaveChangesAsync();
 
-            return new ApiResponse<bool> { Success = true, Message = "RFQ and associated items/vendors deleted successfully.", Data = true };
+            return new ApiResponse<bool> { Success = true, Message = "RFQ, Items, and Vendors deleted successfully.", Data = true };
         }
 
 
