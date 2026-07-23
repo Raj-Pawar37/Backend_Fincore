@@ -1,28 +1,27 @@
-﻿using Backend_Fincore.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Domain.Models
+namespace Backend_Fincore.Application.DTOs.Approval
 {
-    public class Approval: BaseEntity
+    public class ApprovalWriteDTO
     {
-        [Key]
-        public int ApprovalId { get; set; }
-
+        [Required]
         public decimal MinAmount { get; set; }
 
+        [Required]
         public decimal MaxAmount { get; set; }
 
+        [Required]
         public int ApprovalLevel { get; set; }
 
-        // Foreign Key
+        [Required]
         public int RoleId { get; set; }
 
-        // Navigation Property
-        public Role Role { get; set; } = null!;
+        [Required]
+        public bool IsActive { get; set; }
     }
 }

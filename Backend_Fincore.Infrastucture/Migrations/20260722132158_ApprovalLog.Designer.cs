@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722132158_ApprovalLog")]
+    partial class ApprovalLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,26 +36,11 @@ namespace Backend_Fincore.Migrations
                     b.Property<int>("ApprovalLevel")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<byte>("IsActive")
-                        .HasColumnType("tinyint");
-
                     b.Property<decimal>("MaxAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("MinAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("int");
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
@@ -1124,7 +1112,7 @@ namespace Backend_Fincore.Migrations
                     b.Property<int?>("ModifiedBy")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OpexRequestId")
+                    b.Property<int>("OpexRequestId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -2550,7 +2538,8 @@ namespace Backend_Fincore.Migrations
                     b.HasOne("Backend_Fincore.Models.OpexRequest", "OpexRequest")
                         .WithMany("ExpenseClaims")
                         .HasForeignKey("OpexRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("ApprovedByUser");
 

@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.Document;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Document;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,8 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IDocumentService
     {
-        Task<List<DocumentReadDTO>> GetAll();
+        Task<List<DocumentReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetDocumentCount();
 
         Task<DocumentReadDTO> GetById(int id);
 
