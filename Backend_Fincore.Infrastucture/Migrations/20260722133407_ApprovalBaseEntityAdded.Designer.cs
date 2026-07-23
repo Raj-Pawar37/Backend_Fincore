@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722133407_ApprovalBaseEntityAdded")]
+    partial class ApprovalBaseEntityAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1124,7 +1127,7 @@ namespace Backend_Fincore.Migrations
                     b.Property<int?>("ModifiedBy")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OpexRequestId")
+                    b.Property<int>("OpexRequestId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -2038,9 +2041,6 @@ namespace Backend_Fincore.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<bool>("Is2FAEnabled")
-                        .HasColumnType("bit");
-
                     b.Property<byte>("IsActive")
                         .HasColumnType("tinyint");
 
@@ -2077,9 +2077,6 @@ namespace Backend_Fincore.Migrations
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
-
-                    b.Property<string>("TotpSecretKey")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2556,7 +2553,8 @@ namespace Backend_Fincore.Migrations
                     b.HasOne("Backend_Fincore.Models.OpexRequest", "OpexRequest")
                         .WithMany("ExpenseClaims")
                         .HasForeignKey("OpexRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("ApprovedByUser");
 

@@ -5,11 +5,10 @@ namespace Backend_Fincore.Application.Interfaces
 {
     public interface IPurchaseRequisitionService
     {
-        Task<ApiResponse<List<PurchaseRequisitionResponseDto>>> GetAllAsync();
+        // Added parameters to handle the Role-Based Access logic
+        Task<ApiResponse<List<PurchaseRequisitionResponseDto>>> GetAllAsync(int userId);
         Task<ApiResponse<PurchaseRequisitionResponseDto>> GetByIdAsync(int id);
-        Task<ApiResponse<PurchaseRequisitionResponseDto>> CreateAsync(PurchaseRequisitionCreateDto dto);
         Task<ApiResponse<PurchaseRequisitionResponseDto>> UpdateAsync(int id, PurchaseRequisitionUpdateDto dto);
-
-        Task<ApiResponse<bool>> DeleteAsync(int id);
+        Task<ApiResponse<List<PRDropdownResponseDto>>> GetPRDropdownAsync(string? searchText, int? departmentId);
     }
 }

@@ -1,41 +1,54 @@
 ﻿using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Application.Interface;
-using Backend_Fincore.Infrastucture.Service;
-using Microsoft.AspNetCore.Http;
+using Backend_Fincore.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
-namespace Backend_Fincore.Controllers
+namespace Backend_Fincore.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/rfqs")]
     [ApiController]
     public class RFQsController : ControllerBase
     {
-        private readonly IRFQService rfqservice;
+        private readonly IRFQService _rfqService;
 
-        public RFQsController(IRFQService rfqservice)
+        public RFQsController(IRFQService rfqService)
         {
-            this.rfqservice = rfqservice;
-        }
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var response= await rfqservice.GetAll();
-            return response.Success ? Ok(response) : BadRequest(response);
-
-        }
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id )
-        {
-            var response = await rfqservice.GetAllById(id);
-            return response.Success? Ok(response):BadRequest(response);
+            _rfqService = rfqService;
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RFQCreateDto dto)
         {
-            var response = await rfqservice.Create(dto);
-            return response.Success ? StatusCode(200, response) : StatusCode(500, response);
+            var response = await _rfqService.CreateAsync(dto);
+            return response.Success ? Ok(response) : BadRequest(response);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] int userId = 0)
+        {
+            var response = await _rfqService.GetAllAsync(userId);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var response = await _rfqService.GetByIdAsync(id);
+            return response.Success ? Ok(response) : NotFound(response);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] RFQUpdateDto dto)
+        {
+            var response = await _rfqService.UpdateAsync(id, dto);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var response = await _rfqService.DeleteAsync(id);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
+using Backend_Fincore.Application.DTOs.Approval;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
@@ -8,6 +9,8 @@ using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
 using Backend_Fincore.Application.DTOs.RFQ;
+using Backend_Fincore.Application.DTOs.RFQItem;
+using Backend_Fincore.Application.DTOs.RFQVendor;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.DTOs;
@@ -128,11 +131,11 @@ public class MappingData : Profile
             .ReverseMap();
 
 
-        CreateMap<BudgetCategory, BudgetCategoryReadDTO>();//Ritik
+        CreateMap<BudgetCategory, BudgetCategoryReadDTO>();
 
-        CreateMap<BudgetCategoryWriteDTO, BudgetCategory>().ReverseMap();//Ritik
+        CreateMap<BudgetCategoryWriteDTO, BudgetCategory>().ReverseMap();
 
-        CreateMap<BudgetWriteDTO, Budget>();//Ritik
+        CreateMap<BudgetWriteDTO, Budget>();
 
         CreateMap<Budget, BudgetReadDTO>()
             .ForMember(dest => dest.CompanyName,
@@ -140,7 +143,7 @@ public class MappingData : Profile
             .ForMember(dest => dest.DepartmentName,
                 opt => opt.MapFrom(src => src.Department.DepartmentName))
             .ForMember(dest => dest.ApprovedByName,
-                opt => opt.MapFrom(src => src.ApprovedByUser != null ? src.ApprovedByUser.Username : null));//Ritik
+                opt => opt.MapFrom(src => src.ApprovedByUser != null ? src.ApprovedByUser.Username : null));
 
         CreateMap<BudgetLineWriteDTO, BudgetLine>();
 
@@ -154,15 +157,41 @@ public class MappingData : Profile
             .ForMember(dest => dest.BudgetCategoryName,
                 opt => opt.MapFrom(src => src.BudgetCategory.CategoryName));
 
+        CreateMap<CapexWriteDTO, CapexRequest>();
+
+        CreateMap<CapexRequest, CapexReadDTO>()
+            .ForMember(x => x.CostCenter,
+                y => y.MapFrom(z => z.BudgetLine.CostCenter))
+
+            .ForMember(x => x.BudgetCategoryName,
+                y => y.MapFrom(z => z.BudgetLine.BudgetCategory.CategoryName))
+
+            .ForMember(x => x.DepartmentName,
+                y => y.MapFrom(z => z.BudgetLine.Budget.Department.DepartmentName))
+
+            .ForMember(x => x.FinancialYear,
+                y => y.MapFrom(z => z.BudgetLine.Budget.FinancialYear))
+
+            .ForMember(x => x.RequestedByName,
+                y => y.MapFrom(z => z.RequestedByUser.Username))
+
+            .ForMember(x => x.ApprovedByName,
+                y => y.MapFrom(z =>
+                    z.ApprovedByUser != null
+                        ? z.ApprovedByUser.Username
+                        : null));
 
 
-        CreateMap<PurchaseRequisitionCreateDto, PurchaseRequisition>();
+
         CreateMap<PurchaseRequisitionUpdateDto, PurchaseRequisition>();
         CreateMap<PurchaseRequisition, PurchaseRequisitionResponseDto>();
 
         CreateMap<RFQCreateDto, RFQ>();
-        CreateMap<RFQItemCreateDto, RFQItem>();
         CreateMap<RFQ, RFQResponseDto>();
+        CreateMap<RFQItem, RFQItemResponseDto>();
+        CreateMap<RFQVendor, RFQVendorResponseDto>();
+
+
 
 
         CreateMap<RolePermissionDTOs, RolePermission>();
@@ -196,6 +225,8 @@ public class MappingData : Profile
 
         CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName, x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
         CreateMap<DocumentWriteDTO, Document>();
+        CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
+        CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
     }
 
 

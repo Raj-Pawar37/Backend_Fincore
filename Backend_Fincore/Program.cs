@@ -1,17 +1,24 @@
-using Backend_Fincore.Data;
-using Backend_Fincore.Interface;
-using Backend_Fincore.Mapper;
-using Backend_Fincore.Service;
-using Microsoft.EntityFrameworkCore;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Backend_Fincore.Application.Interface;
+
+using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Services;
+using Backend_Fincore.Data;
 using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.Infrastucture.Service;
+
+using Backend_Fincore.Interface;
+
+using Backend_Fincore.Mapper;
+using Backend_Fincore.Service;
+
 using Backend_Fincore.Services;
 
-
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAutoMapper(typeof(MappingData));
@@ -23,8 +30,12 @@ builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IBudgetCategoryService, BudgetCategoryService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
+builder.Services.AddScoped<ICapexRequestService,CapexRequestService>();
 
-
+builder.Services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
+builder.Services.AddScoped<IRFQService, RFQService>();
+builder.Services.AddScoped<IRFQItemService, RFQItemService>();
+builder.Services.AddScoped<IRFQVendorService,RFQVendorService>();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));
@@ -111,8 +122,46 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+//1 Rate  limiting 
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
+    rateLimiterOptions.AddFixedWindowLimiter("fixed", options =>
+    {
+        options.Window = TimeSpan.FromSeconds(10);
+        options.PermitLimit = 3;
+        options.QueueLimit = 10;
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
 
+    });
+    rateLimiterOptions.AddSlidingWindowLimiter("Sliding", options =>
+    {
+        options.Window = TimeSpan.FromSeconds(5);
+        options.SegmentsPerWindow = 3;
+        options.PermitLimit = 15;
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 3;
+
+    });
+    //we have certain amount of request we need to allow 
+    rateLimiterOptions.AddTokenBucketLimiter("token", options =>
+    {
+        options.TokenLimit = 100;
+        options.ReplenishmentPeriod = TimeSpan.FromSeconds(5);
+        options.TokensPerPeriod = 10;
+
+    });
+    rateLimiterOptions.AddConcurrencyLimiter("ConcurrencyPolicy", options =>
+    {
+
+        options.PermitLimit = 5;
+        options.QueueLimit = 5;
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+
+    });
+
+});
 
 var app = builder.Build();
 
