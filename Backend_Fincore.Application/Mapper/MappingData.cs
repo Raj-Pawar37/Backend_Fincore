@@ -1,14 +1,23 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.AccountMaster;
+using Backend_Fincore.Application.DTOs.Approval;
+using Backend_Fincore.Application.DTOs.Department;
+using Backend_Fincore.Application.DTOs.Document;
+using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Application.DTOs.PurchaseRequisition;
+using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.Application.DTOs.WorkOrder;
+using Backend_Fincore.Domain.Models;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
+using Backend_Fincore.Models.Backend_Fincore.Models;
 
 
 
@@ -52,6 +61,8 @@ public class MappingData : Profile
         CreateMap<Payment, PaymentDTO>();
 
         CreateMap<PaymentCUDTO, Payment>();
+
+
 
 
         //CreateMap<QuotationItem, PurchaseOrderItem>();
@@ -169,6 +180,49 @@ public class MappingData : Profile
                         : null));
 
 
+
+        CreateMap<PurchaseRequisitionCreateDto, PurchaseRequisition>();
+        CreateMap<PurchaseRequisitionUpdateDto, PurchaseRequisition>();
+        CreateMap<PurchaseRequisition, PurchaseRequisitionResponseDto>();
+
+        CreateMap<RFQCreateDto, RFQ>();
+        CreateMap<RFQItemCreateDto, RFQItem>();
+        CreateMap<RFQ, RFQResponseDto>();
+
+
+        CreateMap<RolePermissionDTOs, RolePermission>();
+
+        CreateMap<RolePermission, RolePermissionResponseDto>()
+            .ForMember(dest => dest.RoleName,
+                       opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : string.Empty))
+            .ForMember(dest => dest.PermissionName,
+                       opt => opt.MapFrom(src => src.Permission != null ? src.Permission.PermissionName : string.Empty));
+
+
+
+        CreateMap<DocumentNumberMaster, DocumentNumberUpdateDTO>().ReverseMap();
+        CreateMap<DocumentNumberMaster, DocumentNumberUpdateDTO>().ReverseMap();
+        CreateMap<DocumentNumberMaster, DocumentNumberDTO>().ReverseMap();
+
+
+
+        // Account Master
+
+        CreateMap<AccountMaster, AccountMasterReadDTO>();
+        CreateMap<AccountMasterWriteDTO, AccountMaster>().ReverseMap();
+
+
+        // Department
+
+        CreateMap<Department, DepartmentReadDTO>().ForMember(d => d.CompanyName, x => x.MapFrom(y => y.Company.CompanyName));
+        CreateMap<DepartmentWriteDTO, Department>().ReverseMap();
+        CreateMap<DocumentType, DocumentTypeCUDTO>().ReverseMap();
+
+
+        CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName, x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
+        CreateMap<DocumentWriteDTO, Document>();
+        CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
+        CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
     }
 
 

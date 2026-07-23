@@ -18,14 +18,14 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllExpenseClaims()
+        public async Task<IActionResult> GetAll(int userId)
         {
-            var data = await service.GetAll();
+            var data = await service.GetAll(userId);
 
             return Ok(new ApiResponse<List<ExpenseClaimReadDTO>>
             {
                 Success = true,
-                Message = "Expense claims fetched successfully.",
+                Message = "Expense Claims fetched successfully.",
                 Data = data,
                 Error = null
             });
@@ -119,6 +119,31 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "Expense claim deleted successfully.",
                 Data = null,
+                Error = null
+            });
+        }
+
+        [HttpPut("{id}/verify")]
+        public async Task<IActionResult> Verify(int id,int verifiedBy,ExpenseClaimVerifyDTO dto)
+        {
+            var data = await service.Verify(id,verifiedBy,dto);
+
+            if (data == null) 
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Expense claim not found.",
+                    Data = null,
+                    Error = $"No expense claim found with Id = {id}"
+                });
+            }
+
+            return Ok(new ApiResponse<ExpenseClaimReadDTO>
+            {
+                Success = true,
+                Message = $"Expense Claim {dto.Status} successfully.",
+                Data = data,
                 Error = null
             });
         }

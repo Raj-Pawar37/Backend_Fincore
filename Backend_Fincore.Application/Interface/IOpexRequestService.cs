@@ -4,15 +4,25 @@ namespace Backend_Fincore.Interface
 {
     public interface IOpexRequestService
     {
-        Task<List<OpexRequestReadDTO>> GetAll();
+        Task<List<OpexRequestReadDTO>> GetAll(int userId);
 
         Task<OpexRequestReadDTO?> GetById(int id);
 
         Task<OpexRequestReadDTO> Create(OpexRequestWriteDTO dto);
 
-        Task<OpexRequestReadDTO> Update(int id, OpexRequestWriteDTO dto);
+        Task<OpexRequestReadDTO> Update(
+      int opexRequestId,
+      OpexRequestWriteDTO dto);
 
         Task<bool> Delete(int id);
+
+        Task<OpexRequestReadDTO> Verify(
+    int opexRequestId,
+    int approvedBy,
+    OpexRequestVerifyDTO dto);
+
+        Task<List<OpexRequestReadDTO>> SearchOpex(OpexSearchDTO dto);
+
 
     }
 }
