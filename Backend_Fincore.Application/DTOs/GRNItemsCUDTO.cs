@@ -1,13 +1,12 @@
-﻿using Backend_Fincore.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Domain.Models
+namespace Backend_Fincore.Application.DTOs
 {
-    public class GRNItem : BaseEntity
+    public class GRNItemsCUDTO
     {
         public int GRNItemId { get; set; }
 
@@ -19,10 +18,8 @@ namespace Backend_Fincore.Domain.Models
 
         public decimal Qty { get; set; }
 
+        public int CreatedBy { get; set; }
 
-        // Navigation properties
-        public GRN GRN { get; set; } = null!;
-
-        public PurchaseOrderItem POItem { get; set; } = null!;
+        public int? ModifiedBy { get; set; }
     }
 }

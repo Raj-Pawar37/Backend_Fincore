@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723144502_purchaseOrderitemUpdate")]
+    partial class purchaseOrderitemUpdate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,48 +24,6 @@ namespace Backend_Fincore.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Backend_Fincore.Domain.Models.Approval", b =>
-                {
-                    b.Property<int>("ApprovalId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ApprovalId"));
-
-                    b.Property<int>("ApprovalLevel")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<byte>("IsActive")
-                        .HasColumnType("tinyint");
-
-                    b.Property<decimal>("MaxAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MinAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ApprovalId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("Approval");
-                });
 
             modelBuilder.Entity("Backend_Fincore.Domain.Models.DocumentNumberMaster", b =>
                 {
@@ -1139,7 +1100,7 @@ namespace Backend_Fincore.Migrations
                     b.Property<int?>("ModifiedBy")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OpexRequestId")
+                    b.Property<int>("OpexRequestId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -2064,9 +2025,6 @@ namespace Backend_Fincore.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<bool>("Is2FAEnabled")
-                        .HasColumnType("bit");
-
                     b.Property<byte>("IsActive")
                         .HasColumnType("tinyint");
 
@@ -2103,9 +2061,6 @@ namespace Backend_Fincore.Migrations
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
-
-                    b.Property<string>("TotpSecretKey")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2291,17 +2246,6 @@ namespace Backend_Fincore.Migrations
                         .IsUnique();
 
                     b.ToTable("WorkOrders", (string)null);
-                });
-
-            modelBuilder.Entity("Backend_Fincore.Domain.Models.Approval", b =>
-                {
-                    b.HasOne("Backend_Fincore.Models.Role", "Role")
-                        .WithMany("Approvals")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
@@ -2582,7 +2526,8 @@ namespace Backend_Fincore.Migrations
                     b.HasOne("Backend_Fincore.Models.OpexRequest", "OpexRequest")
                         .WithMany("ExpenseClaims")
                         .HasForeignKey("OpexRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("ApprovedByUser");
 
@@ -3008,8 +2953,6 @@ namespace Backend_Fincore.Migrations
 
             modelBuilder.Entity("Backend_Fincore.Models.Role", b =>
                 {
-                    b.Navigation("Approvals");
-
                     b.Navigation("RolePermissions");
 
                     b.Navigation("Users");
