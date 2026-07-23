@@ -5,6 +5,9 @@ using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Backend_Fincore.Application.Services
 {
@@ -19,12 +22,8 @@ namespace Backend_Fincore.Application.Services
             _mapper = mapper;
         }
 
-        // ==========================================
-        // 1. CREATE
-        // ==========================================
         public async Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto)
         {
-            // Rule: If Name already exist in that RFQID then throw error
             if (await _context.RFQItem.AnyAsync(x => x.RFQId == dto.RFQId && x.Name == dto.Name))
             {
                 return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "An item with this Name already exists in this RFQ." };
@@ -45,14 +44,15 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQItemResponseDto> { Success = true, Message = "RFQ Item added successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        // ==========================================
-        // 2. READ BY RFQ ID
-        // ==========================================
-        public async Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId)
+        public async Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize)
         {
-            var items = await _context.RFQItem
-                                      .Where(x => x.RFQId == rfqId)
-                                      .ToListAsync();
+            var query = _context.RFQItem.Where(x => x.RFQId == rfqId);
+            int totalRecords = await query.CountAsync();
+
+            var items = await query.OrderByDescending(x => x.RFQItemId)
+                                   .Skip((pageNumber - 1) * pageSize)
+                                   .Take(pageSize)
+                                   .ToListAsync();
 
             var itemDtos = _mapper.Map<List<RFQItemResponseDto>>(items);
 
@@ -61,24 +61,19 @@ namespace Backend_Fincore.Application.Services
                 Success = true,
                 Message = "RFQ Items fetched successfully",
                 Data = itemDtos,
-                TotalNumberRecord = itemDtos.Count
+                TotalNumberRecord = totalRecords
             };
         }
 
-        // ==========================================
-        // 3. UPDATE
-        // ==========================================
         public async Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto)
         {
             var rfqItem = await _context.RFQItem.FindAsync(id);
 
-            // Rule: If RFQItemId doesnt found throw error
             if (rfqItem == null)
             {
                 return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "RFQ Item ID not found." };
             }
 
-            // Rule: If UpdatedName already exist in that RFQID then throw error (excluding itself)
             if (await _context.RFQItem.AnyAsync(x => x.RFQId == rfqItem.RFQId && x.Name == dto.Name && x.RFQItemId != id))
             {
                 return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "Another item with this Name already exists in this RFQ." };
@@ -94,20 +89,15 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQItemResponseDto> { Success = true, Message = "RFQ Item updated successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        // ==========================================
-        // 4. DELETE RFQ ITEM
-        // ==========================================
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
             var rfqItem = await _context.RFQItem.FindAsync(id);
 
-            // Rule: If RFQItemId doesnt found throw error
             if (rfqItem == null)
             {
                 return new ApiResponse<bool> { Success = false, Message = "RFQ Item ID not found.", Data = false };
             }
 
-            // Rule: else delete it
             _context.RFQItem.Remove(rfqItem);
             await _context.SaveChangesAsync();
 

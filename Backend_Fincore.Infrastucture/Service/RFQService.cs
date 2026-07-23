@@ -5,6 +5,9 @@ using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Backend_Fincore.Application.Services
 {
@@ -19,24 +22,18 @@ namespace Backend_Fincore.Application.Services
             _mapper = mapper;
         }
 
-        // ==========================================
-        // 1. CREATE RFQ
-        // ==========================================
         public async Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto)
         {
-            // Rule 1: If RFQNumber already exists, throw error
             if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber))
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists." };
             }
 
-            // Rule 2: If PRId doesn't exist, throw error
             if (!await _context.PurchaseRequisition.AnyAsync(pr => pr.PRId == dto.PRId))
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "Purchase Requisition ID not found." };
             }
 
-            // Rule 3: If RFQ already exists with the same PRId, throw error
             if (await _context.RFQ.AnyAsync(r => r.PRId == dto.PRId))
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "An RFQ already exists for this Purchase Requisition." };
@@ -50,7 +47,7 @@ namespace Backend_Fincore.Application.Services
                 IssueDate = dto.IssueDate,
                 ClosingDate = dto.ClosingDate,
                 PRId = dto.PRId,
-                Status = "Pending" // Rule 4: By default Status Pending
+                Status = "Pending"
             };
 
             _context.RFQ.Add(rfq);
@@ -60,30 +57,23 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQResponseDto> { Success = true, Message = "RFQ created successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        // ==========================================
-        // 2. READ ALL (ROLE BASED)
-        // ==========================================
-        public async Task<ApiResponse<List<RFQResponseDto>>> GetAllAsync(int userId)
+        public async Task<ApiResponse<List<RFQResponseDto>>> GetAllAsync(int userId, int pageNumber, int pageSize)
         {
             if (userId <= 0)
                 return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "User ID is missing or invalid." };
 
-            // Fetch User and Role securely
             var user = await _context.User.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId);
 
-            // Rule 1: If userID not found throw error
             if (user == null)
                 return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "User ID not found." };
 
             string roleName = user.Role.RoleName;
 
-            // Rule 2: User Role throws permission error
             if (roleName == "User")
                 return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "You do not have permission to view RFQs." };
 
             IQueryable<RFQ> query = _context.RFQ.AsQueryable();
 
-            // Rule 3: Manager filters RFQ by Department
             if (roleName == "Manager")
             {
                 var employee = await _context.Employee.FirstOrDefaultAsync(e => e.EmployeeId == user.MasterId);
@@ -94,7 +84,6 @@ namespace Backend_Fincore.Application.Services
 
                 int managerDeptId = employee.DepartmentId;
 
-                // Safely traverse RFQ -> PR -> Capex -> User -> Employee to check the department
                 query = query.Where(rfq => _context.PurchaseRequisition.Any(pr =>
                                            pr.PRId == rfq.PRId &&
                                            _context.CapexRequest.Any(cr =>
@@ -106,32 +95,33 @@ namespace Backend_Fincore.Application.Services
                                                        emp.EmployeeId == u.MasterId &&
                                                        emp.DepartmentId == managerDeptId)))));
             }
-            // Rule 4: CFO displays all RFQ
             else if (roleName != "CFO")
             {
                 return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "Invalid Role." };
             }
 
-            var rfqs = await query.ToListAsync();
-            var rfqDtos = _mapper.Map<List<RFQResponseDto>>(rfqs).ToList();
+            int totalRecords = await query.CountAsync();
+
+            var rfqs = await query.OrderByDescending(r => r.RFQId)
+                                  .Skip((pageNumber - 1) * pageSize)
+                                  .Take(pageSize)
+                                  .ToListAsync();
+
+            var rfqDtos = _mapper.Map<List<RFQResponseDto>>(rfqs);
 
             return new ApiResponse<List<RFQResponseDto>>
             {
                 Success = true,
                 Message = "RFQs fetched successfully",
                 Data = rfqDtos,
-                TotalNumberRecord = rfqDtos.Count
+                TotalNumberRecord = totalRecords
             };
         }
 
-        // ==========================================
-        // 3. READ BY RFQ ID
-        // ==========================================
         public async Task<ApiResponse<RFQResponseDto>> GetByIdAsync(int id)
         {
             var rfq = await _context.RFQ.FindAsync(id);
 
-            // Rule 1: If RFQId doesn't found then throw error
             if (rfq == null)
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found." };
@@ -141,32 +131,25 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQResponseDto> { Success = true, Data = rfqDto, TotalNumberRecord = 1 };
         }
 
-        // ==========================================
-        // 4. UPDATE RFQ
-        // ==========================================
         public async Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto)
         {
             var rfq = await _context.RFQ.FindAsync(id);
 
-            // Rule 1: If RFQId doesn't found then throw error
             if (rfq == null)
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found." };
             }
 
-            // Rule 3: Once status Open then you cant update the RFQ
             if (rfq.Status == "Open")
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "Cannot update RFQ once status is Open." };
             }
 
-            // Rule 2: If Update RFQNumber already exist then throw error (exclude current RFQ)
             if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber && r.RFQId != id))
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists for another record." };
             }
 
-            // Apply updates
             rfq.RFQNumber = dto.RFQNumber;
             rfq.Title = dto.Title;
             rfq.Description = dto.Description;
@@ -183,46 +166,65 @@ namespace Backend_Fincore.Application.Services
             return await GetByIdAsync(id);
         }
 
-        // ==========================================
-        // 5. DELETE RFQ
-        // ==========================================
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
-            var rfq = await _context.RFQ.FindAsync(id);
+            // Update: Switch to FirstOrDefaultAsync and Include nested properties
+            var rfq = await _context.RFQ
+                .Include(r => r.RFQVendors)
+                    .ThenInclude(v => v.Quotations)
+                .Include(r => r.RFQItems)
+                    .ThenInclude(i => i.QuotationItems)
+                .FirstOrDefaultAsync(r => r.RFQId == id);
 
-            // Rule: If RFQId doesnt found then throw error
             if (rfq == null)
             {
                 return new ApiResponse<bool> { Success = false, Message = "RFQ ID not found.", Data = false };
             }
 
-            // Rule: Once status Open then you cant Delete
             if (rfq.Status == "Open")
             {
                 return new ApiResponse<bool> { Success = false, Message = "Cannot delete RFQ once status is Open.", Data = false };
             }
 
-            // Rule: also delete RFQItems
-            var rfqItems = await _context.RFQItem.Where(x => x.RFQId == id).ToListAsync();
-            if (rfqItems.Any())
+            // 1. Clear out restricted QuotationItems
+            if (rfq.RFQItems != null)
             {
-                _context.RFQItem.RemoveRange(rfqItems);
+                foreach (var item in rfq.RFQItems)
+                {
+                    if (item.QuotationItems != null && item.QuotationItems.Any())
+                    {
+                        _context.QuotationItem.RemoveRange(item.QuotationItems);
+                    }
+                }
             }
 
-            // Rule: also delte RFQVendors
-            var rfqVendors = await _context.RFQVendor.Where(x => x.RFQId == id).ToListAsync();
-            if (rfqVendors.Any())
+            // 2. Clear out restricted Quotations
+            if (rfq.RFQVendors != null)
             {
-                _context.RFQVendor.RemoveRange(rfqVendors);
+                foreach (var vendor in rfq.RFQVendors)
+                {
+                    if (vendor.Quotations != null && vendor.Quotations.Any())
+                    {
+                        _context.Quotation.RemoveRange(vendor.Quotations);
+                    }
+                }
             }
 
-            // Rule: else delete the RFQ
+            // 3. Delete RFQItems and Vendors (as they were done previously)
+            if (rfq.RFQItems != null && rfq.RFQItems.Any())
+            {
+                _context.RFQItem.RemoveRange(rfq.RFQItems);
+            }
+
+            if (rfq.RFQVendors != null && rfq.RFQVendors.Any())
+            {
+                _context.RFQVendor.RemoveRange(rfq.RFQVendors);
+            }
+
             _context.RFQ.Remove(rfq);
             await _context.SaveChangesAsync();
 
             return new ApiResponse<bool> { Success = true, Message = "RFQ, Items, and Vendors deleted successfully.", Data = true };
         }
-
-
     }
 }

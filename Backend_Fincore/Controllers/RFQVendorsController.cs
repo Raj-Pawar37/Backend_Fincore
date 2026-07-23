@@ -1,9 +1,14 @@
 ﻿using Backend_Fincore.Application.DTOs.RFQVendor;
 using Backend_Fincore.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
+    //[Authorize]
+    [EnableRateLimiting("fixed")]
     [Route("api/v1/rfq-vendors")]
     [ApiController]
     public class RFQVendorsController : ControllerBase
@@ -23,9 +28,9 @@ namespace Backend_Fincore.API.Controllers
         }
 
         [HttpGet("by-rfq/{rfqId}")]
-        public async Task<IActionResult> GetByRfqId(int rfqId)
+        public async Task<IActionResult> GetByRfqId(int rfqId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var response = await _rfqVendorService.GetByRfqIdAsync(rfqId);
+            var response = await _rfqVendorService.GetByRfqIdAsync(rfqId, pageNumber, pageSize);
             return response.Success ? Ok(response) : NotFound(response);
         }
 
@@ -39,6 +44,7 @@ namespace Backend_Fincore.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            // The controller simply asks the service to do the heavy lifting
             var response = await _rfqVendorService.DeleteAsync(id);
             return response.Success ? Ok(response) : BadRequest(response);
         }

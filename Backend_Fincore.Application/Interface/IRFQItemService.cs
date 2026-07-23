@@ -6,7 +6,7 @@ namespace Backend_Fincore.Application.Interfaces
     public interface IRFQItemService
     {
         Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto);
-        Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId);
+        Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize);
         Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto);
         Task<ApiResponse<bool>> DeleteAsync(int id);
     }
