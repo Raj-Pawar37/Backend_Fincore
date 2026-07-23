@@ -6,6 +6,10 @@
 
         public int PurchaseOrderId { get; set; }
 
+        public string PONumber { get; set; } = null!;
+
+        public string GRNNumber { get; set; } = null!;
+
         public int ReceivedBy { get; set; }
 
         public DateTime ReceivedDate { get; set; }

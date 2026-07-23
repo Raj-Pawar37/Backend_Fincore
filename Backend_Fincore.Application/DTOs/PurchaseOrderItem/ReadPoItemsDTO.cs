@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.PurchaseOrderItem
 {
-    public class UpdatePoStatusDTO
+    public class ReadPoItemsDTO
     {
-        public string Status { get; set; } = null!;
+        public int userId { get; set; }
 
-        public int ModifiedBy { get; set; }
+        public int poItemId { get; set; }
     }
 }

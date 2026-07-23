@@ -22,14 +22,35 @@ namespace Backend_Fincore.Service
         {
             var purchsedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId);
 
-
-
             if (purchsedOrder == null)
             {
                 throw new Exception("Purchase Order not found.");
             }
 
-            if(purchsedOrder.Status != "Issued")
+            var GRNName = await db.GRN.FirstOrDefaultAsync(x => x.GRNNumber == grn.GRNNumber);
+
+            if(GRNName != null)
+            {
+                throw new Exception("Grn name already exists");
+            }
+
+
+            //var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grn.POItemId);
+
+
+            //if (poItem == null)
+            //{
+            //    throw new Exception("Purchase Order Item not found.");
+            //}
+
+            //if (poItem.Status == "Received")
+            //{
+            //    throw new Exception("Purchase Order Item has already been received.");
+            //}
+
+
+
+            if (purchsedOrder.Status != "Issued")
             {
                 throw new Exception("Only Issued Purchase Orders can be added to GRN.");
             }
@@ -43,29 +64,15 @@ namespace Backend_Fincore.Service
 
             var data = mapper.Map<GRN>(grn);
 
-           
-
-            var currentYear = DateTime.Now.Year;
-
-            var lastGRN = await db.GRN.Where(x => x.CreatedAt.Year == currentYear)
-                                  .OrderByDescending(x => x.GRNId)
-                                  .FirstOrDefaultAsync();
-
-            int nextNumber = 1;
-
-            if (lastGRN != null)
-            {
-                var parts = lastGRN.GRNNumber.Split('-');
-                nextNumber = int.Parse(parts[2]) + 1;
-            }
-
-            data.GRNNumber = $"GRN-{currentYear}-{nextNumber:D4}";
-
-            // Temporary until JWT get implemented
-            //data.CreatedBy=userid
-            data.CreatedBy = grn.CreatedBy;
-
             
+
+            data.Status = "Draft";
+            data.CreatedAt = DateTime.Now;
+            data.CreatedBy = grn.ReceivedBy;
+
+
+
+
 
             await db.GRN.AddAsync(data);
             await db.SaveChangesAsync();
@@ -73,19 +80,38 @@ namespace Backend_Fincore.Service
 
         }
 
-        public async Task<bool> DeletegrnById(int id)
+        public async Task DeletegrnById(int id)
         {
-            var data = await db.GRN.FirstOrDefaultAsync(x => x.GRNId == id);
 
-            if(data != null)
+
+            var grn = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id);
+
+            if (grn == null)
             {
-                db.GRN.Remove(data);
-                await db.SaveChangesAsync();
-
-                return true;
+                throw new Exception("GRN not found.");
             }
 
-            return false;
+            if (grn.Status == "Received")
+            {
+                throw new Exception("Received GRN cannot be deleted.");
+            }
+
+            foreach (var item in grn.GRNItems)
+            {
+                var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == item.POItemId);
+
+                if (poItem != null)
+                {
+                    //poItem.Status = "Not Recived"; 
+                }
+            }
+
+            db.GRNItem.RemoveRange(grn.GRNItems);
+
+           
+            db.GRN.Remove(grn);
+
+            await db.SaveChangesAsync();
 
         }
 
@@ -120,7 +146,7 @@ namespace Backend_Fincore.Service
 
         public async Task UpdateGRN(GRNCUDTO grn, int id)
         {
-            var data = await db.GRN.FirstOrDefaultAsync(x => x.GRNId == id);
+            var data = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id);
 
 
             if (data == null)
@@ -133,7 +159,21 @@ namespace Backend_Fincore.Service
 
             if (purchaseOrder == null)
             {
-                throw new Exception("Purchase Order not found.");
+                throw new Exception("Purchase Order not found");
+            }
+
+            bool exists = await db.GRN.AnyAsync(x => x.GRNNumber == grn.GRNNumber && x.GRNId != id);
+
+
+            if (exists)
+            {
+                throw new Exception("GRN Number already exists.");
+            }
+
+
+            if (data.Status == "Received" && data.PurchaseOrderId != grn.PurchaseOrderId)
+            {
+                throw new Exception("Purchase Order cannot be changed after GRN is received.");
             }
 
             var user = await db.User.FirstOrDefaultAsync(x => x.UserId == grn.ReceivedBy);
@@ -144,12 +184,23 @@ namespace Backend_Fincore.Service
                 throw new Exception("User not found.");
             }
 
+
+            if (data.GRNItems.Any() && data.PurchaseOrderId != grn.PurchaseOrderId)
+
+            {
+                throw new Exception("Purchase Order cannot be changed because GRN Items already exist.");
+            }
+
             data.PurchaseOrderId = grn.PurchaseOrderId;
+
+            data.GRNNumber = grn.GRNNumber;
+            
             data.ReceivedBy = grn.ReceivedBy;
             data.ReceivedDate = grn.ReceivedDate;
             data.Remarks = grn.Remarks;
             data.DeliveryChallanNumber = grn.DeliveryChallanNumber;
-            data.Status = grn.Status;
+
+            
 
             // Temporary until JWT Authentication
             //data.ModifiedBy=userid

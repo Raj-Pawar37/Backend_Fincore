@@ -1259,7 +1259,17 @@ PURCHASE ORDER
                     .WithMany(x => x.PurchaseOrderItems)
                     .HasForeignKey(x => x.PurchaseOrderId)
                     .OnDelete(DeleteBehavior.Cascade);
-            });
+
+
+                
+                    entity.HasOne(x => x.QuotationItem)
+                    .WithOne(x => x.PurchaseOrderItem)
+                    .HasForeignKey<PurchaseOrderItem>(x => x.QuotationItemId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity .HasIndex(x => x.QuotationItemId)
+                     .IsUnique();
+                   });
 
 
             /*

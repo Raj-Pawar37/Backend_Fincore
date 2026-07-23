@@ -81,7 +81,7 @@ namespace Backend_Fincore.Migrations
 
                     b.HasKey("DocumentNumberId");
 
-                    b.ToTable("DocumentNumberMasters");
+                    b.ToTable("DocumentNumberMasters", (string)null);
                 });
 
             modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
@@ -106,7 +106,7 @@ namespace Backend_Fincore.Migrations
                     b.HasIndex("POItemId")
                         .IsUnique();
 
-                    b.ToTable("GRNItem");
+                    b.ToTable("GRNItem", (string)null);
                 });
 
             modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
@@ -160,7 +160,7 @@ namespace Backend_Fincore.Migrations
 
                     b.HasIndex("RFQItemId");
 
-                    b.ToTable("QuotationItem");
+                    b.ToTable("QuotationItem", (string)null);
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.APInvoice", b =>

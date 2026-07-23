@@ -1,8 +1,9 @@
 ﻿using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
+using Backend_Fincore.Response;
 using Backend_Fincore.Service;
-using Backend_Fincore.WrapperClass;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -67,13 +68,19 @@ namespace Backend_Fincore.Controllers
         {
             await gRNService.AddGrn(grn);
 
-
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Purchase Order created successfully.",
+                Message = "GRN created successfully.",
                 Data = null,
-                Error = null
+                Error = null,
+                Metadata = new
+                {
+                    GRNNumber = grn.GRNNumber,
+                    PurchaseOrderId = grn.PurchaseOrderId,
+                    Status = "Draft"
+                },
+                TotalNumberRecord = 1
             });
 
         }
@@ -91,7 +98,13 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "GRN updated successfully.",
                 Data = null,
-                Error = null
+                Error = null,
+                Metadata = new
+                {   
+                    GRNId = id,
+                    GRNNumber = grn.GRNNumber
+                },
+                TotalNumberRecord = 1
             });
         }
 
@@ -99,25 +112,17 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> deleteById(int id)
         {
-            var data = await gRNService.DeletegrnById(id);
 
-            if (!data)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "GRN not found.",
-                    Data = null,
-                    Error = $"No GRN found with Id {id}."
-                });
-            }
+            await gRNService.DeletegrnById(id);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "GRN deleted successfully.",
                 Data = null,
-                Error = null
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
             });
         }
 

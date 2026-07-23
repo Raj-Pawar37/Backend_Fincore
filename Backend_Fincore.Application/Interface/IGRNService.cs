@@ -12,6 +12,6 @@ namespace Backend_Fincore.Interface
 
         Task UpdateGRN(GRNCUDTO grn, int id);
 
-        Task<bool> DeletegrnById(int id);
+        Task DeletegrnById(int id);
     }
 }

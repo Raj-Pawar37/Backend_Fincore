@@ -38,6 +38,29 @@ public class MappingData : Profile
 
         CreateMap<GRNCUDTO, GRN>();
 
+        CreateMap<GRNItem, GRNItemsDTO>().ForMember(d => d.ItemName, o => o.MapFrom(s => s.POItem.ItemName))
+                                          .ForMember(d => d.ItemType, o => o.MapFrom(s => s.POItem.ItemType))
+                                           .ForMember(d => d.OrderedQty, o => o.MapFrom(s => s.POItem.Qty))
+                                            .ForMember(d => d.ReceivedQty, o => o.MapFrom(s => s.Qty))
+                                            .ForMember(d => d.UnitPrice, o => o.MapFrom(s => s.POItem.UnitPrice))
+                                             .ForMember(d => d.Tax, o => o.MapFrom(s => s.POItem.Tax))
+                                              .ForMember(d => d.Discount, o => o.MapFrom(s => s.POItem.Discount));
+
+
+        CreateMap<GRNItemsCUDTO,GRNItem>();
+
+
+
+
+
+
+
+
+
+
+
+     
+
         //APInvoice
         CreateMap<APInvoice, APInvoiceDTO>().ForMember(x => x.VendorName,
                                             x => x.MapFrom(x => x.Vendor.VendorName));

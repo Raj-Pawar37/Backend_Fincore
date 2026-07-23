@@ -1,11 +1,14 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.PurchaseOrder;
 using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
+using System.Reflection;
 
 
 namespace Backend_Fincore.Service
@@ -24,261 +27,239 @@ namespace Backend_Fincore.Service
 
         public async Task AddPurchaseOrderData(PurchaseOrderCUDTO PO)
         {
-            var data = mapper.Map<PurchaseOrder>(PO);
 
-            data.TotalAmount = 0;
+            var quotation = await db.Quotation.FirstOrDefaultAsync(x => x.QuotationId == PO.QuotationId);
 
-            data.PONumber = "";
 
-            //data.CreatedBy = userId
-            data.CreatedBy = PO.CreatedBy;
-
-            await db.PurchaseOrder.AddAsync(data);
-
-            await db.SaveChangesAsync();
-
-           
-            var currentYear = DateTime.Now.Year;
-
-            var lastPO = await db.PurchaseOrder.Where(x => x.CreatedAt.Year == currentYear)
-                                  .OrderByDescending(x => x.PurchaseOrderId)
-                                  .FirstOrDefaultAsync();
-
-            int nextNumber = 1;
-
-            if (lastPO != null)
+            if (quotation == null)
             {
-                var parts = lastPO.PONumber.Split('-');
-                nextNumber = int.Parse(parts[2]) + 1;
+                throw new Exception("quotation not found");
             }
 
-            data.PONumber = $"AST-{currentYear}-{nextNumber:D4}";
+            if (quotation.RFQVendor.VendorId != PO.VendorId)
+            {
+                throw new Exception("Selected vendor does not belong to the selected quotation.");
+            }
 
-            await db.SaveChangesAsync();
-            
-        }
+            var poExist = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.QuotationId == PO.QuotationId);
+
+            if (poExist != null)
+            {
+                throw new Exception("Purchsed order for this quotation is alaredy exists");
+            }
 
         
-        public async Task<bool> DeletePurchaseOrderById(int purchasedId)
-        {
-            var res = await  db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
+            var poName = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PONumber == PO.PONumber);
 
-            if(res != null)
+            if (poName != null)
             {
-                db.PurchaseOrder.Remove(res);
-                await db.SaveChangesAsync();
-
-                return true;
+                throw new Exception("Purchased order number or name alrady exists");
             }
 
-            return false;
+
+            var quotationItems = await db.QuotationItem.Where(x => x.QuotationId == PO.QuotationId).ToListAsync();
+
+            if (!quotationItems.Any())
+            {
+                throw new Exception("quotation item not found");
+            }
+
+
+            var purchaseOrder = mapper.Map<PurchaseOrder>(PO);
+
+
+            purchaseOrder.Status = "Draft";
+            purchaseOrder.TotalAmount = 0;
+            purchaseOrder.CreatedBy = PO.CreatedBy;
+
+
+            await db.PurchaseOrder.AddAsync(purchaseOrder);
+            await db.SaveChangesAsync();
+
+
+            decimal totalAmount = 0;
+
+            foreach (var items in quotationItems)
+            {
+                var PoItems = mapper.Map<PurchaseOrderItem>(items);
+
+                
+
+                PoItems.PurchaseOrderId = purchaseOrder.PurchaseOrderId;
+                PoItems.CreatedBy = PO.CreatedBy;
+
+                decimal subTotal = PoItems.Qty * PoItems.UnitPrice;
+                decimal tax = subTotal * (PoItems.Tax ?? 0) / 100;
+                decimal discount = subTotal * (PoItems.Discount ?? 0) / 100;
+
+                totalAmount += subTotal + tax - discount;
+
+                await db.PurchaseOrderItem.AddAsync(PoItems);
+
+            }
+
+            purchaseOrder.TotalAmount = totalAmount;
+
+            await db.SaveChangesAsync();
+
 
         }
 
-        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder()
+
+        public async Task DeletePurchaseOrderById(int purchasedId)
         {
-            var res = await db.PurchaseOrder.Include(x => x.Vendor)
-                     .Include(x => x.Quotation).ToListAsync();
+            var purchasePrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
 
-            var data = mapper.Map<List<PurchaseOrderDTO>>(res);
+            if (purchasePrder == null)
+            {
+                throw new Exception("Purchased order not exists");
+            }
 
-            return data;
+            var poItemsList = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchasedId).ToListAsync();
+
+
+
+            if (poItemsList.Any())
+            {
+                db.PurchaseOrderItem.RemoveRange(poItemsList);
+            }
+
+
+            db.PurchaseOrder.Remove(purchasePrder);
+            await db.SaveChangesAsync();
+
+        }
+
+        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof)
+        {
+            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == pof.Userid);
+
+            if (user == null)
+            {
+                throw new Exception("User not found");
+            }
+
+            if (user.Role == null)
+            {
+                throw new Exception("Role not Exist");
+            }
+
+            IQueryable<PurchaseOrder> query = db.PurchaseOrder.Include(x => x.Vendor).Include(x => x.Quotation);
+
+            if (user.Role.RoleName == "User")
+            {
+                throw new Exception("You are not authorized.");
+            }
+
+            //manager filter
+
+            if (user.Role.RoleName == "Manager")
+            {
+                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
+
+                if (employee == null)
+                {
+                    throw new Exception("Employee not found");
+                }
+
+                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
+                                   .Select(x => x.EmployeeId).ToListAsync();
+
+                var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
+                                    .Contains(x.MasterId)).Select(x => x.UserId).ToListAsync();
+
+                query = query.Where(x => userIds.Contains(x.CreatedBy));
+            }
+
+            // Vendor
+            else if (user.Role.RoleName == "Vendor")
+            {
+                query = query.Where(x => x.VendorId == user.MasterId);
+            }
+
+            else if (user.Role.RoleName == "CFO")
+            {
+
+            }
+            else
+            {
+                throw new Exception("Invalid Role.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(pof.Status))
+            {
+                query = query.Where(x => x.Status == pof.Status);
+            }
+
+            var purchaseOrders = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(20)
+                .ToListAsync();
+
+            return mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
+
+
         }
 
         public async Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId)
         {
-            var res = await db.PurchaseOrder.Include(x => x.Vendor)
-                     .Include(x => x.Quotation).FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
+            var res = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
 
-            if (res != null)
+
+            if (res == null)
             {
-                var data = mapper.Map<PurchaseOrderDTO>(res);
-
-                return data;
-
+                throw new Exception("Purchased order not exists");
             }
 
-            return null;
 
-           
-        }
+            var data = mapper.Map<PurchaseOrderDTO>(res);
 
-        public async Task<List<QuotationDTO>> GetSelectedQuotation(string status)
-        {
-            var data = await db.Quotation.Where(x => x.Status == status).ToListAsync();
-
-            var res = mapper.Map<List<QuotationDTO>>(data);
-
-            return res;
-
+            return data;
 
         }
+
+
 
         public async Task UpdatePurchaseOrder(PurchaseOrderCUDTO Po, int id)
         {
             var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
 
-            if(purchasedOrder != null)
+            if (purchasedOrder == null)
             {
-                purchasedOrder.VendorId = Po.VendorId;
-                purchasedOrder.VendorId = Po.VendorId;
-                purchasedOrder.QuotationId = Po.QuotationId;
-            
-                purchasedOrder.Status = Po.Status;
-
-                purchasedOrder.ModifiedBy = Po.ModifiedBy;
-                purchasedOrder.ModifiedAt = DateTime.Now;
-
-
-                await db.SaveChangesAsync();
-            }
-        }
-
-        public async Task CreatePOFromQuotation(SelectedQuotationDTO selectedQuotation)
-        {
-
-            var quotation = await db.Quotation.Include(x => x.RFQVendor)
-                           .FirstOrDefaultAsync(x => x.QuotationId == selectedQuotation.QuotationId);
-
-
-            if (quotation == null)
-            {
-                throw new Exception("Quotation not found.");
+                throw new Exception("Purchased order not exists");
             }
 
+            var poName = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PONumber == Po.PONumber);
 
-            if (quotation.Status != "Accepted")
+            if (poName != null)
             {
-                throw new Exception("Only accepted quotation can create Purchase Order.");
+                throw new Exception("Purchase order name or number already exist");
             }
 
-
-            bool poExists = await db.PurchaseOrder.AnyAsync(x => x.QuotationId == selectedQuotation.QuotationId);
-
-
-            if (poExists)
-            {
-                throw new Exception("Purchase Order already exists for this quotation.");
-            }
-
-            //var quotationItems = await db.QuotationItem.Where(x => x.QuotationId == selectedQuotation.QuotationId)
-            //                          .ToListAsync();
+            purchasedOrder.VendorId = Po.VendorId;
+            purchasedOrder.QuotationId = Po.QuotationId;
+            purchasedOrder.PONumber = Po.PONumber;
+            purchasedOrder.ModifiedAt = DateTime.Now;
+            purchasedOrder.Status = Po.Status;
 
 
-
-            //if (!quotationItems.Any())
-            //{
-            //    throw new Exception("Quotation items not found.");
-            //}
-
-
-            int currentYear = DateTime.Now.Year;
-
-            var lastPO = await db.PurchaseOrder.Where(x => x.CreatedAt.Year == currentYear)
-                                               .OrderByDescending(x => x.PurchaseOrderId)
-                                               .FirstOrDefaultAsync();
-
-
-            int nextNumber = 1;
-
-            if (lastPO != null)
-            {
-                string[] parts = lastPO.PONumber.Split('-');
-                nextNumber = int.Parse(parts[2]) + 1;
-            }
-
-            string poNumber = $"PO-{currentYear}-{nextNumber:D4}";
-
-
-            PurchaseOrder purchaseOrder = new PurchaseOrder
-            {
-                VendorId = quotation.RFQVendor.VendorId,
-                QuotationId = quotation.QuotationId,
-                PONumber = poNumber,
-                TotalAmount = 0,
-                Status = "Draft",
-                CreatedBy = selectedQuotation.CreatedBy
-            };
-
-            await db.PurchaseOrder.AddAsync(purchaseOrder);
             await db.SaveChangesAsync();
 
-            //foreach (var item in quotationItems)
-            //{
-            //    var poItem = mapper.Map<PurchaseOrderItem>(item);
-            //    poItem.PurchaseOrderId = purchaseOrder.PurchaseOrderId;
-            //    poItem.CreatedBy = selectedQuotation.CreatedBy;
-
-            //    await db.PurchaseOrderItem.AddAsync(poItem);
-
-            //}
-
-            //await db.SaveChangesAsync();
-
-
-            //var poItems = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchaseOrder.PurchaseOrderId)
-            //                    .ToListAsync();
-
-
-            //decimal total = 0;
-
-            //foreach (var item in poItems)
-            //{
-            //    decimal subTotal = item.Qty * item.UnitPrice;
-
-            //    decimal tax = subTotal * (item.Tax ?? 0) / 100;
-
-            //    decimal discount = subTotal * (item.Discount ?? 0) / 100;
-
-            //    total += subTotal + tax - discount;
-            //}
-
-            //purchaseOrder.TotalAmount = total;
-
-            //await db.SaveChangesAsync();
-
         }
 
-        public async Task<List<PurchaseOrderDTO>> GetDepartmentPurchaseOrders(int userId)
-        {
-            var user = await db.User.FirstOrDefaultAsync(x => x.UserId == userId);
 
-            if( user == null)
-            {
-                throw new Exception("User not found");
-            }
 
-            var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
 
-            if( employee == null)
-            {
-                throw new Exception("employee not found");
 
-            }
-
-            var employeeIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
-                                    .Select(x => x.EmployeeId).ToListAsync();
-
-            var userIds = await db.User.Where(x => employeeIds.Contains(x.MasterId))
-                                .Select(x => x.UserId).ToListAsync();
-
-            var purchaseOrders = await db.PurchaseOrder
-                                      .Include(x => x.Vendor)
-                                      .Include(x => x.Quotation)
-                                      .Where(x => userIds.Contains(x.CreatedBy))
-                                      .ToListAsync();
-
-            var data = mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
-
-            return data;
-
-        }
-
-        public async Task UpdatePOStatus(int purchaseOrderId, UpdatePoStatusDTO dto)
+        public async Task UpdatePOStatus(int purchaseOrderId, PurchasedOrderFilterDTO dto)
         {
             var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
 
-            if (purchasedOrder == null) throw new Exception("Purchase Order not found.");
+            if (purchasedOrder == null)
+            {
+
+                throw new Exception("Purchase Order not found.");
+            }
 
 
             if (purchasedOrder.Status != "Draft")
@@ -288,23 +269,12 @@ namespace Backend_Fincore.Service
             }
 
             purchasedOrder.Status = dto.Status;
-            purchasedOrder.ModifiedBy = dto.ModifiedBy;
-
+            purchasedOrder.ModifiedBy = dto.Userid;
 
             await db.SaveChangesAsync();
 
         }
 
-        public async Task<List<PurchaseOrderDTO>> GetVendorIssuedPurchaseOrders(int vendorId)
-        {
-            var purchasedOrders = await db.PurchaseOrder.Include(x => x.Vendor).Include(x => x.Quotation)
-                                        .Where(x => x.VendorId == vendorId && x.Status == "Issued").ToListAsync();
 
-
-            var data = mapper.Map<List<PurchaseOrderDTO>>(purchasedOrders);
-
-            return data;
-
-        }
     }
 }
