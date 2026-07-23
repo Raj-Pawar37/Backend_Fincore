@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.AccountMaster;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.AccountMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,8 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IAccountMasterService
     {
-        Task<List<AccountMasterReadDTO>> GetAll();
+        Task<List<AccountMasterReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetAccountMasterCount();
 
         Task<AccountMasterReadDTO> GetById(int id);
 

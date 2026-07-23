@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
@@ -17,9 +18,24 @@ namespace Backend_Fincore.Infrastucture.Service
             this.db = db;
             this.mapper = mapper;
         }
-        public async Task<List<DocumentReadDTO>>GetAll()
+        public async Task<int> GetDocumentCount()
         {
-            var data = await db.Document.Include(x => x.DocumentType).ToListAsync();
+            return await db.Document.CountAsync();
+        }
+        public async Task<List<DocumentReadDTO>>GetAll(PaginationDTO pagination)
+        {
+            var search = db.Document.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.FileName.Contains(pagination.Search) ||
+
+                    x.MasterType.Contains(pagination.Search));  
+            }
+            var data = await search.Include(x => x.DocumentType)
+                                        .Skip((pagination.PageNumber - 1)* pagination.PageSize)
+                                        .Take(pagination.PageSize)
+                                        .ToListAsync();
             return mapper.Map<List<DocumentReadDTO>>(data);
         }
         public async Task<DocumentReadDTO>GetById(int id)

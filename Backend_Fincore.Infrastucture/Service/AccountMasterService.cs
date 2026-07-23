@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
@@ -21,9 +22,26 @@ namespace Backend_Fincore.Infrastucture.Service
             this.mapper = mapper;
 
         }
-        public async Task<List<AccountMasterReadDTO>> GetAll()
+        public async Task<int> GetAccountMasterCount()
         {
-            var data = await db.AccountMaster.ToListAsync();
+            return await db.AccountMaster.CountAsync();
+        }
+        public async Task<List<AccountMasterReadDTO>> GetAll(PaginationDTO pagination)
+        {
+            var search = db.AccountMaster.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.AccountName.Contains(pagination.Search) ||
+
+                    x.AccountCode.Contains(pagination.Search) ||
+
+                    x.AccountType.Contains(pagination.Search));
+            }
+            var data = await search
+                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                    .Take(pagination.PageSize)
+                                    .ToListAsync();
             return mapper.Map<List<AccountMasterReadDTO>>(data);
         }
         public async Task<AccountMasterReadDTO> GetById(int id){
@@ -68,5 +86,7 @@ namespace Backend_Fincore.Infrastucture.Service
             data.IsActive = 0;//soft delete by vikas 
             await db.SaveChangesAsync();
         }
+
+      
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
+using Backend_Fincore.Application.DTOs.Approval;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
@@ -196,6 +197,8 @@ public class MappingData : Profile
 
         CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName, x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
         CreateMap<DocumentWriteDTO, Document>();
+        CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
+        CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
     }
 
 
