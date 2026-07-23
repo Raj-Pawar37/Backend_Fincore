@@ -118,11 +118,11 @@ public class MappingData : Profile
             .ReverseMap();
 
 
-        CreateMap<BudgetCategory, BudgetCategoryReadDTO>();//Ritik
+        CreateMap<BudgetCategory, BudgetCategoryReadDTO>();
 
-        CreateMap<BudgetCategoryWriteDTO, BudgetCategory>().ReverseMap();//Ritik
+        CreateMap<BudgetCategoryWriteDTO, BudgetCategory>().ReverseMap();
 
-        CreateMap<BudgetWriteDTO, Budget>();//Ritik
+        CreateMap<BudgetWriteDTO, Budget>();
 
         CreateMap<Budget, BudgetReadDTO>()
             .ForMember(dest => dest.CompanyName,
@@ -130,7 +130,7 @@ public class MappingData : Profile
             .ForMember(dest => dest.DepartmentName,
                 opt => opt.MapFrom(src => src.Department.DepartmentName))
             .ForMember(dest => dest.ApprovedByName,
-                opt => opt.MapFrom(src => src.ApprovedByUser != null ? src.ApprovedByUser.Username : null));//Ritik
+                opt => opt.MapFrom(src => src.ApprovedByUser != null ? src.ApprovedByUser.Username : null));
 
         CreateMap<BudgetLineWriteDTO, BudgetLine>();
 
@@ -143,6 +143,30 @@ public class MappingData : Profile
                 opt => opt.MapFrom(src => src.Budget.Department.DepartmentName))
             .ForMember(dest => dest.BudgetCategoryName,
                 opt => opt.MapFrom(src => src.BudgetCategory.CategoryName));
+
+        CreateMap<CapexWriteDTO, CapexRequest>();
+
+        CreateMap<CapexRequest, CapexReadDTO>()
+            .ForMember(x => x.CostCenter,
+                y => y.MapFrom(z => z.BudgetLine.CostCenter))
+
+            .ForMember(x => x.BudgetCategoryName,
+                y => y.MapFrom(z => z.BudgetLine.BudgetCategory.CategoryName))
+
+            .ForMember(x => x.DepartmentName,
+                y => y.MapFrom(z => z.BudgetLine.Budget.Department.DepartmentName))
+
+            .ForMember(x => x.FinancialYear,
+                y => y.MapFrom(z => z.BudgetLine.Budget.FinancialYear))
+
+            .ForMember(x => x.RequestedByName,
+                y => y.MapFrom(z => z.RequestedByUser.Username))
+
+            .ForMember(x => x.ApprovedByName,
+                y => y.MapFrom(z =>
+                    z.ApprovedByUser != null
+                        ? z.ApprovedByUser.Username
+                        : null));
 
 
     }
