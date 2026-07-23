@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs.GRN;
+﻿using Backend_Fincore.Application.DTOs.GRN;
+using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
@@ -6,6 +7,7 @@ using Backend_Fincore.Service;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Backend_Fincore.Controllers
@@ -23,16 +25,21 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> getAllGRNs()
+        public async Task<IActionResult> getAllGRNs(GrnStatusDTO dto)
         {
-            var data = await gRNService.GetAllGrns();
+            var masterType = User.FindFirst("masterType")?.Value;
+            var masterId = int.Parse(User.FindFirst("masterId")!.Value);
+
+            var data = await gRNService.GetAllGrns(masterType!, masterId, dto);
 
             return Ok(new ApiResponse<List<GRNDTO>>
             {
                 Success = true,
-                Message = "GRNs fetched successfully.",
+                Message = "GRN list fetched successfully.",
                 Data = data,
-                Error = null
+                Error = null,
+                Metadata = null,
+                TotalNumberRecord = data.Count
             });
 
         }
@@ -49,7 +56,9 @@ namespace Backend_Fincore.Controllers
                     Success = false,
                     Message = "GRN not found.",
                     Data = null,
-                    Error = $"No GRN found with Id {id}."
+                    Error = $"No GRN found with Id {id}.",
+                     Metadata = null,
+                    TotalNumberRecord = 0
                 });
             }
 
@@ -58,7 +67,9 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "GRN fetched successfully.",
                 Data = grn,
-                Error = null
+                Error = null,
+                 Metadata = null,
+                TotalNumberRecord = 1
             });
         }
 
@@ -123,6 +134,30 @@ namespace Backend_Fincore.Controllers
                 Error = null,
                 Metadata = new { },
                 TotalNumberRecord = null
+            });
+        }
+
+
+        [HttpPut("{id}/Status")]
+       
+        public async Task<IActionResult> UpdateGRNStatus(int id, GrnStatusDTO dto)
+        {
+            //int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            await gRNService.UpdateGRNStatus(id, dto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "GRN status updated successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new
+                {
+                    GRNId = id,
+                    Status = dto.Status
+                },
+                TotalNumberRecord = 1
             });
         }
 

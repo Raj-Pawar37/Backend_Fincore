@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.GRN;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.Interface;
@@ -115,17 +116,57 @@ namespace Backend_Fincore.Service
 
         }
 
-        public async Task<List<GRNDTO>> GetAllGrns()
+        public async Task<List<GRNDTO>> GetAllGrns(string masterType, int masterId, GrnStatusDTO dto)
         {
-            var res = await db.GRN.Include(x => x.PurchaseOrder)
-                .Include(x => x.ReceivedByUser).Where(x=> x.PurchaseOrder.Status == "Issued").ToListAsync();
+            var query = db.GRN.Include(x => x.PurchaseOrder).AsQueryable();
+
+            if (masterType == "Employee")
+            {
+                throw new Exception("You are not authorized to view GRNs.");
+            }
+
+            // Manager
+            else if (masterType == "Manager")
+            {
+                var manager = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == masterId);
+
+                if (manager == null)
+                {
+                    throw new Exception("Manager not found.");
+                }
+
+                // Employees of manager's department
+                var employeeIds = await db.Employee.Where(x => x.DepartmentId == manager.DepartmentId).Select(x => x.EmployeeId)
+                                         .ToListAsync();
 
 
-            
 
-            var data = mapper.Map<List<GRNDTO>>(res);
+                // UserIds of those employees
+                var userIds = await db.User.Where(x => x.MasterType == "Employee" && employeeIds.Contains(x.MasterId))
+                                  .Select(x => x.UserId).ToListAsync();
 
-            return data;
+
+               
+                query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
+            }
+
+            // Vendor
+            else if (masterType == "Vendor")
+            {
+                query = query.Where(x => x.PurchaseOrder.VendorId == masterId);
+            }
+
+            // CFO -> No filter
+
+            if (!string.IsNullOrWhiteSpace(dto.Status))
+            {
+                query = query.Where(x => x.Status == dto.Status);
+            }
+
+            var data = await query.OrderByDescending(x => x.CreatedAt).ToListAsync();
+
+
+            return mapper.Map<List<GRNDTO>>(data);
         }
 
         public async Task<GRNDTO> GetGrnById(int id)
@@ -206,6 +247,55 @@ namespace Backend_Fincore.Service
             //data.ModifiedBy=userid
             data.ModifiedBy = grn.ModifiedBy;
             data.ModifiedAt = DateTime.Now;
+
+            await db.SaveChangesAsync();
+        }
+
+
+        public async Task UpdateGRNStatus(int id, GrnStatusDTO dto)
+        {
+            var grn = await db.GRN.Include(x => x.GRNItems)
+                              .FirstOrDefaultAsync(x => x.GRNId == id);
+
+            if (grn == null)
+            {
+                throw new Exception("GRN not found.");
+            }
+
+           
+            if (grn.Status == dto.Status)
+            {
+                throw new Exception($"GRN is already {dto.Status}.");
+            }
+
+            // Allow only valid statuses
+            if (dto.Status != "Draft" &&
+                dto.Status != "Received" &&
+                dto.Status != "Rejected")
+            {
+                throw new Exception("Invalid GRN status.");
+            }
+
+            grn.Status = dto.Status;
+            grn.ModifiedBy = dto.userId;
+            grn.ModifiedAt = DateTime.Now;
+
+            // Uncomment after TL adds Status column to PurchaseOrderItem
+            /*
+            if (dto.Status == "Received")
+            {
+                foreach (var item in grn.GRNItems)
+                {
+                    var poItem = await db.PurchaseOrderItem
+                                         .FirstOrDefaultAsync(x => x.POItemId == item.POItemId);
+
+                    if (poItem != null)
+                    {
+                        poItem.Status = "Received";
+                    }
+                }
+            }
+            */
 
             await db.SaveChangesAsync();
         }
