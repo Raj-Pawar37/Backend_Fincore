@@ -56,7 +56,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Add(EmployeeWriteDTO dto)
+        public async Task<IActionResult> AddEmployee(EmployeeWriteDTO dto)
         {
             var data = await service.AddEmp(dto);
 
@@ -70,7 +70,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, EmployeeWriteDTO dto)
+        public async Task<IActionResult> UpdateEmployee(int id, EmployeeWriteDTO dto)
         {
             var result = await service.update(id, dto);
 
@@ -95,7 +95,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteEmployee(int id)
         {
             var result = await service.delete(id);
 

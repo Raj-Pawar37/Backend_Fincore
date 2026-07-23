@@ -1,50 +1,53 @@
-﻿using AutoMapper;
-using Backend_Fincore.Data;
-using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
-using Backend_Fincore.Models;
-using Backend_Fincore.Response;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Collections;
 
 namespace Backend_Fincore.Controllers
 {
+    [Route("api/v1/permissions")]
+    [ApiController]
     public class PermissionController : ControllerBase
     {
-   
+        private readonly IPermissionService _permissionService;
 
-        private readonly IMapper mapper;
-        private readonly IPermissionService services;
-
-        public PermissionController(IPermissionService services , IMapper mapper)
+        public PermissionController(IPermissionService permissionService)
         {
-            this.mapper = mapper;
-            this.services = services;
+            _permissionService = permissionService;
         }
 
-        [HttpGet("api/v1/permission")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PermissionDTO>>>> AllPermission(int? id)
+        [HttpGet]
+        public async Task<IActionResult> GetAllPermissions([FromQuery] int? id)
         {
-            try
-            {
-            
-                var permissions = await services.GetAllPermissionsAsync(id);
-
-                var perDto = mapper.Map<IEnumerable<PermissionDTO>>(permissions);
-               
-                //var response = ApiResponse<IEnumerable<PermissionDTO>>.Success(perDto, "Permissions fetched successfully.");
-                //return Ok(response);
-                throw new NotImplementedException();
-            }
-            catch (Exception ex)
-            {
-                //var response = ApiResponse<IEnumerable<PermissionDTO>>.Failure($"An error occurred fetching permissions: {ex.Message}");
-                //return StatusCode(500, response);
-                throw new NotImplementedException();
-            }
+            var response = await _permissionService.GetAllPermissionsAsync(id);
+            return response.Success ? Ok(response) : StatusCode(500, response);
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPermissionById(int id)
+        {
+            var response = await _permissionService.GetPermissionByIdAsync(id);
+            return response.Success ? Ok(response) : NotFound(response);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreatePermission([FromBody] PermissionDTO dto)
+        {
+            var response = await _permissionService.CreatePermissionAsync(dto);
+            return response.Success ? Ok(response) : StatusCode(500, response);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePermission(int id, [FromBody] PermissionDTO dto)
+        {
+            var response = await _permissionService.UpdatePermissionAsync(id, dto);
+            return response.Success ? Ok(response) : NotFound(response);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePermission(int id)
+        {
+            var response = await _permissionService.DeletePermissionAsync(id);
+            return response.Success ? Ok(response) : NotFound(response);
+        }
     }
 }

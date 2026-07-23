@@ -6,18 +6,23 @@ namespace Backend_Fincore.Interface
 {
         public interface IExpenseClaimService
         {
-            Task<List<ExpenseClaimReadDTO>> GetAll();
+            Task<List<ExpenseClaimReadDTO>> GetAll(int userId);
 
             Task<ExpenseClaimReadDTO?> GetById(int id);
 
             Task<ExpenseClaimReadDTO> Create(
                 ExpenseClaimWriteDTO dto);
 
-            Task<ExpenseClaimReadDTO?> Update(
-                int id,
-                ExpenseClaimWriteDTO dto);
+            Task<ExpenseClaimReadDTO> Update(
+             int expenseClaimId,
+             ExpenseClaimWriteDTO dto);
 
-            Task<bool> Delete(int id);
-        }
+           Task<bool> Delete(int expenseClaimId);
+
+                Task<ExpenseClaimReadDTO> Verify(
+                int expenseClaimId,
+                int verifiedBy,
+                ExpenseClaimVerifyDTO dto);
+    }
   
 }

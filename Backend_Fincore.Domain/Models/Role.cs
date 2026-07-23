@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Backend_Fincore.Domain.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Backend_Fincore.Models
 {
@@ -20,5 +21,7 @@ namespace Backend_Fincore.Models
 
         public ICollection<RolePermission> RolePermissions { get; set; }
             = new List<RolePermission>();
+        public ICollection<Approval> Approvals { get; set; }
+            = new List<Approval>();
     }
 }

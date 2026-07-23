@@ -4,14 +4,22 @@ namespace Backend_Fincore.Interface
 {
     public interface IWorkOrderService
     {
-        Task<List<WorkOrderReadDTO>> GetAll();
+      
+            Task<WorkOrderReadDTO> Create(WorkOrderWriteDTO dto);
 
-        Task<WorkOrderReadDTO?> GetById(int id);
+            Task<List<WorkOrderReadDTO>> GetAll(int userId);
 
-        Task<WorkOrderReadDTO> Create(WorkOrderWriteDTO dto);
+            Task<WorkOrderReadDTO> Update(
+                int workOrderId,
+                WorkOrderWriteDTO dto);
 
-        Task<WorkOrderReadDTO?> Update(int id, WorkOrderWriteDTO dto);
+            Task<bool> Delete(int workOrderId);
 
-        Task<bool> Delete(int id);
+            Task<WorkOrderReadDTO> Verify(
+                int workOrderId,
+                int approvedBy,
+                WorkOrderVerifyDTO dto);
+        
+
     }
 }
