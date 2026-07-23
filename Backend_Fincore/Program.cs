@@ -9,7 +9,6 @@ using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 
 using Backend_Fincore.Mapper;
-using Backend_Fincore.Middleware;
 using Backend_Fincore.Service;
 
 using Backend_Fincore.Services;
@@ -22,7 +21,6 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddAutoMapper(typeof(MappingData));
 
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
@@ -49,50 +47,80 @@ builder.Services.AddScoped<IGRNService, GRNService>();
 builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
 builder.Services.AddScoped<IAssetsService, AssetsService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
+
+builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
-builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
-builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
+// 2. Clear Default Claim Mappings (Must be before AddAuthentication)
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-builder.Services.AddScoped<IAccountMasterService, AccountMasterService>();
-builder.Services.AddScoped<IDepartmentService, DepartmentService>();
-builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
-builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddScoped<IApprovalService, ApprovalService>();
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// 3. Configure JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-        ClockSkew = TimeSpan.Zero
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            ClockSkew = TimeSpan.Zero,
+
+            // ⚠️ CRITICAL FIX: Maps new Claim("role", ...) to [Authorize(Roles = "...")]
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+        };
+
+        // Extract token from HttpOnly Cookie if no Authorization header is present
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token) &&
+                    context.Request.Cookies.TryGetValue("accessToken", out var token))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
+// 4. Configure Swagger (SINGLE call with Security Definition)
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter your JWT token directly (e.g. eyJhbGci...)"
+    });
 
-
-
-builder.Services.AddScoped<IDocumentNumberService, DocumentNumberService>();
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 //1 Rate  limiting 
 builder.Services.AddRateLimiter(rateLimiterOptions =>
@@ -140,11 +168,16 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Backend Fincore API v1");
+
+        // 💡 Tells Swagger to attach HttpOnly cookies to outgoing API calls
+        c.ConfigObject.AdditionalItems["withCredentials"] = true;
+    });
 }
 
 app.UseHttpsRedirection();
-app.UseMiddleware<GlobalExceptionMiddleware>();
 
 
 app.UseAuthentication();
