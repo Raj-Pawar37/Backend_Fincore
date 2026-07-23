@@ -123,7 +123,7 @@ namespace Backend_Fincore.Infrastructure.Service
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.Token == tokenRequestDto.RefreshToken &&
-                    x.TokenType == "RefreshToken" &&
+                    x.TokenType == "RefreshTokenI" &&
                     x.IsActive == 1);
 
             if (refreshToken == null)
@@ -179,23 +179,47 @@ namespace Backend_Fincore.Infrastructure.Service
                 throw new Exception("Username already exists.");
 
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
-
             User user = new User
             {
+                RoleId = 2,               // Employee RoleId
+                MasterId = 1,             // Temporary or actual EmployeeId
+                MasterType = "Employee",
+
                 Username = username,
                 PasswordHash = passwordHash,
                 Email = $"{username}@domain.com",
-                IsEmailVerified = 0,
+
                 FailedLoginAttempts = 0,
+                IsEmailVerified = 0,
                 IsActive = 1,
                 CreatedAt = DateTime.UtcNow
             };
-
             db.User.Add(user);
 
             await db.SaveChangesAsync();
 
             return "User Registered Successfully.";
         }
+
+
+
+        public async Task LogoutAsync(int userId)
+        {
+            // Find active refresh token for the user and deactivate it
+            var existingToken = await db.UserToken
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.TokenType == "RefreshToken" && x.IsActive == 1);
+
+            if (existingToken != null)
+            {
+                existingToken.IsActive = 0; // Deactivate
+                existingToken.ModifiedAt = DateTime.UtcNow;
+                existingToken.ModifiedBy = userId;
+
+                db.UserToken.Update(existingToken);
+                await db.SaveChangesAsync();
+            }
+        }
     }
 }
+
+   

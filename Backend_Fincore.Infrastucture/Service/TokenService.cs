@@ -32,12 +32,12 @@ namespace Backend_Fincore.Infrastructure.Service
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"], //issuer
-                audience: _config["Jwt:Audience"],   //audinece 
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],  
                 claims: claims,                       //claims(payload data)
                 expires: DateTime.UtcNow.AddMinutes(
     Convert.ToInt32(_config["Jwt:ExpiryMinutes"])
-), //ACCESS TOKEN
+),
                 signingCredentials: creds                 //define header
             );
 

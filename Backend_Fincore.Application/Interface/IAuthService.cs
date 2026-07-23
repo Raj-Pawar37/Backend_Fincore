@@ -9,5 +9,7 @@ namespace Backend_Fincore.Application.Interface
         Task<AuthResponseDto> LoginAsync(LoginDto loginDto);
         Task<AuthResponseDto> RefreshTokenAsync(TokenRequestDto tokenRequestDto);
         Task<string> RegisterAsync(LoginDto registerDto);
+
+           Task LogoutAsync(int id);
     }
 }
