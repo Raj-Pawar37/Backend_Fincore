@@ -17,47 +17,36 @@ namespace Backend_Fincore.Controllers
             this.service = service;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var data = await service.GetAll();
+    
 
-            return Ok(new ApiResponse<List<WorkOrderReadDTO>>
-            {
-                Success = true,
-                Message = "Work Orders fetched successfully.",
-                Data = data,
-                Error = null
-            });
-        }
+        //[HttpGet("{id}")]
+        //public async Task<IActionResult> GetById(int id)
+        //{
+        //    var data = await service.GetById(id);
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var data = await service.GetById(id);
+        //    if (data == null)
+        //    {
+        //        return NotFound(new ApiResponse<object>
+        //        {
+        //            Success = false,
+        //            Message = "Work Order not found.",
+        //            Data = null,
+        //            Error = $"No Work Order found with Id = {id}"
+        //        });
+        //    }
 
-            if (data == null)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Work Order not found.",
-                    Data = null,
-                    Error = $"No Work Order found with Id = {id}"
-                });
-            }
-
-            return Ok(new ApiResponse<WorkOrderReadDTO>
-            {
-                Success = true,
-                Message = "Work Order fetched successfully.",
-                Data = data,
-                Error = null
-            });
-        }
+        //    return Ok(new ApiResponse<WorkOrderReadDTO>
+        //    {
+        //        Success = true,
+        //        Message = "Work Order fetched successfully.",
+        //        Data = data,
+        //        Error = null
+        //    });
+        //}
 
         [HttpPost]
-        public async Task<IActionResult> Add(WorkOrderWriteDTO dto)
+        public async Task<IActionResult> Create(
+         WorkOrderWriteDTO dto)
         {
             var data = await service.Create(dto);
 
@@ -70,21 +59,28 @@ namespace Backend_Fincore.Controllers
             });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll(int userId)
+        {
+            var data = await service.GetAll(userId);
+
+            return Ok(
+                new ApiResponse<List<WorkOrderReadDTO>>
+                {
+                    Success = true,
+                    Message =
+                        "Work Orders fetched successfully.",
+                    Data = data,
+                    Error = null
+                });
+        }
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, WorkOrderWriteDTO dto)
+        public async Task<IActionResult> Update(
+            int id,
+            WorkOrderWriteDTO dto)
         {
             var data = await service.Update(id, dto);
-
-            if (data == null)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Work Order not found.",
-                    Data = null,
-                    Error = $"No Work Order found with Id = {id}"
-                });
-            }
 
             return Ok(new ApiResponse<WorkOrderReadDTO>
             {
@@ -98,24 +94,34 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await service.Delete(id);
-
-            if (!result)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Work Order not found.",
-                    Data = null,
-                    Error = $"No Work Order found with Id = {id}"
-                });
-            }
+            await service.Delete(id);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "Work Order deleted successfully.",
                 Data = null,
+                Error = null
+            });
+        }
+
+        [HttpPut("{id}/verify")]
+        public async Task<IActionResult> Verify(
+            int id,
+            int approvedBy,
+            WorkOrderVerifyDTO dto)
+        {
+            var data = await service.Verify(
+                id,
+                approvedBy,
+                dto);
+
+            return Ok(new ApiResponse<WorkOrderReadDTO>
+            {
+                Success = true,
+                Message =
+                    $"Work Order {dto.Status} successfully.",
+                Data = data,
                 Error = null
             });
         }
