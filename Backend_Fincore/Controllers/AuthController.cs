@@ -1,10 +1,14 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Application.Response;
+using Backend_Fincore.Infrastructure.Service;
+using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
-//Try 1
+
 namespace Backend_Fincore.Controllers
 {
     [ApiController]
@@ -19,20 +23,59 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login( LoginDto loginDto)
+        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
             try
             {
                 var response = await _authService.LoginAsync(loginDto);
-                return Ok(response);
+
+                Response.Cookies.Append("accessToken", response.AccessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddMinutes(15)
+                });
+
+                Response.Cookies.Append("refreshToken", response.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = response.RefreshTokenExpiry
+                });
+
+                var authData = new AuthResponseDto
+                {
+                    AccessToken = response.AccessToken,
+                    RefreshToken = response.RefreshToken,
+                    RefreshTokenExpiry = response.RefreshTokenExpiry
+                };
+
+                return Ok(new ApiResponse<AuthResponseDto>
+                {
+                    Success = true,
+                    Message = "Login successful",
+                    Data = authData
+                });
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Authentication failed",
+                    Error = ex.Message
+                });
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid input",
+                    Error = ex.Message
+                });
             }
         }
 
@@ -42,15 +85,31 @@ namespace Backend_Fincore.Controllers
             try
             {
                 var response = await _authService.RefreshTokenAsync(tokenRequestDto);
-                return Ok(response);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Token refreshed successfully",
+                    Data = response
+                });
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Token refresh failed",
+                    Error = ex.Message
+                });
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request",
+                    Error = ex.Message
+                });
             }
         }
 
@@ -60,31 +119,39 @@ namespace Backend_Fincore.Controllers
             try
             {
                 var result = await _authService.RegisterAsync(registerDto);
-                return Ok(result);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Registration successful",
+                    Data = result
+                });
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Registration failed",
+                    Error = ex.Message
+                });
             }
         }
 
         [HttpPost("logout")]
-        [Authorize] // Requires a valid JWT token to identify who is logging out
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             try
             {
-                // 1. Get the UserId from the logged-in user's claims
-                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                   ?? User.FindFirst("sub")?.Value;
 
                 if (int.TryParse(userIdClaim, out int userId))
                 {
-                    // Revoke refresh token in the database
                     await _authService.LogoutAsync(userId);
                 }
 
-                // 2. Clear Access Token Cookie
                 Response.Cookies.Delete("accessToken", new CookieOptions
                 {
                     HttpOnly = true,
@@ -92,7 +159,6 @@ namespace Backend_Fincore.Controllers
                     SameSite = SameSiteMode.Strict
                 });
 
-                // 3. Clear Refresh Token Cookie
                 Response.Cookies.Delete("refreshToken", new CookieOptions
                 {
                     HttpOnly = true,
@@ -100,12 +166,86 @@ namespace Backend_Fincore.Controllers
                     SameSite = SameSiteMode.Strict
                 });
 
-                return Ok(new { message = "Logged out successfully" });
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Logged out successfully"
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred during logout", error = ex.Message });
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred during logout",
+                    Error = ex.Message
+                });
             }
         }
+
+        [HttpPost("GenerateOTP")]
+        public async Task<IActionResult> GenerateQRCode([FromBody] GenerateOtpRequest request)
+        {
+            var result = await _authService.GenerateQRCode(request.Email);
+
+            if (string.IsNullOrEmpty(result))
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "User not found or QR generation failed."
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "QR CODE DONE",
+                Data = new { qrCode = result }
+            });
+        }
+
+        [HttpPost("verifyOTP")]
+        public async Task<IActionResult> VerifyOTP([FromBody] VerifyOtpRequest request)
+        {
+            var result = await _authService.VerifyOTP(request.Email, request.Otp);
+
+            if (string.IsNullOrEmpty(result))
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "User not found or 2FA not initialized."
+                });
+            }
+
+            if (result == "invalid otp")
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid OTP provided.",
+                    Error = "invalid_otp"
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "OTP verified successfully",
+                Data = result
+            });
+        }
+    }
+
+    public class GenerateOtpRequest
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class VerifyOtpRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Otp { get; set; } = string.Empty;
     }
 }

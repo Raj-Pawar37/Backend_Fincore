@@ -10,6 +10,10 @@ namespace Backend_Fincore.Application.Interface
         Task<AuthResponseDto> RefreshTokenAsync(TokenRequestDto tokenRequestDto);
         Task<string> RegisterAsync(LoginDto registerDto);
 
-           Task LogoutAsync(int id);
+        Task LogoutAsync(int id);
+
+        Task<string> GenerateQRCode(string email);
+
+        Task<string> VerifyOTP(string email, string otp);
     }
 }
