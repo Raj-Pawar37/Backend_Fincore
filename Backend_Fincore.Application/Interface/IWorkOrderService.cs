@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.WorkOrder;
+﻿using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.Application.DTOs.WorkOrder;
 
 namespace Backend_Fincore.Interface
 {
@@ -19,7 +20,9 @@ namespace Backend_Fincore.Interface
                 int workOrderId,
                 int approvedBy,
                 WorkOrderVerifyDTO dto);
-        
+
+        Task<WorkOrderReadDTO?> GetById(int id);
+
 
     }
 }

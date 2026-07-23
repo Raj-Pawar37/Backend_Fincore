@@ -17,32 +17,32 @@ namespace Backend_Fincore.Controllers
             this.service = service;
         }
 
-    
 
-        //[HttpGet("{id}")]
-        //public async Task<IActionResult> GetById(int id)
-        //{
-        //    var data = await service.GetById(id);
 
-        //    if (data == null)
-        //    {
-        //        return NotFound(new ApiResponse<object>
-        //        {
-        //            Success = false,
-        //            Message = "Work Order not found.",
-        //            Data = null,
-        //            Error = $"No Work Order found with Id = {id}"
-        //        });
-        //    }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var data = await service.GetById(id);
 
-        //    return Ok(new ApiResponse<WorkOrderReadDTO>
-        //    {
-        //        Success = true,
-        //        Message = "Work Order fetched successfully.",
-        //        Data = data,
-        //        Error = null
-        //    });
-        //}
+            if (data == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Work Order not found.",
+                    Data = null,
+                    Error = $"No Work Order found with Id = {id}"
+                });
+            }
+
+            return Ok(new ApiResponse<WorkOrderReadDTO>
+            {
+                Success = true,
+                Message = "Work Order fetched successfully.",
+                Data = data,
+                Error = null
+            });
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create(

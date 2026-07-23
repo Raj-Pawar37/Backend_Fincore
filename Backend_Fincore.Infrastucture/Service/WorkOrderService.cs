@@ -40,12 +40,12 @@ namespace Backend_Fincore.Services
             {
                 // CFO sees all work orders
             }
-            //else if (user.Role.RoleName == "Manager")
-            //{
-            //    query = query.Where(x =>
-            //        x.CreatedByUser.DepartmentId ==
-            //        user.DepartmentId);
-            //}
+            else if (user.Role.RoleName == "Manager")
+            {
+                query = query.Where(x =>
+                    x.CreatedBy ==
+                    user.RoleId);
+            }
             else
             {
                 query = query.Where(x =>
@@ -76,6 +76,9 @@ namespace Backend_Fincore.Services
         public async Task<WorkOrderReadDTO> Create(
       WorkOrderWriteDTO dto)
         {
+          
+
+
             bool workOrderNumberExists = await db.WorkOrder
                 .AnyAsync(x =>
                     x.WorkOrderNumber == dto.WorkOrderNumber);
@@ -125,8 +128,8 @@ namespace Backend_Fincore.Services
             var workOrder = mapper.Map<WorkOrder>(dto);
 
             workOrder.Status = "Pending";
-            //workOrder.ApprovedBy = null;
-            //workOrder.ApprovedDate = null;
+            workOrder.CreatedAt = DateTime.Now;
+            //workOrder.CreatedBy = approver;
 
             await db.WorkOrder.AddAsync(workOrder);
             await db.SaveChangesAsync();
@@ -289,8 +292,8 @@ namespace Backend_Fincore.Services
             }
 
             workOrder.Status = dto.Status;
-            //workOrder.ApprovedBy = approvedBy;
-            //workOrder.ApprovedDate = DateTime.Now;
+            workOrder.ModifiedBy = approvedBy;
+            workOrder.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 

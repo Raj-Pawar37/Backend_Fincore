@@ -181,7 +181,7 @@ namespace Backend_Fincore.Service
 
             return true;
         }
-        public async Task<OpexRequestReadDTO> Verify(int opexRequestId,int approvedBy,OpexRequestVerifyDTO dto)
+        public async Task<OpexRequestReadDTO> Verify(int opexRequestId, int approvedBy, OpexRequestVerifyDTO dto)
         {
             var opexRequest = await db.OpexRequest
                 .FirstOrDefaultAsync(x => x.OpexRequestId == opexRequestId);
@@ -217,7 +217,7 @@ namespace Backend_Fincore.Service
             IQueryable<OpexRequest> query = db.OpexRequest
                 .Include(x => x.BudgetLine)
                 .Include(x => x.RequestedByUser)
-                    //.ThenInclude(x => x.Department)
+
                 .Include(x => x.ApprovedByUser);
 
             // Filter by status

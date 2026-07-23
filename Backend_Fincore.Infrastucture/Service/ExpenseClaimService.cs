@@ -85,7 +85,7 @@ namespace Backend_Fincore.Service
             expenseClaim.Status = "Pending";
             expenseClaim.ApprovedBy = null;
             expenseClaim.ApprovedDate = null;
-            //expenseClaim.OpexRequestId = null;
+            expenseClaim.OpexRequestId = null;
 
             await db.ExpenseClaim.AddAsync(expenseClaim);
             await db.SaveChangesAsync();
@@ -144,7 +144,7 @@ namespace Backend_Fincore.Service
             return true;
         }
 
-        public async Task<ExpenseClaimReadDTO> Verify(int expenseClaimId,int verifiedBy,ExpenseClaimVerifyDTO dto)
+        public async Task<ExpenseClaimReadDTO> Verify(int expenseClaimId, int verifiedBy, ExpenseClaimVerifyDTO dto)
         {
             var expenseClaim = await db.ExpenseClaim
                 .FirstOrDefaultAsync(x =>
@@ -168,76 +168,76 @@ namespace Backend_Fincore.Service
             await using var transaction =
                 await db.Database.BeginTransactionAsync();
 
-          
-                // When claim is rejected, only update its status
-                if (dto.Status == "Rejected")
-                {
-                    expenseClaim.Status = "Rejected";
-                    expenseClaim.ApprovedBy = verifiedBy;
-                    expenseClaim.ApprovedDate = DateTime.Now;
 
-                    await db.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    return mapper.Map<ExpenseClaimReadDTO>(expenseClaim);
-                }
-
-                // BudgetLineId is required while approving
-                if (dto.BudgetLineId == null)
-                    throw new Exception(
-                        "Budget Line is required to approve the Expense Claim.");
-
-                var budgetLine = await db.BudgetLine
-                    .FirstOrDefaultAsync(x =>
-                        x.BudgetLineId == dto.BudgetLineId.Value);
-
-                if (budgetLine == null)
-                    throw new Exception("Budget Line not found.");
-
-                decimal usedAmount = await db.OpexRequest
-                    .Where(x =>
-                        x.BudgetLineId == dto.BudgetLineId.Value &&
-                        x.Status != "Rejected")
-                    .SumAsync(x => x.Amount);
-
-                decimal availableAmount =
-                    budgetLine.AllocatedAmount - usedAmount;
-
-                if (expenseClaim.ExpenseAmount > availableAmount)
-                {
-                    throw new Exception(
-                        $"Expense Claim amount exceeds available budget of {availableAmount}.");
-                }
-
-                // Create new OPEX request
-                var opexRequest = new OpexRequest
-                {
-                    BudgetLineId = dto.BudgetLineId.Value,
-                    Title = expenseClaim.Description
-                            ?? expenseClaim.ClaimNumber,
-                    Amount = expenseClaim.ExpenseAmount,
-                    RequestedBy = expenseClaim.ClaimedBy,
-                    Status = "Approved",
-                    ApprovedBy = verifiedBy,
-                    ApprovedDate = DateTime.Now
-                };
-
-                await db.OpexRequest.AddAsync(opexRequest);
-                await db.SaveChangesAsync();
-
-                // Update Expense Claim with status and OPEX ID
-                expenseClaim.Status = "Approved";
+            // When claim is rejected, only update its status
+            if (dto.Status == "Rejected")
+            {
+                expenseClaim.Status = "Rejected";
                 expenseClaim.ApprovedBy = verifiedBy;
                 expenseClaim.ApprovedDate = DateTime.Now;
-                expenseClaim.OpexRequestId =
-                    //opexRequest.OpexRequestId;
 
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return mapper.Map<ExpenseClaimReadDTO>(expenseClaim);
-        
-           
+            }
+
+            // BudgetLineId is required while approving
+            if (dto.BudgetLineId == null)
+                throw new Exception(
+                    "Budget Line is required to approve the Expense Claim.");
+
+            var budgetLine = await db.BudgetLine
+                .FirstOrDefaultAsync(x =>
+                    x.BudgetLineId == dto.BudgetLineId.Value);
+
+            if (budgetLine == null)
+                throw new Exception("Budget Line not found.");
+
+            decimal usedAmount = await db.OpexRequest
+                .Where(x =>
+                    x.BudgetLineId == dto.BudgetLineId.Value &&
+                    x.Status != "Rejected")
+                .SumAsync(x => x.Amount);
+
+            decimal availableAmount =
+                budgetLine.AllocatedAmount - usedAmount;
+
+            if (expenseClaim.ExpenseAmount > availableAmount)
+            {
+                throw new Exception(
+                    $"Expense Claim amount exceeds available budget of {availableAmount}.");
+            }
+
+            // Create new OPEX request
+            var opexRequest = new OpexRequest
+            {
+                BudgetLineId = dto.BudgetLineId.Value,
+                Title = expenseClaim.Description
+                        ?? expenseClaim.ClaimNumber,
+                Amount = expenseClaim.ExpenseAmount,
+                RequestedBy = expenseClaim.ClaimedBy,
+                Status = "Approved",
+                ApprovedBy = verifiedBy,
+                ApprovedDate = DateTime.Now
+            };
+
+            await db.OpexRequest.AddAsync(opexRequest);
+            await db.SaveChangesAsync();
+
+            // Update Expense Claim with status and OPEX ID
+            expenseClaim.Status = "Approved";
+            expenseClaim.ApprovedBy = verifiedBy;
+            expenseClaim.ApprovedDate = DateTime.Now;
+            expenseClaim.OpexRequestId =
+                opexRequest.OpexRequestId;
+
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return mapper.Map<ExpenseClaimReadDTO>(expenseClaim);
+
+
         }
     }
 }
