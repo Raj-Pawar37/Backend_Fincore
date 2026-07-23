@@ -13,7 +13,7 @@ namespace Backend_Fincore.Service
         private readonly AppDbContext db;
 
         IMapper mapper;
-        public GRNService(AppDbContext db,IMapper mapper)
+        public GRNService(AppDbContext db, IMapper mapper)
         {
             this.db = db;
             this.mapper = mapper;
@@ -30,24 +30,13 @@ namespace Backend_Fincore.Service
 
             var GRNName = await db.GRN.FirstOrDefaultAsync(x => x.GRNNumber == grn.GRNNumber);
 
-            if(GRNName != null)
+            if (GRNName != null)
             {
                 throw new Exception("Grn name already exists");
             }
 
 
-            //var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grn.POItemId);
 
-
-            //if (poItem == null)
-            //{
-            //    throw new Exception("Purchase Order Item not found.");
-            //}
-
-            //if (poItem.Status == "Received")
-            //{
-            //    throw new Exception("Purchase Order Item has already been received.");
-            //}
 
 
 
@@ -58,14 +47,14 @@ namespace Backend_Fincore.Service
 
             var user = await db.User.FirstOrDefaultAsync(x => x.UserId == grn.ReceivedBy);
 
-            if(user == null)
+            if (user == null)
             {
                 throw new Exception("User not found");
             }
 
             var data = mapper.Map<GRN>(grn);
 
-            
+
 
             data.Status = "Draft";
             data.CreatedAt = DateTime.Now;
@@ -109,7 +98,7 @@ namespace Backend_Fincore.Service
 
             db.GRNItem.RemoveRange(grn.GRNItems);
 
-           
+
             db.GRN.Remove(grn);
 
             await db.SaveChangesAsync();
@@ -146,7 +135,7 @@ namespace Backend_Fincore.Service
                                   .Select(x => x.UserId).ToListAsync();
 
 
-               
+
                 query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
             }
 
@@ -175,7 +164,7 @@ namespace Backend_Fincore.Service
                            .Include(x => x.ReceivedByUser)
                           .FirstOrDefaultAsync(x => x.GRNId == id);
 
-            if(grn != null)
+            if (grn != null)
             {
                 var data = mapper.Map<GRNDTO>(grn);
 
@@ -194,7 +183,7 @@ namespace Backend_Fincore.Service
             {
                 throw new Exception("GRN not found.");
             }
-      
+
             var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync
                               (x => x.PurchaseOrderId == grn.PurchaseOrderId);
 
@@ -235,13 +224,13 @@ namespace Backend_Fincore.Service
             data.PurchaseOrderId = grn.PurchaseOrderId;
 
             data.GRNNumber = grn.GRNNumber;
-            
+
             data.ReceivedBy = grn.ReceivedBy;
             data.ReceivedDate = grn.ReceivedDate;
             data.Remarks = grn.Remarks;
             data.DeliveryChallanNumber = grn.DeliveryChallanNumber;
 
-            
+
 
             // Temporary until JWT Authentication
             //data.ModifiedBy=userid
@@ -262,7 +251,7 @@ namespace Backend_Fincore.Service
                 throw new Exception("GRN not found.");
             }
 
-           
+
             if (grn.Status == dto.Status)
             {
                 throw new Exception($"GRN is already {dto.Status}.");
@@ -280,8 +269,6 @@ namespace Backend_Fincore.Service
             grn.ModifiedBy = dto.userId;
             grn.ModifiedAt = DateTime.Now;
 
-            // Uncomment after TL adds Status column to PurchaseOrderItem
-            /*
             if (dto.Status == "Received")
             {
                 foreach (var item in grn.GRNItems)
@@ -295,7 +282,7 @@ namespace Backend_Fincore.Service
                     }
                 }
             }
-            */
+            
 
             await db.SaveChangesAsync();
         }

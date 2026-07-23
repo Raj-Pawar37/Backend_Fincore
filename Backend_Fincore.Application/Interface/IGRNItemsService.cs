@@ -1,5 +1,6 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.DTOs.GRN;
+using Backend_Fincore.DTOs.PurchaseOrderItem;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +18,10 @@ namespace Backend_Fincore.Application.Interface
 
 
         Task DeleteGRNItem(int id);
+
+
+        Task AddGRNItem(GRNItemsCUDTO dto, int createdBy);
+
+        Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto);
     }
 }

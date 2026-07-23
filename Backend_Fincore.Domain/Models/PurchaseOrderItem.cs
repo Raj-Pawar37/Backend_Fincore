@@ -10,7 +10,7 @@ namespace Backend_Fincore.Models
 
         public int PurchaseOrderId { get; set; }
 
-        public int QuotationItemId { get; set; }
+        public int? QuotationItemId { get; set; }
 
         public string ItemName { get; set; } = null!;
 

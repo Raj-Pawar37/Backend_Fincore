@@ -1,9 +1,12 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.Interface;
+using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Backend_Fincore.Controllers
 {
@@ -64,6 +67,41 @@ namespace Backend_Fincore.Controllers
                 Error = null,
                 Metadata = new { },
                 TotalNumberRecord = null
+            });
+        }
+
+
+        [HttpPost]
+      
+        public async Task<IActionResult> AddGRNItem(GRNItemsCUDTO dto)
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            await gRNItemsService.AddGRNItem(dto, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "GRN Item added successfully.",
+                Data = null
+            });
+        }
+
+
+        [HttpPost]
+        [Route("SearchPOItem")]
+        public async Task<IActionResult> SearchPOItem(SearchPoiDTO dto)
+        {
+            var result = await gRNItemsService.SearchPOItem(dto);
+
+            return Ok(new ApiResponse<List<POItemsSearchDTO>>
+            {
+                Success = true,
+                Message = "Purchase Order Items fetched successfully.",
+                Data = result,
+                Error = null,
+                Metadata = null,
+                TotalNumberRecord = result.Count
             });
         }
     }

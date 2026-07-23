@@ -12,7 +12,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class GRNController : ControllerBase
     {
@@ -138,7 +138,8 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        [HttpPut("{id}/Status")]
+        [HttpPut]
+        [Route("Status/{id}")]
        
         public async Task<IActionResult> UpdateGRNStatus(int id, GrnStatusDTO dto)
         {

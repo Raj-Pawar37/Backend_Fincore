@@ -229,12 +229,19 @@ namespace Backend_Fincore.Service
                 throw new Exception("Purchased order not exists");
             }
 
-            var poName = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PONumber == Po.PONumber);
+            bool exists = await db.PurchaseOrder.AnyAsync(x => x.PONumber == Po.PONumber && x.PurchaseOrderId != id);
 
-            if (poName != null)
+
+            if (exists)
             {
-                throw new Exception("Purchase order name or number already exist");
+                throw new Exception("Purchase Order Number already exists.");
             }
+
+            if (purchasedOrder.Status == "Completed")
+            {
+                throw new Exception("Completed Purchase Order cannot be updated.");
+            }
+
 
             purchasedOrder.VendorId = Po.VendorId;
             purchasedOrder.QuotationId = Po.QuotationId;
@@ -246,9 +253,6 @@ namespace Backend_Fincore.Service
             await db.SaveChangesAsync();
 
         }
-
-
-
 
 
         public async Task UpdatePOStatus(int purchaseOrderId, PurchasedOrderFilterDTO dto)
@@ -268,6 +272,7 @@ namespace Backend_Fincore.Service
                 throw new Exception("Only Draft Purchase Orders can be Issued.");
             }
 
+            
             purchasedOrder.Status = dto.Status;
             purchasedOrder.ModifiedBy = dto.Userid;
 
