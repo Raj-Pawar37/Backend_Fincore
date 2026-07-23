@@ -1,4 +1,4 @@
-﻿using Backend_Fincore.Application.DTOs;
+﻿using Backend_Fincore.Application.DTOs.Payment;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.WrapperClass;
@@ -113,5 +113,14 @@ namespace Backend_Fincore.Controllers
                 Error = null
             });
         }
+
+
+        [HttpGet("SearchByMasterType")]
+        public async Task<IActionResult> SearchByMasterType([FromQuery] SearchByMasterTypeReqDTO dto)
+        {
+            var data = await paymentService.SearchByMasterType(dto);
+            return Ok(data);
+        }
+
     }
 }

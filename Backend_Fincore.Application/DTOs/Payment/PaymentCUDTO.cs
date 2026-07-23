@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Application.DTOs
+namespace Backend_Fincore.Application.DTOs.Payment
 {
-    public class PaymentDTO
+    public class PaymentCUDTO
     {
         public int PaymentId { get; set; }
 
@@ -23,5 +23,9 @@ namespace Backend_Fincore.Application.DTOs
         public string PaymentMode { get; set; } = null!;
 
         public string? Remarks { get; set; }
+
+        public int CreatedBy { get; set; }
+
+        public int? ModifiedBy { get; set; }
     }
 }
