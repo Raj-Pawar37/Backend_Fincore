@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class APInvoiceController : ControllerBase
     {
@@ -37,17 +37,6 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> getAPInvoiceById(int id)
         {
             var data = await aPInvoiceService.GetAPInvoiceById(id);
-
-            if (data == null)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "AP Invoice not found.",
-                    Data = null,
-                    Error = $"No AP Invoice found with Id {id}."
-                });
-            }
 
             return Ok(new ApiResponse<APInvoiceDTO>
             {
@@ -92,17 +81,6 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> deleteById(int id)
         {
             var data = await aPInvoiceService.DeleteInvoiceById(id);
-
-            if (!data)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "APInvoice not found.",
-                    Data = null,
-                    Error = $"No APInvoice found with Id {id}."
-                });
-            }
 
             return Ok(new ApiResponse<object>
             {
