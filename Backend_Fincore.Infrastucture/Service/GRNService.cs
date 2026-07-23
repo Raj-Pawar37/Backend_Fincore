@@ -35,11 +35,6 @@ namespace Backend_Fincore.Service
                 throw new Exception("Grn name already exists");
             }
 
-
-
-
-
-
             if (purchsedOrder.Status != "Issued")
             {
                 throw new Exception("Only Issued Purchase Orders can be added to GRN.");
@@ -55,14 +50,9 @@ namespace Backend_Fincore.Service
             var data = mapper.Map<GRN>(grn);
 
 
-
             data.Status = "Draft";
             data.CreatedAt = DateTime.Now;
             data.CreatedBy = grn.ReceivedBy;
-
-
-
-
 
             await db.GRN.AddAsync(data);
             await db.SaveChangesAsync();
@@ -72,7 +62,6 @@ namespace Backend_Fincore.Service
 
         public async Task DeletegrnById(int id)
         {
-
 
             var grn = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id);
 
@@ -92,7 +81,7 @@ namespace Backend_Fincore.Service
 
                 if (poItem != null)
                 {
-                    //poItem.Status = "Not Recived"; 
+                    poItem.Status = "Not Recived";
                 }
             }
 
@@ -282,7 +271,7 @@ namespace Backend_Fincore.Service
                     }
                 }
             }
-            
+
 
             await db.SaveChangesAsync();
         }
