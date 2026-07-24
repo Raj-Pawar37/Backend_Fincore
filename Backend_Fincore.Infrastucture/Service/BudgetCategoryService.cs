@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -28,6 +29,15 @@ namespace Backend_Fincore.Service
             }
 
             var data = mapper.Map<BudgetCategory>(dto);
+
+            // JWT code - use later
+            // int userId = GetLoggedInUserId();
+
+            // Temporary user ID for testing
+            int userId = 1;
+
+            data.CreatedBy = userId;
+            data.CreatedAt = DateTime.Now;
 
             await db.BudgetCategory.AddAsync(data);
             await db.SaveChangesAsync();
@@ -61,10 +71,22 @@ namespace Backend_Fincore.Service
             return true;
         }
 
-        public async Task<List<BudgetCategoryReadDTO>> GetAll()
+        public async Task<List<BudgetCategoryReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.BudgetCategory
-                .ToListAsync();
+
+            var search = db.BudgetCategory.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.CategoryName.Contains(pagination.Search));
+
+                  
+            }
+
+            var data = await search
+                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                 .Take(pagination.PageSize)
+                 .ToListAsync();
 
             return mapper.Map<List<BudgetCategoryReadDTO>>(data);
         }
@@ -80,6 +102,11 @@ namespace Backend_Fincore.Service
             }
 
             return mapper.Map<BudgetCategoryReadDTO>(data);
+        }
+
+        public async Task<int> GetTotalRecord()
+        {
+           return await db.BudgetCategory.CountAsync();
         }
 
         public async Task<bool> UpdateBudgetCategory(int id,BudgetCategoryWriteDTO dto)
@@ -103,6 +130,14 @@ namespace Backend_Fincore.Service
             }
 
             mapper.Map(dto, data);
+            // JWT code - use later
+            // int userId = GetLoggedInUserId();
+
+            // Temporary user ID for testing
+            int userId = 1;
+
+            data.ModifiedBy = userId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
