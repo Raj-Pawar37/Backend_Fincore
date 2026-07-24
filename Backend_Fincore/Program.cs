@@ -51,6 +51,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
