@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
@@ -20,9 +21,25 @@ namespace Backend_Fincore.Infrastucture.Service
             this.db = db;
             this.mapper = mapper;
         }
-        public async Task<List<DepartmentReadDTO>>GetAll()
+        public async Task<int> GetTotalRecordDepartment()
         {
-            var data = await db.Department.Include(x => x.Company).ToListAsync();
+            return await db.Department.CountAsync();
+        }
+        public async Task<List<DepartmentReadDTO>>GetAll(PaginationDTO pagination)
+        {
+            var search = db.Department.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search)) {
+                search = search.Where(x =>
+                    x.DepartmentName.Contains(pagination.Search)||
+                    x.DepartmentCode.Contains(pagination.Search)
+                    );
+            
+            }
+            var data = await search.Include(x => x.Company)
+                                          .Where(x => x.IsActive == 1)
+                                          .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                          .Take(pagination.PageSize)
+                                          .ToListAsync();
             //.Where(x => x.IsActive == 1) if we want the departement who's status are active 
             return mapper.Map<List<DepartmentReadDTO>>(data);
         }
@@ -39,6 +56,15 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task<DepartmentReadDTO>AddDepartment(DepartmentWriteDTO dto)
         {
+            var companyExists = await db.Company.AnyAsync(x =>
+                    x.CompanyId == dto.CompanyId &&
+                    x.IsActive == 1);
+
+
+            if (!companyExists)
+            {
+                throw new Exception("Invalid Company Id.");
+            }
             var data = mapper.Map<Department>(dto);
 
             data.CreatedBy = 1;
@@ -80,5 +106,39 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await db.SaveChangesAsync();
         }
+
+        public async Task<List<DepartmentDropdownDTO>>GetDepartmentDropdown(PaginationDTO pagination)
+        {
+            var search = db.Department.Where(x => x.IsActive == 1).AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>x.DepartmentName.Contains(pagination.Search));
+            }
+
+            return await search
+                .OrderBy(x => x.DepartmentName)
+                .Skip((pagination.PageNumber - 1)* pagination.PageSize)
+                .Take(pagination.PageSize)
+                .Select(x => new DepartmentDropdownDTO
+                {
+                    DepartmentId = x.DepartmentId,
+                    DepartmentName = x.DepartmentName
+                })
+
+                .ToListAsync();
+        }
+        public async Task<int>GetDepartmentDropdownCount(PaginationDTO pagination)
+        {
+            var search = db.Department.Where(x => x.IsActive == 1).AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>x.DepartmentName.Contains(pagination.Search));
+            }
+
+            return await search.CountAsync();
+        }
+
+
     }
 }
