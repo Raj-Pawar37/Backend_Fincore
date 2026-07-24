@@ -5,14 +5,9 @@ using Backend_Fincore.Application.Services;
 using Backend_Fincore.Data;
 using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.Infrastucture.Service;
-
 using Backend_Fincore.Interface;
-
 using Backend_Fincore.Mapper;
 using Backend_Fincore.Service;
-
-using Backend_Fincore.Services;
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -22,11 +17,12 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAutoMapper(typeof(MappingData));
-
+builder.Services.AddScoped<IAccountMasterService, AccountMasterService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IBudgetCategoryService, BudgetCategoryService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
@@ -49,12 +45,13 @@ builder.Services.AddScoped<IGRNItemsService, GRNItemsService>();
 builder.Services.AddScoped<IAPInvoiceService, APInvoiceService>();
 builder.Services.AddScoped<IAssetsService, AssetsService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
-
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
-// 2. Clear Default Claim Mappings (Must be before AddAuthentication)
+
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // 3. Configure JWT Authentication
@@ -69,8 +66,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            IssuerSigningKey = new SymmetricSecurityKey( Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
             ClockSkew = TimeSpan.Zero,
 
             // ⚠️ CRITICAL FIX: Maps new Claim("role", ...) to [Authorize(Roles = "...")]
