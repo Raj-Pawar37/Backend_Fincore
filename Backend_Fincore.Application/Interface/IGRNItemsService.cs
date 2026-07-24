@@ -12,8 +12,9 @@ namespace Backend_Fincore.Application.Interface
     public interface IGRNItemsService
     {
 
-        Task<List<GRNItemsDTO>> getAllGrnItems();
+        Task<List<GRNItemsDTO>> getAllGrnItems(PaginationDTO pagination);
 
+        Task<int> GetAllGrnItemsCount();
         Task<GRNItemsDTO> GetGRNItemById(int id);
 
 

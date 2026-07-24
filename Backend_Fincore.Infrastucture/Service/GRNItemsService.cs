@@ -25,8 +25,32 @@ namespace Backend_Fincore.Infrastucture.Service
             this.mapper = mapper;
         }
 
-        public async Task<List<GRNItemsDTO>> getAllGrnItems()
+        public async Task<int> GetAllGrnItemsCount()
         {
+            return await db.GRNItem.CountAsync();
+        }
+
+        public async Task<List<GRNItemsDTO>> getAllGrnItems(PaginationDTO pagination)
+        {
+            var search = db.GRN.AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.GRNNumber.Contains(pagination.Search) ||
+
+                    x.Status.Contains(pagination.Search)
+
+                    );
+            }
+
+            var data1 = await search
+                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                   .Take(pagination.PageSize)
+                                   .ToListAsync();
+
+            mapper.Map<PurchaseOrderItemDTO>(data1);
+
             var data = await db.GRNItem.Include(x => x.POItem).ToListAsync();
 
             var res = mapper.Map<List<GRNItemsDTO>>(data);

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
@@ -43,8 +44,35 @@ namespace Backend_Fincore.Service
             }
         }
 
-        public async Task<PurchaseOrderItemDTO> getAllItem(ReadPoItemsDTO poItem)
+        public async Task<int> GetPurchasedItemCount()
         {
+            return await db.PurchaseOrderItem.CountAsync();
+        }
+
+        public async Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(ReadPoItemsDTO poItem,PaginationDTO pagination)
+        {
+            var search =  db.PurchaseOrderItem.AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.ItemName.Contains(pagination.Search) ||
+
+                    x.ItemType.Contains(pagination.Search) ||
+
+                    x.Status.Contains(pagination.Search)
+
+                    );
+            }
+
+            var data = await search
+                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                   .Take(pagination.PageSize)
+                                   .ToListAsync();
+
+            mapper.Map<PurchaseOrderItemDTO>(data);
+
+
 
             var user = await db.User.Include(x=>x.Role).FirstOrDefaultAsync(x => x.UserId == poItem.userId);
 

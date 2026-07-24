@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.GRN;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.GRN;
+using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
@@ -94,8 +96,32 @@ namespace Backend_Fincore.Service
 
         }
 
-        public async Task<List<GRNDTO>> GetAllGrns(string masterType, int masterId, GrnStatusDTO dto)
+        public async Task<int> GetAllGRNCount()
         {
+            return await db.GRN.CountAsync();
+        }
+
+        public async Task<List<GRNDTO>> GetAllGrns(string masterType, int masterId, GrnStatusDTO dto,PaginationDTO pagination)
+        {
+            var search = db.GRN.AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.GRNNumber.Contains(pagination.Search) ||
+
+                    x.Status.Contains(pagination.Search)
+
+                    );
+            }
+
+            var data = await search
+                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                   .Take(pagination.PageSize)
+                                   .ToListAsync();
+
+            mapper.Map<PurchaseOrderItemDTO>(data);
+
             var query = db.GRN.Include(x => x.PurchaseOrder).AsQueryable();
 
             if (masterType == "Employee")
@@ -141,10 +167,10 @@ namespace Backend_Fincore.Service
                 query = query.Where(x => x.Status == dto.Status);
             }
 
-            var data = await query.OrderByDescending(x => x.CreatedAt).ToListAsync();
+            var res = await query.OrderByDescending(x => x.CreatedAt).ToListAsync();
 
 
-            return mapper.Map<List<GRNDTO>>(data);
+            return mapper.Map<List<GRNDTO>>(res);
         }
 
         public async Task<GRNDTO> GetGrnById(int id)
@@ -223,7 +249,8 @@ namespace Backend_Fincore.Service
 
             // Temporary until JWT Authentication
             //data.ModifiedBy=userid
-            data.ModifiedBy = grn.ModifiedBy;
+           
+
             data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
@@ -248,6 +275,7 @@ namespace Backend_Fincore.Service
 
             // Allow only valid statuses
             if (dto.Status != "Draft" &&
+                dto.Status != "Pending" &&
                 dto.Status != "Received" &&
                 dto.Status != "Rejected")
             {

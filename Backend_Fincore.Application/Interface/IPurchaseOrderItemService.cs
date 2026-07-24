@@ -1,11 +1,14 @@
-﻿using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 
 namespace Backend_Fincore.Interface
 {
     public interface IPurchaseOrderItemService
     {
-        Task<PurchaseOrderItemDTO> getAllItem(ReadPoItemsDTO poItem);
+        Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(ReadPoItemsDTO poItem,PaginationDTO pagination);
+
+        Task<int> GetPurchasedItemCount();
 
         Task<PurchaseOrderItemDTO> getItemById(int id);
 

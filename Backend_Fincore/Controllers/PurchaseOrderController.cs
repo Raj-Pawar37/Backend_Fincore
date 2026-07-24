@@ -9,12 +9,14 @@ using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("Fixed")]
     public class PurchaseOrderController : ControllerBase
     {
         private readonly IPurchaseOrderService purchaseOrderService;
@@ -26,9 +28,14 @@ namespace Backend_Fincore.Controllers
 
         // Get All Purchase Orders
         [HttpPost("GetAllPurchaseOrders")]
-        public async Task<IActionResult> GetAllPurchaseOrders(PurchasedOrderFilterDTO pof)
+        public async Task<IActionResult> GetAllPurchaseOrders(PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
         {
-            var data = await purchaseOrderService.GetAllPurchasedOrder(pof);
+            var data = await purchaseOrderService.GetAllPurchasedOrder(pof,pagination);
+
+            var totalRecords = await purchaseOrderService.GetPurchasedOrderCount();
+            var totalPages = (int)Math.Ceiling(
+                    totalRecords /
+                    (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<PurchaseOrderDTO>>
             {
@@ -36,8 +43,15 @@ namespace Backend_Fincore.Controllers
                 Message = "Purchase Orders fetched successfully.",
                 Data = data,
                 Error = null,
-                Metadata = new { },
-                TotalNumberRecord = data.Count
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
             });
         }
 

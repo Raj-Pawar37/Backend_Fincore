@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.GRN;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.GRN;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
@@ -7,6 +8,7 @@ using Backend_Fincore.Service;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -14,6 +16,7 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("Fixed")]
     public class GRNController : ControllerBase
     {
         private readonly IGRNService gRNService;
@@ -25,12 +28,16 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> getAllGRNs(GrnStatusDTO dto)
+        public async Task<IActionResult> GetAllGRNs(GrnStatusDTO dto,PaginationDTO pagination)
         {
+
             var masterType = User.FindFirst("masterType")?.Value;
             var masterId = int.Parse(User.FindFirst("masterId")!.Value);
 
-            var data = await gRNService.GetAllGrns(masterType!, masterId, dto);
+            var data = await gRNService.GetAllGrns(masterType!, masterId, dto,pagination);
+
+            var totalCounts = await gRNService.GetAllGRNCount();
+            var totalpages = (int)Math.Ceiling(totalCounts / (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<GRNDTO>>
             {
@@ -38,8 +45,15 @@ namespace Backend_Fincore.Controllers
                 Message = "GRN list fetched successfully.",
                 Data = data,
                 Error = null,
-                Metadata = null,
-                TotalNumberRecord = data.Count
+                TotalNumberRecord = totalCounts,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalpages,
+                    RecordsOnCurrentPage = data.Count
+                }
             });
 
         }

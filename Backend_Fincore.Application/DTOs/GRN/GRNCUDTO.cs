@@ -20,8 +20,6 @@
 
         public string Status { get; set; } = null!;
 
-        public int CreatedBy { get; set; }
-
-        public int? ModifiedBy { get; set; }
+       
     }
 }

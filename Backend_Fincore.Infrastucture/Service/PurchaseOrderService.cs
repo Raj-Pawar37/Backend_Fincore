@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.DTOs.PurchaseOrder;
 using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Data;
@@ -130,8 +131,30 @@ namespace Backend_Fincore.Service
 
         }
 
-        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof)
+        public async Task<int> GetPurchasedOrderCount()
         {
+            return await db.PurchaseOrder.CountAsync();
+        }
+
+        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof,PaginationDTO pagination)
+        {
+            var search = db.PurchaseOrder.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.PONumber.Contains(pagination.Search) ||
+
+                    x.Status.Contains(pagination.Search) 
+
+                    );
+            }
+
+            var data = await search
+                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                    .Take(pagination.PageSize)
+                                    .ToListAsync();
+            mapper.Map<List<PurchaseOrderDTO>>(data);
+
             var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == pof.Userid);
 
             if (user == null)
@@ -153,7 +176,7 @@ namespace Backend_Fincore.Service
 
             //manager filter
 
-            if (user.Role.RoleName == "Manager")
+            if (user.Role.RoleName =="Manager")
             {
                 var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
 
@@ -194,12 +217,13 @@ namespace Backend_Fincore.Service
             var purchaseOrders = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(20)
+
                 .ToListAsync();
 
             return mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
 
 
-        }
+        }   
 
         public async Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId)
         {
@@ -280,6 +304,8 @@ namespace Backend_Fincore.Service
 
         }
 
+       
 
+       
     }
 }

@@ -8,9 +8,11 @@ namespace Backend_Fincore.Interface
 {
     public interface IPurchaseOrderService
     {
-        Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof);
+        Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof, PaginationDTO pagination);
 
         Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId);
+
+        Task<int> GetPurchasedOrderCount();
 
         Task DeletePurchaseOrderById(int purchasedId);
 
