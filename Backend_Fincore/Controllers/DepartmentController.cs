@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.Department;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Http;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class DepartmentController : ControllerBase
     {
@@ -16,16 +17,29 @@ namespace Backend_Fincore.Controllers
             this.service = service;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
-            var res = await service.GetAll();
+            var res = await service.GetAll(pagination);
+            var totalRecords = await service.GetTotalRecordDepartment();
+            var totalPages = (int)Math.Ceiling(
+                 totalRecords /
+                (double)pagination.PageSize);
             return Ok(
                 new ApiResponse<List<DepartmentReadDTO>>
                 {
                     Success = true,
                     Message = "Departments fetched successfully.",
                     Data = res,
-                    Error = null
+                    Error = null,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage = res.Count
+                    },
+                    TotalNumberRecord=totalRecords
                 });
         }
 
@@ -60,8 +74,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> AddDepartment(
-            DepartmentWriteDTO dto)
+        public async Task<IActionResult> AddDepartment( DepartmentWriteDTO dto)
         {
             var res = await service.AddDepartment(dto);
             return Ok(
@@ -131,6 +144,30 @@ namespace Backend_Fincore.Controllers
                     });
             }
         }
+        [HttpGet("Dropdown")]
+        public async Task<IActionResult>GetDepartmentDropdown([FromQuery] PaginationDTO pagination)
+        {
+            var res = await service.GetDepartmentDropdown(pagination);
 
+            var totalRecords = await service.GetDepartmentDropdownCount(pagination);
+
+            var totalPages =(int)Math.Ceiling( totalRecords /(double)pagination.PageSize);
+
+            return Ok(new ApiResponse< List<DepartmentDropdownDTO>>{
+                    Success = true,
+                    Message = "Departments fetched successfully.",
+                    Data = res,
+                    TotalNumberRecord =totalRecords,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage =
+                            res.Count
+                    }
+                });
+        }
     }
 }

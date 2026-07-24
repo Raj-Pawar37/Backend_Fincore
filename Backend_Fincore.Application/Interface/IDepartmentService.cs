@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.Department;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Department;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +10,8 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IDepartmentService
     {
-        Task<List<DepartmentReadDTO>> GetAll();
-
+        Task<List<DepartmentReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetTotalRecordDepartment();
         Task<DepartmentReadDTO> GetById(int id);
 
         Task<DepartmentReadDTO> AddDepartment(DepartmentWriteDTO dto);
@@ -18,5 +19,9 @@ namespace Backend_Fincore.Application.Interface
         Task UpdateDepartment( int id,DepartmentWriteDTO dto);
 
         Task DeleteDepartment(int id);
+
+
+        Task<List<DepartmentDropdownDTO>>GetDepartmentDropdown(PaginationDTO pagination);
+        Task<int> GetDepartmentDropdownCount(PaginationDTO pagination);
     }
 }

@@ -2,6 +2,7 @@
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.DTOs.Approval;
+using Backend_Fincore.Application.DTOs.Country;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
@@ -223,6 +224,12 @@ public class MappingData : Profile
         CreateMap<DocumentWriteDTO, Document>();
         CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
         CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
+
+        CreateMap<Country, CountryReadDTO>().ReverseMap();
+
+        CreateMap<State, StateReadDTO>().ReverseMap();
+
+        CreateMap<City, CityReadDTO>().ReverseMap();
     }
 
 
