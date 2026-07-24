@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.DTOs;
 
 namespace Backend_Fincore.Interface
@@ -11,7 +12,8 @@ namespace Backend_Fincore.Interface
     {
         Task<BudgetReadDTO> AddBudget(BudgetWriteDTO dto);
 
-        Task<List<BudgetReadDTO>> GetAll();
+        Task<List<BudgetReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetTotalRecord();
 
         Task<BudgetReadDTO?> GetById(int id);
 

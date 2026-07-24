@@ -20,7 +20,7 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task<int> GetDocumentCount()
         {
-            return await db.Document.CountAsync();
+            return await db.Document.Where(x => x.IsActive == 1).CountAsync();
         }
         public async Task<List<DocumentReadDTO>>GetAll(PaginationDTO pagination)
         {
@@ -33,6 +33,7 @@ namespace Backend_Fincore.Infrastucture.Service
                     x.MasterType.Contains(pagination.Search));  
             }
             var data = await search.Include(x => x.DocumentType)
+                                        .Where(x=>x.IsActive==1)
                                         .Skip((pagination.PageNumber - 1)* pagination.PageSize)
                                         .Take(pagination.PageSize)
                                         .ToListAsync();

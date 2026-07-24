@@ -27,6 +27,7 @@ builder.Services.AddScoped<IBudgetCategoryService, BudgetCategoryService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
 builder.Services.AddScoped<ICapexRequestService,CapexRequestService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
 
 builder.Services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
 builder.Services.AddScoped<IRFQService, RFQService>();

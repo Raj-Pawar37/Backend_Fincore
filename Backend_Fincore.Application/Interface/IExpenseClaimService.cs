@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.ExpenseClaim;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.DTOs;
 
 
@@ -6,7 +7,7 @@ namespace Backend_Fincore.Interface
 {
         public interface IExpenseClaimService
         {
-            Task<List<ExpenseClaimReadDTO>> GetAll(int userId);
+            Task<List<ExpenseClaimReadDTO>> GetAll(int userId, PaginationDTO Pagination);
 
             Task<ExpenseClaimReadDTO?> GetById(int id);
 
@@ -23,6 +24,8 @@ namespace Backend_Fincore.Interface
                 int expenseClaimId,
                 int verifiedBy,
                 ExpenseClaimVerifyDTO dto);
+
+            Task<int> GetExpenseClaimCount(int userId,PaginationDTO pagination);
     }
   
 }

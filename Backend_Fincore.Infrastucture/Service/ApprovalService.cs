@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.Approval;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
@@ -66,13 +67,28 @@ namespace Backend_Fincore.Infrastucture.Service
             await db.SaveChangesAsync();
         }
 
-        public async Task<List<ApprovalReadDTO>> GetAll()
+        public async Task<List<ApprovalReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.Approval.Include(x => x.Role).Where(x => x.IsActive == 1).ToListAsync();
+            var search =  db.Approval.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.ApprovalId.ToString().Contains(pagination.Search) ||
+
+                    x.Role.RoleName.Contains(pagination.Search));
+            }
+            var data = await search.Include(x => x.Role)
+                                        .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                        .Take(pagination.PageSize)
+                                        .Where(x => x.IsActive == 1).ToListAsync();
             var res = mapper.Map<List<ApprovalReadDTO>>(data);
             return res;
         }
-
+        public async Task<int> GetTotalApprovalRecord()
+        {
+            var data = await db.Approval.CountAsync();
+            return data;
+        }
         public async Task<ApprovalReadDTO> GetById(int id)
         {
             var data = await db.Approval.Include(x => x.Role)
@@ -83,6 +99,8 @@ namespace Backend_Fincore.Infrastucture.Service
             }
             return mapper.Map<ApprovalReadDTO>(data);
         }
+
+    
 
         public async Task UpdateApproval(int id, ApprovalWriteDTO dto)
         {
