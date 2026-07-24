@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [EnableRateLimiting("fixed")]
     [Route("api/v1/rfqs")]
     [ApiController]
@@ -24,7 +24,10 @@ namespace Backend_Fincore.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RFQCreateDto dto)
         {
-            var response = await _rfqService.CreateAsync(dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqService.CreateAsync(dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
@@ -56,7 +59,10 @@ namespace Backend_Fincore.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RFQUpdateDto dto)
         {
-            var response = await _rfqService.UpdateAsync(id, dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqService.UpdateAsync(id, dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 

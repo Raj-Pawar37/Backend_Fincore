@@ -3,11 +3,12 @@ using Backend_Fincore.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [EnableRateLimiting("fixed")]
     [Route("api/v1/rfq-vendors")]
     [ApiController]
@@ -23,7 +24,10 @@ namespace Backend_Fincore.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RFQVendorCreateDto dto)
         {
-            var response = await _rfqVendorService.CreateAsync(dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqVendorService.CreateAsync(dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
@@ -37,7 +41,10 @@ namespace Backend_Fincore.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RFQVendorUpdateDto dto)
         {
-            var response = await _rfqVendorService.UpdateAsync(id, dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqVendorService.UpdateAsync(id, dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 namespace Backend_Fincore.Application.Services
 {
@@ -22,7 +23,7 @@ namespace Backend_Fincore.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<RFQVendorResponseDto>> CreateAsync(RFQVendorCreateDto dto)
+        public async Task<ApiResponse<RFQVendorResponseDto>> CreateAsync(RFQVendorCreateDto dto, int userId)
         {
             if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId))
             {
@@ -44,7 +45,11 @@ namespace Backend_Fincore.Application.Services
                 RFQId = dto.RFQId,
                 VendorId = dto.VendorId,
                 SentDate = dto.SentDate,
-                ResponseStatus = "Invited"
+                ResponseStatus = "Invited",
+
+                // Audit Trail
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.RFQVendor.Add(rfqVendor);
@@ -75,7 +80,7 @@ namespace Backend_Fincore.Application.Services
             };
         }
 
-        public async Task<ApiResponse<RFQVendorResponseDto>> UpdateAsync(int id, RFQVendorUpdateDto dto)
+        public async Task<ApiResponse<RFQVendorResponseDto>> UpdateAsync(int id, RFQVendorUpdateDto dto, int userId)
         {
             var rfqVendor = await _context.RFQVendor.FindAsync(id);
 
@@ -106,6 +111,10 @@ namespace Backend_Fincore.Application.Services
                 rfqVendor.ResponseDate = dto.ResponseDate;
             }
 
+            // Audit Trail
+            rfqVendor.ModifiedBy = userId;
+            rfqVendor.ModifiedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             var responseDto = _mapper.Map<RFQVendorResponseDto>(rfqVendor);
@@ -123,7 +132,6 @@ namespace Backend_Fincore.Application.Services
                     return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
                 }
 
-                // remove only the RFQVendor
                 _context.RFQVendor.Remove(rfqVendor);
                 await _context.SaveChangesAsync();
 
@@ -131,8 +139,6 @@ namespace Backend_Fincore.Application.Services
             }
             catch (Exception)
             {
-                // If the database blocks the deletion (e.g., because a Quotation exists),
-                // we catch the error here so the server doesn't crash with a 500 error.
                 return new ApiResponse<bool>
                 {
                     Success = false,

@@ -3,11 +3,11 @@ using Backend_Fincore.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
 
 namespace Backend_Fincore.API.Controllers
 {
-
-    //[Authorize]
+    [Authorize]
     [EnableRateLimiting("fixed")]
     [Route("api/v1/rfq-items")]
     [ApiController]
@@ -23,11 +23,13 @@ namespace Backend_Fincore.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RFQItemCreateDto dto)
         {
-            var response = await _rfqItemService.CreateAsync(dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqItemService.CreateAsync(dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        // Notice the route here is specifically built for fetching by the parent RFQ ID
         [HttpGet("by-rfq/{rfqId}")]
         public async Task<IActionResult> GetByRfqId(int rfqId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
@@ -38,7 +40,10 @@ namespace Backend_Fincore.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RFQItemUpdateDto dto)
         {
-            var response = await _rfqItemService.UpdateAsync(id, dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqItemService.UpdateAsync(id, dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 

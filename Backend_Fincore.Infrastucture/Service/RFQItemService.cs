@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 namespace Backend_Fincore.Application.Services
 {
@@ -22,7 +23,7 @@ namespace Backend_Fincore.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto)
+        public async Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto, int userId)
         {
             if (await _context.RFQItem.AnyAsync(x => x.RFQId == dto.RFQId && x.Name == dto.Name))
             {
@@ -34,7 +35,11 @@ namespace Backend_Fincore.Application.Services
                 RFQId = dto.RFQId,
                 Name = dto.Name,
                 Quantity = dto.Quantity,
-                Description = dto.Description
+                Description = dto.Description,
+
+                // Audit Trail
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.RFQItem.Add(rfqItem);
@@ -65,7 +70,7 @@ namespace Backend_Fincore.Application.Services
             };
         }
 
-        public async Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto)
+        public async Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto, int userId)
         {
             var rfqItem = await _context.RFQItem.FindAsync(id);
 
@@ -82,6 +87,10 @@ namespace Backend_Fincore.Application.Services
             rfqItem.Name = dto.Name;
             rfqItem.Quantity = dto.Quantity;
             rfqItem.Description = dto.Description;
+
+            // Audit Trail
+            rfqItem.ModifiedBy = userId;
+            rfqItem.ModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 

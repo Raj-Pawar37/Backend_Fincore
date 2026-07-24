@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 namespace Backend_Fincore.Application.Services
 {
@@ -22,7 +23,7 @@ namespace Backend_Fincore.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto)
+        public async Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto, int userId)
         {
             if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber))
             {
@@ -47,7 +48,11 @@ namespace Backend_Fincore.Application.Services
                 IssueDate = dto.IssueDate,
                 ClosingDate = dto.ClosingDate,
                 PRId = dto.PRId,
-                Status = "Pending"
+                Status = "Pending",
+
+               
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.RFQ.Add(rfq);
@@ -131,7 +136,7 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQResponseDto> { Success = true, Data = rfqDto, TotalNumberRecord = 1 };
         }
 
-        public async Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto)
+        public async Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto, int userId)
         {
             var rfq = await _context.RFQ.FindAsync(id);
 
@@ -156,6 +161,10 @@ namespace Backend_Fincore.Application.Services
             rfq.IssueDate = dto.IssueDate;
             rfq.ClosingDate = dto.ClosingDate;
 
+            
+            rfq.ModifiedBy = userId;
+            rfq.ModifiedAt = DateTime.UtcNow;
+
             if (!string.IsNullOrEmpty(dto.Status))
             {
                 rfq.Status = dto.Status;
@@ -168,7 +177,6 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
-            // Update: Switch to FirstOrDefaultAsync and Include nested properties
             var rfq = await _context.RFQ
                 .Include(r => r.RFQVendors)
                     .ThenInclude(v => v.Quotations)
@@ -186,7 +194,6 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<bool> { Success = false, Message = "Cannot delete RFQ once status is Open.", Data = false };
             }
 
-            // 1. Clear out restricted QuotationItems
             if (rfq.RFQItems != null)
             {
                 foreach (var item in rfq.RFQItems)
@@ -198,7 +205,6 @@ namespace Backend_Fincore.Application.Services
                 }
             }
 
-            // 2. Clear out restricted Quotations
             if (rfq.RFQVendors != null)
             {
                 foreach (var vendor in rfq.RFQVendors)
@@ -210,7 +216,6 @@ namespace Backend_Fincore.Application.Services
                 }
             }
 
-            // 3. Delete RFQItems and Vendors (as they were done previously)
             if (rfq.RFQItems != null && rfq.RFQItems.Any())
             {
                 _context.RFQItem.RemoveRange(rfq.RFQItems);

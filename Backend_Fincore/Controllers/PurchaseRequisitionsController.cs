@@ -7,7 +7,7 @@ using System.Security.Claims; // Required for JWT extraction
 
 namespace Backend_Fincore.API.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [EnableRateLimiting("fixed")]
     [Route("api/v1/purchase-requisitions")]
     [ApiController]
@@ -21,7 +21,7 @@ namespace Backend_Fincore.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() 
+        public async Task<IActionResult> GetAll()
         {
             // SECURE: Extract UserId straight from the JWT Token
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -51,7 +51,10 @@ namespace Backend_Fincore.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] PurchaseRequisitionUpdateDto dto)
         {
-            var response = await _prService.UpdateAsync(id, dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _prService.UpdateAsync(id, dto, userId);
             return response.Success ? Ok(response) : NotFound(response);
         }
 
