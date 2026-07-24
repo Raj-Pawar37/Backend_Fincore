@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
@@ -20,16 +21,29 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
         {
-            var res = await service.GetAll();
+            var res = await service.GetAll(pagination);
+            var totalRecords = await service.GetTotalCompanyRecords();
+            var totalPages = (int)Math.Ceiling(
+                  totalRecords /
+                  (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<CompanyReadDTO>>
             {
                 Success = true,
                 Message = "Company details fetched successfully.",
                 Data = res,
-                Error = null
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = res.Count
+                }
             });
         }
 

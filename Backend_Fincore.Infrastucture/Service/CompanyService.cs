@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿    using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -56,12 +57,20 @@ namespace Backend_Fincore.Service
             return true;
         }
 
-        public async Task<List<CompanyReadDTO>> GetAll()
+        public async Task<List<CompanyReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.Company
+            var search = db.Company.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search)) {
+                search = search.Where(x =>
+                    x.CompanyName.Contains(pagination.Search)
+                );
+            }
+            var data = await search
                 .Include(x => x.Country)
                 .Include(x => x.State)
                 .Include(x => x.City)
+                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
             var mdata = mapper.Map<List<CompanyReadDTO>>(data);
@@ -85,6 +94,11 @@ namespace Backend_Fincore.Service
             var mdata = mapper.Map<CompanyReadDTO>(gid);
 
             return mdata;
+        }
+
+        public async Task<int> GetTotalCompanyRecords()
+        {
+            return await db.Company.CountAsync();
         }
 
         public async Task<bool> UpdateCompany(int id, CompanyWriteDTO c)

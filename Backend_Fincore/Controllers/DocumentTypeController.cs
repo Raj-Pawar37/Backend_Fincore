@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.Document;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Http;
@@ -6,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class DocumentTypeController : ControllerBase
     {
@@ -17,16 +18,29 @@ namespace Backend_Fincore.Controllers
             this.service = service;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
         {
-            var res = await service.GetAll();
+            var res = await service.GetAll(pagination);
+            var totalRecords = await service.GetTotalRecordsDocType();
+            var totalPages = (int)Math.Ceiling(
+                 totalRecords /
+                (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<DocumentTypeCUDTO>>
             {
                 Success = true,
                 Message = "DocumentType Masters fetched successfully.",
                 Data = res,
-                Error = null
+                Error = null,
+                TotalNumberRecord=totalRecords,
+                Metadata = new {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = res.Count
+
+                }
             });
         }
         [HttpGet("{id}")]
@@ -119,6 +133,32 @@ namespace Backend_Fincore.Controllers
                     Error = ex.Message
                 });
             }
+        }
+        [HttpGet("Dropdown")]
+        public async Task<IActionResult>GetDocumentTypeDropdown([FromQuery] PaginationDTO pagination)
+        {
+            var res = await service.GetDocumentTypeDropdown(pagination);
+            var totalRecords = await service.GetDocumentTypeDropdownCount(pagination);
+            var totalPages =(int)Math.Ceiling(totalRecords /(double)pagination.PageSize);
+
+            return Ok(
+                new ApiResponse<
+                    List<DocumentTypeDropdownDTO>>
+                {
+                    Success = true,
+                    Message ="Document Types fetched successfully.",
+                    Data = res,
+                    Error = null,
+                    TotalNumberRecord =totalRecords,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage = res.Count
+                    }
+                });
         }
     }
 }

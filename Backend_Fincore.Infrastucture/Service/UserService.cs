@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -47,10 +48,19 @@ namespace Backend_Fincore.Service
             }
         }
 
-        public async Task<List<UserReadDTO>> GetAll()
+        public async Task<List<UserReadDTO>> GetAll(PaginationDTO pagination)
         {
+            var search = db.Company.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.CompanyName.Contains(pagination.Search)
+                );
+            }
             var data = await db.User
                 .Include(x => x.Role)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
             return mapper.Map<List<UserReadDTO>>(data);
@@ -66,6 +76,11 @@ namespace Backend_Fincore.Service
                 return null;
 
             return mapper.Map<UserReadDTO>(data);
+        }
+
+        public async Task<int> GetTotalUserRecords()
+        {
+            return await db.User.CountAsync();
         }
 
         public async Task<bool> UpdateUser(int id,UserWriteDTO u)

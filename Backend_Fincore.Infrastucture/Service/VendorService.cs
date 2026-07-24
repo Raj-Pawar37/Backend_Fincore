@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -32,8 +33,16 @@ namespace Backend_Fincore.Service
             return mapper.Map<VendorReadDTO>(mdata);
         }
 
-        public async Task<List<VendorReadDTO>> GetAll()
+        public async Task<List<VendorReadDTO>> GetAll(PaginationDTO pagination)
         {
+            var search = db.Company.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.CompanyName.Contains(pagination.Search)
+                );
+            }
+
             var data = await db.Vendor
                 .Include(x => x.Company)
                 .ToListAsync();
@@ -97,5 +106,12 @@ namespace Backend_Fincore.Service
 
             return true;
         }
+
+        
+
+        public async Task<int> GetTotalVendorRecord()
+        {
+               return await db.Vendor.CountAsync();
+         }
     }
 }

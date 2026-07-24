@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Domain.Models
 {
-    public class GRNItem
+    public class GRNItem : BaseEntity
     {
         public int GRNItemId { get; set; }
 

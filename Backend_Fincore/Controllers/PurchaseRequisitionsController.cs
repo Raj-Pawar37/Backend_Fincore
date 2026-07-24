@@ -15,17 +15,10 @@ namespace Backend_Fincore.API.Controllers
             _prService = prService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] PurchaseRequisitionCreateDto dto)
-        {
-            var response = await _prService.CreateAsync(dto);
-            return response.Success ? StatusCode(200, response) : StatusCode(500, response);
-        }
-
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] int userId)
         {
-            var response = await _prService.GetAllAsync();
+            var response = await _prService.GetAllAsync(userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
@@ -43,11 +36,12 @@ namespace Backend_Fincore.API.Controllers
             return response.Success ? Ok(response) : NotFound(response);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        // Added a specific route for the dropdown so it doesn't conflict with GetById
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetPRDropdown([FromQuery] string? searchText, [FromQuery] int? departmentId)
         {
-            var response = await _prService.DeleteAsync(id);
-            return response.Success ? Ok(response) : NotFound(response);
+            var response = await _prService.GetPRDropdownAsync(searchText, departmentId);
+            return response.Success ? Ok(response) : BadRequest(response);
         }
     }
 }

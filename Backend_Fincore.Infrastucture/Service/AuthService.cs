@@ -6,6 +6,8 @@ using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using BCrypt.Net;
+using OtpNet;
+using QRCoder;
 
 namespace Backend_Fincore.Infrastructure.Service
 {
@@ -14,8 +16,10 @@ namespace Backend_Fincore.Infrastructure.Service
         private readonly AppDbContext db;
         private readonly ITokenService tokenService;
 
-      
+
         private static readonly TimeSpan RefreshTokenExpiry = TimeSpan.FromDays(1);
+
+        public object Base34Encoding { get; private set; }
 
         public AuthService(AppDbContext db, ITokenService tokenService)
         {
@@ -23,7 +27,7 @@ namespace Backend_Fincore.Infrastructure.Service
             this.tokenService = tokenService;
         }
 
-       
+
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
             if (loginDto == null ||
@@ -35,7 +39,7 @@ namespace Backend_Fincore.Infrastructure.Service
 
             var username = loginDto.Username.Trim();
 
-         
+
             var user = await db.User
                 .FirstOrDefaultAsync(x =>
                     x.Username == username &&
@@ -49,7 +53,7 @@ namespace Backend_Fincore.Infrastructure.Service
             if (!passwordMatch)
                 throw new UnauthorizedAccessException("Invalid Password.");
 
-            
+
             string accessToken = tokenService.GenerateAccessToken(user);
             string refreshToken = tokenService.GenerateRefreshToken();
 
@@ -179,23 +183,111 @@ namespace Backend_Fincore.Infrastructure.Service
                 throw new Exception("Username already exists.");
 
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
-
             User user = new User
             {
+                RoleId = 2,               // Employee RoleId
+                MasterId = 1,             // Temporary or actual EmployeeId
+                MasterType = "Employee",
+
                 Username = username,
                 PasswordHash = passwordHash,
                 Email = $"{username}@domain.com",
-                IsEmailVerified = 0,
+
                 FailedLoginAttempts = 0,
+                IsEmailVerified = 0,
                 IsActive = 1,
                 CreatedAt = DateTime.UtcNow
             };
-
             db.User.Add(user);
 
             await db.SaveChangesAsync();
 
             return "User Registered Successfully.";
         }
+
+        public async Task LogoutAsync(int userId)
+        {
+            var existingToken = await db.UserToken
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.TokenType == "RefreshToken" && x.IsActive == 1);
+
+            if (existingToken != null)
+            {
+                existingToken.IsActive = 0;
+                existingToken.ModifiedAt = DateTime.UtcNow;
+                existingToken.ModifiedBy = userId;
+
+                db.UserToken.Update(existingToken);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        public async Task<string?> GenerateQRCode(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+
+            var existingUser = await db.User
+                .FirstOrDefaultAsync(x => x.Email.Trim().ToLower() == email.Trim().ToLower());
+
+            if (existingUser == null)
+            {
+                return null;
+            }
+
+            var result = GenerateTotpQrcode(existingUser.Email);
+
+            existingUser.TotpSecretKey = result.secret;
+            existingUser.Is2FAEnabled = false;
+
+            await db.SaveChangesAsync();
+
+            return result.qrcode;
+        }
+
+        private (string secret, string qrcode) GenerateTotpQrcode(string email)
+        {
+            var key = KeyGeneration.GenerateRandomKey(20);
+            var base32Secretkey = Base32Encoding.ToString(key);
+
+            var otpAuthUrl = $"otpauth://totp/MyApp:{Uri.EscapeDataString(email)}?secret={base32Secretkey}&issuer=MyApp";
+
+            using var qrcodeGenerate = new QRCodeGenerator();
+            var qrCodeData = qrcodeGenerate.CreateQrCode(otpAuthUrl, QRCodeGenerator.ECCLevel.Q);
+            var qrcode = new PngByteQRCode(qrCodeData);
+
+            var qrcodeBytes = qrcode.GetGraphic(20);
+            var qrcodeBase64 = Convert.ToBase64String(qrcodeBytes);
+
+            return (base32Secretkey, qrcodeBase64);
+        }
+
+        public async Task<string?> VerifyOTP(string email, string otp)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp)) return null;
+
+            var existingUser = await db.User
+                .FirstOrDefaultAsync(x => x.Email.Trim().ToLower() == email.Trim().ToLower());
+
+            if (existingUser == null || string.IsNullOrEmpty(existingUser.TotpSecretKey))
+            {
+                return null;
+            }
+
+            var secretBytes = Base32Encoding.ToBytes(existingUser.TotpSecretKey);
+            var totp = new Totp(secretBytes);
+
+            bool isValid = totp.VerifyTotp(otp, out _, VerificationWindow.RfcSpecifiedNetworkDelay);
+
+            if (!isValid)
+            {
+                return "invalid otp";
+            }
+
+
+            existingUser.Is2FAEnabled = true;
+            await db.SaveChangesAsync();
+
+            return "success";
+        }
     }
 }
+
