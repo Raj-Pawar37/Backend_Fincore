@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Mvc;
@@ -17,16 +18,30 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
+        // public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
         public async Task<IActionResult> GetAll()
         {
-            var data = await service.GetAll();
+            var res = await service.GetAll();
+            //var totalRecords = await service.GetTotalEmployeeRecords();
+            //var totalPages = (int)Math.Ceiling(
+            //      totalRecords /
+            //      (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<EmployeeReadDTO>>
             {
                 Success = true,
                 Message = "Employees fetched successfully.",
-                Data = data,
-                Error = null
+                Data = res,
+                Error = null,
+                //TotalNumberRecord = totalRecords,
+                //Metadata = new
+                //{
+                //    pagination.PageNumber,
+                //    pagination.PageSize,
+                //    pagination.Search,
+                //    TotalPages = totalPages,
+                //    RecordsOnCurrentPage = res.Count
+                //}
             });
         }
 
