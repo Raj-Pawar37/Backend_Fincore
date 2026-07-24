@@ -21,7 +21,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task DeleteDocumentType(int id);
 
-        Task<List<DocumentTypeDropdownDTO>>GetDocumentTypeDropdown(PaginationDTO pagination);
-        Task<int>GetDocumentTypeDropdownCount(PaginationDTO pagination);
+        Task<List<DocumentTypeDropdownDTO>>GetDocumentTypeDropdown(string? search);
+    
     }
 }

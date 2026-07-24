@@ -21,7 +21,6 @@ namespace Backend_Fincore.Application.Interface
         Task DeleteDepartment(int id);
 
 
-        Task<List<DepartmentDropdownDTO>>GetDepartmentDropdown(PaginationDTO pagination);
-        Task<int> GetDepartmentDropdownCount(PaginationDTO pagination);
+        Task<List<DepartmentDropdownDTO>>GetDepartmentDropdown(string? searchText);
     }
 }

@@ -2,17 +2,21 @@
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+
+    [Authorize]
     [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class DocumentTypeController : ControllerBase
     {
         private readonly IDocumentTypeService service;
-
         public DocumentTypeController(IDocumentTypeService service)
         {
             this.service = service;
@@ -135,29 +139,18 @@ namespace Backend_Fincore.Controllers
             }
         }
         [HttpGet("Dropdown")]
-        public async Task<IActionResult>GetDocumentTypeDropdown([FromQuery] PaginationDTO pagination)
+        public async Task<IActionResult>GetDocumentTypeDropdown(string? search)
         {
-            var res = await service.GetDocumentTypeDropdown(pagination);
-            var totalRecords = await service.GetDocumentTypeDropdownCount(pagination);
-            var totalPages =(int)Math.Ceiling(totalRecords /(double)pagination.PageSize);
+            var res = await service.GetDocumentTypeDropdown(search);
 
             return Ok(
-                new ApiResponse<
-                    List<DocumentTypeDropdownDTO>>
+                new ApiResponse<List<DocumentTypeDropdownDTO>>
                 {
                     Success = true,
-                    Message ="Document Types fetched successfully.",
+                    Message = "Document Types fetched successfully.",
                     Data = res,
                     Error = null,
-                    TotalNumberRecord =totalRecords,
-                    Metadata = new
-                    {
-                        pagination.PageNumber,
-                        pagination.PageSize,
-                        pagination.Search,
-                        TotalPages = totalPages,
-                        RecordsOnCurrentPage = res.Count
-                    }
+                    TotalNumberRecord = res.Count
                 });
         }
     }
