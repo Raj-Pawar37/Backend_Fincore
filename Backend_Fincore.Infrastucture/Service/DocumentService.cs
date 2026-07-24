@@ -13,10 +13,13 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         AppDbContext db;
         IMapper mapper;
-        public DocumentService(AppDbContext db, IMapper mapper)
+        private readonly ICurrentUserService currentUser;
+
+        public DocumentService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
         public async Task<int> GetDocumentCount()
         {
@@ -79,14 +82,14 @@ namespace Backend_Fincore.Infrastucture.Service
             }
             // Master Type Validation
 
-            string[] allowedMasterTypes ={"Company","Vendor","Customer","Employee" };
+            //string[] allowedMasterTypes ={"Company","Vendor","Customer","Employee" };
 
 
-            if (!allowedMasterTypes.Contains(dto.MasterType))
-            {
-                throw new Exception(
-                    "Invalid Master Type.");
-            }
+            //if (!allowedMasterTypes.Contains(dto.MasterType))
+            //{
+            //    throw new Exception(
+            //        "Invalid Master Type.");
+            //}
 
 
             // Upload Folder
@@ -112,7 +115,12 @@ namespace Backend_Fincore.Infrastucture.Service
 
             data.FilePath =$"Uploads/Documents/{uniqueFileName}";
             data.FileType =dto.File.ContentType;
-            data.CreatedBy = 1;
+            data.CreatedBy = currentUser.UserId;
+
+
+            data.MasterId = currentUser.MasterId;
+            data.MasterType = currentUser.MasterType;
+
             data.IsActive = dto.IsActive ? (byte)1 : (byte)0;
             await db.Document.AddAsync(data);
             await db.SaveChangesAsync();
@@ -157,18 +165,18 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Maximum file size is 5 MB.");
             }
             // Master Type Validation
-            string[] allowedMasterTypes =
-            {
-                "Company",
-                "Vendor",
-                "Customer",
-                 "Employee"
-             };
+            //string[] allowedMasterTypes =
+            //{
+            //    "Company",
+            //    "Vendor",
+            //    "Customer",
+            //     "Employee"
+            // };
 
-            if (!allowedMasterTypes.Contains(dto.MasterType))
-            {
-                throw new Exception("Invalid Master Type.");
-            }
+            //if (!allowedMasterTypes.Contains(dto.MasterType))
+            //{
+            //    throw new Exception("Invalid Master Type.");
+            //}
 
 
             // Delete Old Physical File
@@ -213,9 +221,9 @@ namespace Backend_Fincore.Infrastucture.Service
 
             data.DocumentTypeId =dto.DocumentTypeId;
 
-            data.MasterId =dto.MasterId;
+            //data.MasterId =dto.MasterId;
 
-            data.MasterType =dto.MasterType;
+            //data.MasterType =dto.MasterType;
 
             //data.FileName =dto.FileName;
             data.FileName = dto.File.FileName;
@@ -227,9 +235,9 @@ namespace Backend_Fincore.Infrastucture.Service
 
             data.FileType =dto.File.ContentType;
 
-            data.ModifiedBy = 1;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
             // Save Changes
-
             await db.SaveChangesAsync();
         }
         public async Task DeleteDocument( int id)

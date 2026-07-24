@@ -13,24 +13,24 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
+        private readonly ICurrentUserService currentUser;
 
-        public ApprovalService(AppDbContext db, IMapper mapper)
+        public ApprovalService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<ApprovalReadDTO> AddApproval(ApprovalWriteDTO dto)
         {
             if (dto.MinAmount > dto.MaxAmount)
             {
-                throw new Exception(
-                    "Minimum Amount cannot be greater than Maximum Amount.");
+                throw new Exception("Minimum Amount cannot be greater than Maximum Amount.");
             }
             if (dto.ApprovalLevel <= 0)
             {
-                throw new Exception(
-                    "Approval Level must be greater than zero.");
+                throw new Exception("Approval Level must be greater than zero.");
             }
 
            // Validation to prevent overlapping approval ranges.
@@ -40,11 +40,10 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (isRangeExists)
             {
-                throw new Exception(
-                    "Approval amount range already exists.");
+                throw new Exception("Approval amount range already exists.");
             }
             var data = mapper.Map<Approval>(dto);
-            data.CreatedBy = 2;//testing
+            data.CreatedBy = currentUser.UserId;//testing
             await db.Approval.AddAsync(data);
             await db.SaveChangesAsync();
 
@@ -62,7 +61,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
             //db.Approval.Remove(data);
             data.IsActive = 0;
-            data.ModifiedBy = 2;
+            data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
         }
@@ -106,8 +105,9 @@ namespace Backend_Fincore.Infrastucture.Service
         {
             // Validation to prevent overlapping approval ranges.
             bool isRangeExists = await db.Approval.AnyAsync(x =>
-                                                     dto.MinAmount <= x.MaxAmount &&
-                                                     dto.MaxAmount >= x.MinAmount);
+                           x.ApprovalId != id &&
+                           dto.MinAmount <= x.MaxAmount &&
+                           dto.MaxAmount >= x.MinAmount);
 
             if (isRangeExists)
             {

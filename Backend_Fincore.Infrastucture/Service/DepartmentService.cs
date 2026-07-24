@@ -17,9 +17,12 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         AppDbContext db;
         IMapper mapper;
-        public DepartmentService(AppDbContext db,IMapper mapper) {
+        private readonly ICurrentUserService currentUser;
+
+        public DepartmentService(AppDbContext db,IMapper mapper,ICurrentUserService currentUser) {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
         public async Task<int> GetTotalRecordDepartment()
         {
@@ -67,7 +70,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
             var data = mapper.Map<Department>(dto);
 
-            data.CreatedBy = 1;
+            data.CreatedBy = currentUser.UserId;
 
             data.CreatedAt = DateTime.Now;
 
@@ -85,7 +88,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Department not found.");
             }
             mapper.Map(dto, data);
-            data.ModifiedBy = 1;
+            data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
         }
@@ -100,45 +103,36 @@ namespace Backend_Fincore.Infrastucture.Service
 
             data.IsActive = 0;
 
-            data.ModifiedBy = 1;
+            data.ModifiedBy = currentUser.UserId;
 
             data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
         }
 
-        public async Task<List<DepartmentDropdownDTO>>GetDepartmentDropdown(PaginationDTO pagination)
+        public async Task<List<DepartmentDropdownDTO>>GetDepartmentDropdown(string? searchText)
         {
             var search = db.Department.Where(x => x.IsActive == 1).AsQueryable();
 
-            if (!string.IsNullOrEmpty(pagination.Search))
+
+            if (!string.IsNullOrEmpty(searchText))
             {
-                search = search.Where(x =>x.DepartmentName.Contains(pagination.Search));
+                search = search.Where(x =>x.DepartmentName.Contains(searchText));
             }
 
-            return await search
-                .OrderBy(x => x.DepartmentName)
-                .Skip((pagination.PageNumber - 1)* pagination.PageSize)
-                .Take(pagination.PageSize)
-                .Select(x => new DepartmentDropdownDTO
-                {
-                    DepartmentId = x.DepartmentId,
-                    DepartmentName = x.DepartmentName
-                })
 
-                .ToListAsync();
+            var data = await search
+                            .OrderBy(x => x.DepartmentName)
+                            .Take(20)
+                            .Select(x => new DepartmentDropdownDTO
+                            {
+                                DepartmentId = x.DepartmentId,
+                                DepartmentName = x.DepartmentName
+                            })
+                            .ToListAsync();
+            return data;
         }
-        public async Task<int>GetDepartmentDropdownCount(PaginationDTO pagination)
-        {
-            var search = db.Department.Where(x => x.IsActive == 1).AsQueryable();
-            if (!string.IsNullOrEmpty(pagination.Search))
-            {
-                search = search.Where(x =>x.DepartmentName.Contains(pagination.Search));
-            }
-
-            return await search.CountAsync();
-        }
-
+      
 
     }
 }

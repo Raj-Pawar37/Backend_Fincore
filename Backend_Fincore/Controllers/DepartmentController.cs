@@ -2,17 +2,22 @@
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class DepartmentController : ControllerBase
     {
         IDepartmentService service;
+
         public DepartmentController(IDepartmentService service) {
             this.service = service;
         }
@@ -21,9 +26,7 @@ namespace Backend_Fincore.Controllers
         {
             var res = await service.GetAll(pagination);
             var totalRecords = await service.GetTotalRecordDepartment();
-            var totalPages = (int)Math.Ceiling(
-                 totalRecords /
-                (double)pagination.PageSize);
+            var totalPages = (int)Math.Ceiling( totalRecords /(double)pagination.PageSize);
             return Ok(
                 new ApiResponse<List<DepartmentReadDTO>>
                 {
@@ -145,28 +148,18 @@ namespace Backend_Fincore.Controllers
             }
         }
         [HttpGet("Dropdown")]
-        public async Task<IActionResult>GetDepartmentDropdown([FromQuery] PaginationDTO pagination)
+        public async Task<IActionResult> GetDepartmentDropdown(string? search)
         {
-            var res = await service.GetDepartmentDropdown(pagination);
+            var res = await service.GetDepartmentDropdown(search);
 
-            var totalRecords = await service.GetDepartmentDropdownCount(pagination);
-
-            var totalPages =(int)Math.Ceiling( totalRecords /(double)pagination.PageSize);
-
-            return Ok(new ApiResponse< List<DepartmentDropdownDTO>>{
+            return Ok(
+                new ApiResponse<List<DepartmentDropdownDTO>>
+                {
                     Success = true,
                     Message = "Departments fetched successfully.",
                     Data = res,
-                    TotalNumberRecord =totalRecords,
-                    Metadata = new
-                    {
-                        pagination.PageNumber,
-                        pagination.PageSize,
-                        pagination.Search,
-                        TotalPages = totalPages,
-                        RecordsOnCurrentPage =
-                            res.Count
-                    }
+                    Error = null,
+                    TotalNumberRecord = res.Count
                 });
         }
     }
