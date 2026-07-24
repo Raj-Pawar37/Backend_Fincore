@@ -7,6 +7,8 @@
 
         public int PurchaseOrderId { get; set; }
 
+        public int QuotationItemId { get; set; }
+
         public string ItemName { get; set; }
 
         public string ItemType { get; set; }

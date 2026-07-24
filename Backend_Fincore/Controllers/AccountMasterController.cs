@@ -2,12 +2,14 @@
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/v1/[controller]")]
     [ApiController]
     [EnableRateLimiting("fixed")]

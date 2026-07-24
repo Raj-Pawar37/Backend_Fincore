@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
@@ -53,9 +54,17 @@ namespace Backend_Fincore.Infrastucture.Service
 
         }
 
-        public async Task<List<DocumentTypeCUDTO>> GetAll()
+        public async Task<List<DocumentTypeCUDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.DocumentType.ToListAsync();
+            var search = db.DocumentType.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search)) {
+                search = search.Where(x =>
+                    x.DocumentTypeName.Contains(pagination.Search));
+            }
+            var data = await search.Where(x=>x.IsActive==1)
+                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                    .Take(pagination.PageSize)
+                                    .ToListAsync();
             
             return mapper.Map<List<DocumentTypeCUDTO>>(data);
         }
@@ -73,6 +82,11 @@ namespace Backend_Fincore.Infrastucture.Service
 
         }
 
+        public async Task<int> GetTotalRecordsDocType()
+        {
+            return await db.DocumentType.Where(x => x.IsActive == 1).CountAsync();
+        }
+
         public async Task UpdateDocumentType(int id, DocumentTypeCUDTO dto)
         {
             var data = await db.DocumentType.FindAsync(id);
@@ -84,6 +98,37 @@ namespace Backend_Fincore.Infrastucture.Service
             data.ModifiedBy = 1;//further i need to add jwt userid here
             mapper.Map(dto, data);
             await db.SaveChangesAsync();
+        }
+        public async Task<List<DocumentTypeDropdownDTO>>GetDocumentTypeDropdown(PaginationDTO pagination)
+        {
+            var search = db.DocumentType
+                            .Where(x => x.IsActive == 1)
+                            .AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>x.DocumentTypeName.Contains(pagination.Search));
+            }
+            return await search.OrderBy(x => x.DocumentTypeName)
+                        .Skip((pagination.PageNumber - 1)* pagination.PageSize)
+                         .Take(pagination.PageSize)
+                         .Select(x => new DocumentTypeDropdownDTO
+                         {
+                             DocumentTypeId = x.DocumentTypeId,
+                             DocumentTypeName = x.DocumentTypeName
+                        }).ToListAsync();
+        }
+        public async Task<int>GetDocumentTypeDropdownCount(PaginationDTO pagination)
+        {
+            var search = db.DocumentType
+                            .Where(x => x.IsActive == 1)
+                            .AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>x.DocumentTypeName.Contains(pagination.Search));
+            }
+            return await search.CountAsync();
         }
     }
 }

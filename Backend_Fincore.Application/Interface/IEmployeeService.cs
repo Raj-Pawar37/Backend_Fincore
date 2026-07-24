@@ -1,10 +1,12 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 
 namespace Backend_Fincore.Interface
 {
     public interface IEmployeeService
     {
-        Task<List<EmployeeReadDTO>> GetAll();
+        Task<List<EmployeeReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetTotalEmployeeRecords(string? search);
 
         Task<EmployeeReadDTO> GetById(int id);
 

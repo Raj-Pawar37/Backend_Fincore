@@ -1,9 +1,11 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+using Backend_Fincore.Application.DTOs.PurchaseOrder;
+
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
-using Backend_Fincore.WrapperClass;
+using Backend_Fincore.Response;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +13,7 @@ using System.Security.Claims;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class PurchaseOrderController : ControllerBase
     {
@@ -22,177 +24,112 @@ namespace Backend_Fincore.Controllers
             this.purchaseOrderService = purchaseOrderService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> getAllPurchaseOrder()
+        // Get All Purchase Orders
+        [HttpPost("GetAllPurchaseOrders")]
+        public async Task<IActionResult> GetAllPurchaseOrders(PurchasedOrderFilterDTO pof)
         {
-            var orderList = await purchaseOrderService.GetAllPurchasedOrder();
+            var data = await purchaseOrderService.GetAllPurchasedOrder(pof);
 
             return Ok(new ApiResponse<List<PurchaseOrderDTO>>
             {
                 Success = true,
                 Message = "Purchase Orders fetched successfully.",
-                Data = orderList,
-                Error = null
+                Data = data,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = data.Count
             });
         }
 
+        // Get Purchase Order By Id
         [HttpGet("{id}")]
-        public async Task<IActionResult> getPurchasedOrderById(int id)
+        public async Task<IActionResult> GetPurchaseOrderById(int id)
         {
             var data = await purchaseOrderService.GetPurchaseOrderById(id);
-
-            if (data == null)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Purchase Order not found.",
-                    Data = null,
-                    Error = $"No Purchase Order found with Id {id}."
-                });
-
-
-            }
 
             return Ok(new ApiResponse<PurchaseOrderDTO>
             {
                 Success = true,
                 Message = "Purchase Order fetched successfully.",
                 Data = data,
-                Error = null
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = 1
             });
         }
 
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> deleteById(int id)
-        {
-            var data = await purchaseOrderService.DeletePurchaseOrderById(id);
-
-            if (!data)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Purchase Order not found.",
-                    Data = null,
-                    Error = $"No Purchase Order found with Id {id}."
-                });
-            }
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Purchase Order deleted successfully.",
-                Data = null,
-                Error = null
-            });
-        }
-
-
+        // Create Purchase Order
         [HttpPost]
-        public async Task<IActionResult> addPurchaseOrder(PurchaseOrderCUDTO PO)
+        public async Task<IActionResult> AddPurchaseOrder(PurchaseOrderCUDTO dto)
         {
-            await purchaseOrderService.AddPurchaseOrderData(PO);
-
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            await purchaseOrderService.AddPurchaseOrderData(dto);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "Purchase Order created successfully.",
                 Data = null,
-                Error = null
+                Error = null,
+                Metadata = new
+                {
+                    PurchaseOrderNumber = dto.PONumber,
+                    QuotationId = dto.QuotationId,
+                    Status = "Draft"
+                },
+                TotalNumberRecord = 1
             });
-
-
         }
 
-
+        // Update Purchase Order
         [HttpPut("{id}")]
-        public async Task<IActionResult> updatePurchaseOrder(PurchaseOrderCUDTO dto,int id)
+        public async Task<IActionResult> UpdatePurchaseOrder(int id, PurchaseOrderCUDTO dto)
         {
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-            await purchaseOrderService.UpdatePurchaseOrder(dto,id);
+            await purchaseOrderService.UpdatePurchaseOrder(dto, id);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "Purchase Order updated successfully.",
                 Data = null,
-                Error = null
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
             });
         }
 
-
-        [HttpPost("CreateFromQuotation")]
-        public async Task<IActionResult> CreatePOFromQuotation(SelectedQuotationDTO QuoDto)
+        // Update Purchase Order Status
+        [HttpPut("{id}/Status")]
+        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderFilterDTO dto)
         {
-            await purchaseOrderService.CreatePOFromQuotation(QuoDto);
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Purchase Order created successfully from quotation.",
-                Data = null,
-                Error = null
-            });
-        }
-
-
-        [HttpGet("DepartmentPurchaseOrders/{userId}")]
-        public async Task<IActionResult> GetPOByDepartmentWise(int userid)
-        {
-            var data = await purchaseOrderService.GetDepartmentPurchaseOrders(userid);
-
-            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
-            {
-                Success = true,
-                Message = "Department Purchase Orders fetched successfully.",
-                Data = data,
-                Error = null
-            });
-        }
-
-        [HttpPut("{id}/Issue")]
-
-        public async Task<IActionResult> IssuePurchaseOrder(int id, UpdatePoStatusDTO updateStatus)
-        {
-            await purchaseOrderService.UpdatePOStatus(id, updateStatus);
+            await purchaseOrderService.UpdatePOStatus(id, dto);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "Purchase Order status updated successfully.",
                 Data = null,
-                Error = null
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
             });
         }
 
-        [HttpGet("VendorIssuedPO/{vendorId}")]
-        public async Task<IActionResult> VendorIssuedPO(int vendorId)
+        // Delete Purchase Order
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePurchaseOrder(int id)
         {
-            var data = await purchaseOrderService.GetVendorIssuedPurchaseOrders(vendorId);
+            await purchaseOrderService.DeletePurchaseOrderById(id);
 
-            if (data == null || !data.Any())
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "No Issued Purchase Orders found.",
-                    Data = null,
-                    Error = $"No issued Purchase Orders available for Vendor Id {vendorId}."
-                });
-            }
-
-            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Issued Purchase Orders fetched successfully.",
-                Data = data,
-                Error = null
+                Message = "Purchase Order deleted successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
             });
         }
+
     }
 }

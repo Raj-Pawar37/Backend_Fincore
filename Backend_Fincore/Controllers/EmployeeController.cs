@@ -1,12 +1,17 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeService service;
@@ -15,20 +20,48 @@ namespace Backend_Fincore.Controllers
         {
             this.service = service;
         }
-
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
-            var data = await service.GetAll();
+            var res = await service.GetAll(pagination);
+
+            if (!res.Any())
+            {
+                return Ok(new ApiResponse<List<EmployeeReadDTO>>
+                {
+                    Success = true,
+                    Message = !string.IsNullOrEmpty(pagination.Search)
+                        ? $"No employee found for '{pagination.Search}'."
+                        : "No employees found.",
+                    Data = new List<EmployeeReadDTO>(),
+                    Error = null
+                   
+                });
+            }
+
+            var totalRecords = await service.GetTotalEmployeeRecords(pagination.Search);
+
+            var totalPages = (int)Math.Ceiling(
+                totalRecords / (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<EmployeeReadDTO>>
             {
                 Success = true,
                 Message = "Employees fetched successfully.",
-                Data = data,
-                Error = null
+                Data = res,
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = res.Count
+                }
             });
         }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -56,7 +89,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Add(EmployeeWriteDTO dto)
+        public async Task<IActionResult> AddEmployee(EmployeeWriteDTO dto)
         {
             var data = await service.AddEmp(dto);
 
@@ -70,7 +103,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, EmployeeWriteDTO dto)
+        public async Task<IActionResult> UpdateEmployee(int id, EmployeeWriteDTO dto)
         {
             var result = await service.update(id, dto);
 
@@ -95,7 +128,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteEmployee(int id)
         {
             var result = await service.delete(id);
 
