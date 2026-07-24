@@ -5,7 +5,7 @@ using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Backend_Fincore.Service;
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -17,6 +17,7 @@ namespace Backend_Fincore.Controllers
     [Route("api/v1/[controller]")]
     [ApiController]
     [EnableRateLimiting("Fixed")]
+    [Authorize]
     public class GRNController : ControllerBase
     {
         private readonly IGRNService gRNService;
