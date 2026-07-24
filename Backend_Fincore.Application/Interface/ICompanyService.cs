@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 
 
 namespace Backend_Fincore.Interface
@@ -6,7 +7,8 @@ namespace Backend_Fincore.Interface
     public interface ICompanyService
     {
 
-        Task<List<CompanyReadDTO>> GetAll();
+        Task<List<CompanyReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetTotalCompanyRecords();
 
         Task<CompanyReadDTO> GetById(int id);
         

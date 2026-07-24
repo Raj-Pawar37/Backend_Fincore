@@ -131,7 +131,22 @@ namespace Backend_Fincore.Migrations
                     b.Property<int>("GRNItemId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
                     b.Property<int>("GRNId")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("IsActive")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ModifiedBy")
                         .HasColumnType("int");
 
                     b.Property<int>("POItemId")
@@ -1534,6 +1549,13 @@ namespace Backend_Fincore.Migrations
                     b.Property<int>("Qty")
                         .HasColumnType("int");
 
+                    b.Property<int?>("QuotationItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("Tax")
                         .HasColumnType("decimal(18,2)");
 
@@ -1543,6 +1565,10 @@ namespace Backend_Fincore.Migrations
                     b.HasKey("POItemId");
 
                     b.HasIndex("PurchaseOrderId");
+
+                    b.HasIndex("QuotationItemId")
+                        .IsUnique()
+                        .HasFilter("[QuotationItemId] IS NOT NULL");
 
                     b.ToTable("PurchaseOrderItems", (string)null);
                 });
@@ -2038,6 +2064,9 @@ namespace Backend_Fincore.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<bool>("Is2FAEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<byte>("IsActive")
                         .HasColumnType("tinyint");
 
@@ -2074,6 +2103,9 @@ namespace Backend_Fincore.Migrations
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
+
+                    b.Property<string>("TotpSecretKey")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2650,7 +2682,14 @@ namespace Backend_Fincore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Backend_Fincore.Domain.Models.QuotationItem", "QuotationItem")
+                        .WithOne("PurchaseOrderItem")
+                        .HasForeignKey("Backend_Fincore.Models.PurchaseOrderItem", "QuotationItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("PurchaseOrder");
+
+                    b.Navigation("QuotationItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseRequisition", b =>
@@ -2815,6 +2854,11 @@ namespace Backend_Fincore.Migrations
                     b.Navigation("OpexRequest");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
+                {
+                    b.Navigation("PurchaseOrderItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.AccountMaster", b =>

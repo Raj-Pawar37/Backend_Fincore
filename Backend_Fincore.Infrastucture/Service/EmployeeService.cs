@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -51,14 +52,25 @@ namespace Backend_Fincore.Service
 
         public async Task<List<EmployeeReadDTO>> GetAll()
         {
+            //var search = db.Employee.AsQueryable();
+            //if (!string.IsNullOrEmpty(pagination.Search))
+            //{
+            //    search = search.Where(x =>
+            //        x.Company.Contains(pagination.Search)
+            //    );
+            //}
             var data = await db.Employee
                 .Include(x => x.Company)
                 .Include(x => x.Department)
                 .Include(x => x.ReportingManager)
+                //.Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                //.Take(pagination.PageSize)
                 .ToListAsync();
 
             return mapper.Map<List<EmployeeReadDTO>>(data);
         }
+
+       
 
         public async Task<EmployeeReadDTO> GetById(int id)
         {
@@ -74,6 +86,11 @@ namespace Backend_Fincore.Service
             }
 
             return mapper.Map<EmployeeReadDTO>(data);
+        }
+
+        public async Task<int> GetTotalEmployeeRecords()
+        {
+            return await db.Employee.CountAsync();
         }
 
         public async Task<bool> update(int id, EmployeeWriteDTO e)
