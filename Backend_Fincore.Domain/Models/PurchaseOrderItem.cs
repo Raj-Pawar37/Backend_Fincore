@@ -10,6 +10,8 @@ namespace Backend_Fincore.Models
 
         public int PurchaseOrderId { get; set; }
 
+        public int? QuotationItemId { get; set; }
+
         public string ItemName { get; set; } = null!;
 
         public string? ItemType { get; set; }
@@ -21,10 +23,14 @@ namespace Backend_Fincore.Models
         public decimal? Discount { get; set; }
 
         public int Qty { get; set; }
-            
 
-        // Navigation properties
+        // New Field
+        public string Status { get; set; } = "Pending";
+
+        // Navigation Properties
         public PurchaseOrder PurchaseOrder { get; set; } = null!;
+
+        public QuotationItem QuotationItem { get; set; } = null!;
 
         public ICollection<Asset> Assets { get; set; } = new List<Asset>();
 

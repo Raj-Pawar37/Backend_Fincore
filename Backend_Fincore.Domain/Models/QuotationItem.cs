@@ -23,13 +23,15 @@ namespace Backend_Fincore.Domain.Models
 
         public decimal Discount { get; set; }
 
+        // Pending / Selected
         public string Status { get; set; } = "Pending";
 
-
-        // Navigation properties
-
+        // Navigation Properties
         public Quotation Quotation { get; set; } = null!;
 
         public RFQItem RFQItem { get; set; } = null!;
+
+        // One Quotation Item -> One Purchase Order Item
+        public PurchaseOrderItem? PurchaseOrderItem { get; set; }
     }
 }
