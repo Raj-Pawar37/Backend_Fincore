@@ -1,18 +1,22 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize]
+    [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class CapexRequestController : ControllerBase
     {
         private readonly ICapexRequestService capexService;
 
-        public CapexRequestController(
-            ICapexRequestService capexService)
+        public CapexRequestController(ICapexRequestService capexService)
         {
             this.capexService = capexService;
         }
@@ -22,146 +26,82 @@ namespace Backend_Fincore.Controllers
             string? searchText,
             int? departmentId)
         {
-            try
-            {
-                var data =
-                    await capexService.GetBudgetLineDropdown(
-                        searchText,
-                        departmentId);
+            var data = await capexService.GetBudgetLineDropdown(searchText, departmentId);
 
-                return Ok(new ApiResponse<List<BudgetLineDropdownDTO>>
-                {
-                    Success = true,
-                    Message = "Budget lines fetched successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<List<BudgetLineDropdownDTO>>
             {
-                return BadRequest(new ApiResponse<List<BudgetLineDropdownDTO>>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = null
-                });
-            }
+                Success = true,
+                Message = "Budget lines fetched successfully.",
+                Data = data
+            });
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddCapexRequest(
-            CapexWriteDTO dto)
+        public async Task<IActionResult> AddCapexRequest(CapexWriteDTO dto)
         {
-            try
-            {
-                var data =
-                    await capexService.AddCapexRequest(dto);
+            var data = await capexService.AddCapexRequest(dto);
 
-                return Ok(new ApiResponse<CapexReadDTO>
-                {
-                    Success = true,
-                    Message = "CAPEX request added successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<CapexReadDTO>
             {
-                return BadRequest(new ApiResponse<CapexReadDTO>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = null
-                });
-            }
+                Success = true,
+                Message = "CAPEX request added successfully.",
+                Data = data
+            });
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(
-            int userId,
-            int pageNumber = 1,
-            int pageSize = 10)
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
-            try
-            {
-                var data = await capexService.GetAll(
-                    userId,
-                    pageNumber,
-                    pageSize);
+            var data = await capexService.GetAll(pagination);
 
-                return Ok(new ApiResponse<List<CapexReadDTO>>
-                {
-                    Success = true,
-                    Message = "CAPEX requests fetched successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            var totalRecords = await capexService.GetTotalRecord();
+
+            var totalPages = (int)Math.Ceiling(
+                totalRecords /
+                (double)pagination.PageSize);
+
+            return Ok(new ApiResponse<List<CapexReadDTO>>
             {
-                return BadRequest(new ApiResponse<List<CapexReadDTO>>
+                Success = true,
+                Message = "CAPEX requests fetched successfully.",
+                Data = data,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
                 {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = null
-                });
-            }
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
+            });
         }
 
         [HttpGet("{capexRequestId}")]
-        public async Task<IActionResult> GetById(
-            int capexRequestId)
+        public async Task<IActionResult> GetById(int capexRequestId)
         {
-            try
-            {
-                var data =
-                    await capexService.GetById(capexRequestId);
+            var data = await capexService.GetById(capexRequestId);
 
-                return Ok(new ApiResponse<CapexReadDTO>
-                {
-                    Success = true,
-                    Message = "CAPEX request fetched successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<CapexReadDTO>
             {
-                return BadRequest(new ApiResponse<CapexReadDTO>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = null
-                });
-            }
+                Success = true,
+                Message = "CAPEX request fetched successfully.",
+                Data = data
+            });
         }
 
         [HttpPut("{capexRequestId}")]
-        public async Task<IActionResult> UpdateCapexRequest(
-            int capexRequestId,
-            int userId,
-            CapexWriteDTO dto)
+        public async Task<IActionResult> UpdateCapexRequest(int capexRequestId,CapexWriteDTO dto)
         {
-            try
-            {
-                var data =
-                    await capexService.UpdateCapexRequest(
-                        capexRequestId,
-                        userId,
-                        dto);
+            var data = await capexService.UpdateCapexRequest(capexRequestId,dto);
 
-                return Ok(new ApiResponse<bool>
-                {
-                    Success = true,
-                    Message = "CAPEX request updated successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<bool>
             {
-                return BadRequest(new ApiResponse<bool>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = false
-                });
-            }
+                Success = true,
+                Message = "CAPEX request updated successfully.",
+                Data = data
+            });
         }
 
         [HttpDelete("{capexRequestId}")]
@@ -169,56 +109,27 @@ namespace Backend_Fincore.Controllers
             int capexRequestId,
             int userId)
         {
-            try
-            {
-                var data =
-                    await capexService.DeleteCapexRequest(
-                        capexRequestId,
-                        userId);
+            var data = await capexService.DeleteCapexRequest(capexRequestId, userId);
 
-                return Ok(new ApiResponse<bool>
-                {
-                    Success = true,
-                    Message = "CAPEX request deleted successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<bool>
             {
-                return BadRequest(new ApiResponse<bool>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = false
-                });
-            }
+                Success = true,
+                Message = "CAPEX request deleted successfully.",
+                Data = data
+            });
         }
 
         [HttpPut("verify")]
-        public async Task<IActionResult> VerifyCapexRequest(
-            CapexVerifyDTO dto)
+        public async Task<IActionResult> VerifyCapexRequest(CapexVerifyDTO dto)
         {
-            try
-            {
-                var data =
-                    await capexService.VerifyCapexRequest(dto);
+            var data = await capexService.VerifyCapexRequest(dto);
 
-                return Ok(new ApiResponse<bool>
-                {
-                    Success = true,
-                    Message = "CAPEX request verified successfully.",
-                    Data = data
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<bool>
             {
-                return BadRequest(new ApiResponse<bool>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = false
-                });
-            }
+                Success = true,
+                Message = "CAPEX request verified successfully.",
+                Data = data
+            });
         }
     }
 }

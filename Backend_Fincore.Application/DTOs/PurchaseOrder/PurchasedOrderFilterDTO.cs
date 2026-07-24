@@ -8,7 +8,7 @@ namespace Backend_Fincore.Application.DTOs.PurchaseOrder
 {
     public class PurchasedOrderFilterDTO
     {
-        public int Userid { get; set; }
+       
 
         public string Status { get; set; }
 

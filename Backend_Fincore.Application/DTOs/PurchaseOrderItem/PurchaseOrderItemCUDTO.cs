@@ -11,7 +11,7 @@
 
         public string ItemName { get; set; }
 
-        public string ItemType { get; set; }
+        
 
         public decimal UnitPrice { get; set; }
 
@@ -21,8 +21,6 @@
 
         public int Qty { get; set; }
 
-        public int CreatedBy { get; set; }
-
-        public int? ModifiedBy { get; set; }
+       
     }
 }

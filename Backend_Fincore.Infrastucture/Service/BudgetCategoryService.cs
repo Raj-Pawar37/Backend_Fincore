@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -11,11 +13,13 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
+        private readonly ICurrentUserService currentUser;
 
-        public BudgetCategoryService(AppDbContext db, IMapper mapper)
+        public BudgetCategoryService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<BudgetCategoryReadDTO> AddBudgetCategory(BudgetCategoryWriteDTO dto)
@@ -28,6 +32,11 @@ namespace Backend_Fincore.Service
             }
 
             var data = mapper.Map<BudgetCategory>(dto);
+
+            //int userId = 1;
+
+            data.CreatedBy = currentUser.UserId;
+            data.CreatedAt = DateTime.Now;
 
             await db.BudgetCategory.AddAsync(data);
             await db.SaveChangesAsync();
@@ -61,10 +70,22 @@ namespace Backend_Fincore.Service
             return true;
         }
 
-        public async Task<List<BudgetCategoryReadDTO>> GetAll()
+        public async Task<List<BudgetCategoryReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.BudgetCategory
-                .ToListAsync();
+
+            var search = db.BudgetCategory.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.CategoryName.Contains(pagination.Search));
+
+                  
+            }
+
+            var data = await search
+                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                 .Take(pagination.PageSize)
+                 .ToListAsync();
 
             return mapper.Map<List<BudgetCategoryReadDTO>>(data);
         }
@@ -80,6 +101,11 @@ namespace Backend_Fincore.Service
             }
 
             return mapper.Map<BudgetCategoryReadDTO>(data);
+        }
+
+        public async Task<int> GetTotalRecord()
+        {
+           return await db.BudgetCategory.CountAsync();
         }
 
         public async Task<bool> UpdateBudgetCategory(int id,BudgetCategoryWriteDTO dto)
@@ -103,6 +129,10 @@ namespace Backend_Fincore.Service
             }
 
             mapper.Map(dto, data);
+
+            //int userId = 1;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 

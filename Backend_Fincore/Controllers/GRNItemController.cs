@@ -6,12 +6,15 @@ using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("Fixed")]
+    [Authorize]
     public class GRNItemController : ControllerBase
     {
         private readonly IGRNItemsService gRNItemsService;
@@ -21,11 +24,13 @@ namespace Backend_Fincore.Controllers
             this.gRNItemsService = gRNItemsService;
         }
 
-
         [HttpGet]
-        public async Task<IActionResult> GetAllGRNItems()
+        public async Task<IActionResult> GetAllGRNItems([FromQuery] PaginationDTO pagination)
         {
-            var data = await gRNItemsService.getAllGrnItems();
+            var data = await gRNItemsService.getAllGrnItems(pagination);
+
+            var totalCount = await gRNItemsService.GetAllGrnItemsCount();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<GRNItemsDTO>>
             {
@@ -33,8 +38,15 @@ namespace Backend_Fincore.Controllers
                 Message = "GRN Items fetched successfully.",
                 Data = data,
                 Error = null,
-                Metadata = new { },
-                TotalNumberRecord = data.Count
+                TotalNumberRecord = totalCount,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
             });
         }
 
@@ -77,7 +89,7 @@ namespace Backend_Fincore.Controllers
         {
             int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-            await gRNItemsService.AddGRNItem(dto, userId);
+            await gRNItemsService.AddGRNItem(dto);
 
             return Ok(new ApiResponse<object>
             {
