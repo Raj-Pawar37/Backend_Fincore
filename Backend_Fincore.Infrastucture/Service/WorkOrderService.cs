@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.WorkOrder;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
@@ -12,19 +13,20 @@ namespace Backend_Fincore.Services
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
+        private readonly ICurrentUserService current;
 
-        public WorkOrderService(AppDbContext db, IMapper mapper)
+        public WorkOrderService(AppDbContext db, IMapper mapper, ICurrentUserService current)
         {
             this.db = db;
             this.mapper = mapper;
+            this.current = current;
         }
 
-        //public async Task<int> GetWorkOrderCount()
-        //{
-        //    return await db.WorkOrder.CountAsync();
-        //}
-        public async Task<int> GetWorkOrderCount(int userId,PaginationDTO pagination)
+
+        public async Task<int> GetWorkOrderCount(PaginationDTO pagination)
         {
+            int userId = current.UserId;
+
             var user = await db.User
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x => x.UserId == userId);
@@ -39,7 +41,7 @@ namespace Backend_Fincore.Services
 
             if (user.Role.RoleName == "CFO")
             {
-                // CFO sees all
+                // CFO sees all work orders.
             }
             else
             {
@@ -108,9 +110,10 @@ namespace Backend_Fincore.Services
         //    return mapper.Map<List<WorkOrderReadDTO>>(workOrders);
         //}
         public async Task<List<WorkOrderReadDTO>> GetAll(
-        int userId,
-        PaginationDTO pagination)
+      PaginationDTO pagination)
         {
+            int userId = current.UserId;
+
             if (pagination.PageNumber <= 0)
                 pagination.PageNumber = 1;
 
@@ -124,24 +127,23 @@ namespace Backend_Fincore.Services
             if (user == null)
                 throw new Exception("User not found.");
 
-            if (user.Role == null)
+            if (user.Role.RoleName == null)
                 throw new Exception("User role not found.");
 
             IQueryable<WorkOrder> query = db.WorkOrder
                 .Include(x => x.OpexRequest)
                 .Include(x => x.Vendor);
 
-            // Role filtering
-            if (user.Role.RoleName == "CFO")
+            if (user.Role.RoleId == 1 || user.Role.RoleId == 2 )
             {
-              await  db.WorkOrder.ToListAsync();
+                // CFO sees all work orders.
+                // No filter is required.
             }
             else
             {
                 query = query.Where(x => x.CreatedBy == userId);
             }
 
-       
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
                 string searchText = pagination.Search.Trim();
@@ -213,8 +215,7 @@ namespace Backend_Fincore.Services
                     x.Status != "Cancelled")
                 .SumAsync(x => x.Amount);
 
-            decimal availableAmount =
-                opexRequest.Amount - usedAmount;
+            decimal availableAmount =opexRequest.Amount - usedAmount;
 
             if (dto.Amount > availableAmount)
             {
@@ -225,7 +226,7 @@ namespace Backend_Fincore.Services
 
             workOrder.Status = "Pending";
             workOrder.CreatedAt = DateTime.Now;
-            //workOrder.CreatedBy = approver;
+            workOrder.CreatedBy = current.UserId;
 
             await db.WorkOrder.AddAsync(workOrder);
             await db.SaveChangesAsync();
@@ -286,7 +287,8 @@ namespace Backend_Fincore.Services
             {
                 throw new Exception($"Work Order amount exceeds available OPEX amount of {availableAmount}.");
             }
-
+            workOrder.ModifiedAt = DateTime.UtcNow;
+            workOrder.ModifiedBy = current.UserId;
             workOrder.OpexRequestId = dto.OpexRequestId;
             workOrder.WorkOrderNumber = dto.WorkOrderNumber;
             workOrder.VendorId = dto.VendorId;
@@ -375,6 +377,7 @@ namespace Backend_Fincore.Services
             workOrder.Status = dto.Status;
             workOrder.ModifiedBy = approvedBy;
             workOrder.ModifiedAt = DateTime.Now;
+            
 
             await db.SaveChangesAsync();
 
