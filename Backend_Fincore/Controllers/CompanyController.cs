@@ -4,13 +4,14 @@ using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
-    
+    [EnableRateLimiting("fixed")]
     public class CompanyController : ControllerBase
     {
         private readonly ICompanyService service;
@@ -19,15 +20,29 @@ namespace Backend_Fincore.Controllers
         {
             this.service = service;
         }
-
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
             var res = await service.GetAll(pagination);
-            var totalRecords = await service.GetTotalCompanyRecords();
+
+            if (!res.Any())
+            {
+                return Ok(new ApiResponse<List<CompanyReadDTO>>
+                {
+                    Success = true,
+                    Message = !string.IsNullOrEmpty(pagination.Search)
+                        ? $"No company found for '{pagination.Search}'."
+                        : "No companies found.",
+                    Data = new List<CompanyReadDTO>(),
+                    Error = null
+                    
+                });
+            }
+
+            var totalRecords = await service.GetTotalCompanyRecords(pagination.Search);
+
             var totalPages = (int)Math.Ceiling(
-                  totalRecords /
-                  (double)pagination.PageSize);
+                totalRecords / (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<CompanyReadDTO>>
             {

@@ -7,7 +7,9 @@ using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Middleware;
 using Backend_Fincore.Service;
+using Backend_Fincore.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +50,10 @@ builder.Services.AddScoped<IAssetsService, AssetsService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
+builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
@@ -176,8 +182,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
+app.UseHttpsRedirection();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 

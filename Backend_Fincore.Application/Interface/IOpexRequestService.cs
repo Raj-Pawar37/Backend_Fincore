@@ -5,7 +5,7 @@ namespace Backend_Fincore.Interface
 {
     public interface IOpexRequestService
     {
-        Task<List<OpexRequestReadDTO>> GetAll(int userId,PaginationDTO pagination);
+        Task<List<OpexRequestReadDTO>> GetAll(PaginationDTO pagination);
 
         Task<OpexRequestReadDTO?> GetById(int id);
 
@@ -19,7 +19,7 @@ namespace Backend_Fincore.Interface
 
         Task<List<OpexRequestReadDTO>> SearchOpex(OpexSearchDTO dto);
 
-        Task<int> GetOpexRequestCount(int userId , PaginationDTO pagination);
+        Task<int> GetOpexRequestCount( PaginationDTO pagination);
 
 
     }

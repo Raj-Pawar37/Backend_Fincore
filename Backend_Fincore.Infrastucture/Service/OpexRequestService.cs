@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
@@ -15,17 +16,20 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-        //IHttpContextAccessor httpContextAccessor;   
+    
+        private readonly ICurrentUserService current; 
 
-        public OpexRequestService(AppDbContext db, IMapper mapper )
+        public OpexRequestService(AppDbContext db, IMapper mapper, ICurrentUserService current )
         {
             this.db = db;
             this.mapper = mapper;
-            //this.httpContextAccessor = httpContextAccessor;
+            this.current = current;
         }
 
-        public async Task<int> GetOpexRequestCount(int userId,PaginationDTO pagination)
+        public async Task<int> GetOpexRequestCount(PaginationDTO pagination)
         {
+            int userId = current.UserId;
+
             var user = await db.User
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x => x.UserId == userId);
@@ -39,18 +43,18 @@ namespace Backend_Fincore.Service
             IQueryable<OpexRequest> query = db.OpexRequest
                 .Include(x => x.RequestedByUser);
 
-            if (user.Role.RoleName == "CFO")
+            if (user.Role.RoleId == 1)
             {
-                await db.OpexRequest.ToListAsync();
+                // CFO sees all records
             }
-            else if (user.Role.RoleName == "Manager")
+            else if (user.Role.RoleId == 2 || user.Role.RoleId == 4 || user.Role.RoleId == 5)
             {
                 query = query.Where(x =>
                     x.RequestedByUser.Username == user.Username);
             }
             else
             {
-                query = query.Where(x =>x.RequestedBy == userId);
+                query = query.Where(x => x.RequestedBy == userId);
             }
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
@@ -62,14 +66,16 @@ namespace Backend_Fincore.Service
 
             return await query.CountAsync();
         }
-        public async Task<List<OpexRequestReadDTO>> GetAll(int userId,PaginationDTO pagination)
+        public async Task<List<OpexRequestReadDTO>> GetAll(PaginationDTO pagination)
         {
+            int userId = current.UserId;
+
             var user = await db.User
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
             if (user == null)
-                throw new Exception("User not found.");
+                throw new Exception("Logged-in user not found.");
 
             if (user.Role == null)
                 throw new Exception("User role not found.");
@@ -79,12 +85,12 @@ namespace Backend_Fincore.Service
                 .Include(x => x.ApprovedByUser)
                 .Include(x => x.BudgetLine);
 
-          
-            if (user.Role.RoleName == "CFO")
+            if (user.Role.RoleId == 1)
             {
-              await db.OpexRequest.ToListAsync();
+                // CFO sees every OPEX request.
+                // No Where condition is required.
             }
-            else if (user.Role.RoleName == "Manager")
+            else if (user.Role.RoleId == 2 || user.Role.RoleId == 4 || user.Role.RoleId == 5)
             {
                 query = query.Where(x =>
                     x.RequestedByUser.Username == user.Username);
@@ -95,7 +101,6 @@ namespace Backend_Fincore.Service
                     x.RequestedBy == userId);
             }
 
-        
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
                 query = query.Where(x =>
@@ -103,7 +108,6 @@ namespace Backend_Fincore.Service
                     x.Title.Contains(pagination.Search));
             }
 
-        
             var opexRequests = await query
                 .OrderByDescending(x => x.OpexRequestId)
                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
@@ -124,8 +128,9 @@ namespace Backend_Fincore.Service
         public async Task<OpexRequestReadDTO> Create(OpexRequestWriteDTO dto)
         {
 
-            //var userId = Convert.ToInt32(httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Name)?.Value);
-            
+         
+       
+
             var budgetLine = await db.BudgetLine
                 .FirstOrDefaultAsync(x => x.BudgetLineId == dto.BudgetLineId);
 
@@ -151,7 +156,7 @@ namespace Backend_Fincore.Service
             var opexRequest = mapper.Map<OpexRequest>(dto);
 
           
-            //opexRequest.CreatedBy = userId;
+            opexRequest.CreatedBy = current.UserId;
             opexRequest.CreatedAt = DateTime.Now;
             opexRequest.Status = "Pending";
             opexRequest.ApprovedBy = null;
@@ -211,8 +216,9 @@ namespace Backend_Fincore.Service
                 throw new Exception("Approved OPEX Request cannot be updated.");
             if (dto.Amount <= 0)
                       throw new Exception("Amount must be greater than zero.");
-
-                opexRequest.BudgetLineId = dto.BudgetLineId;
+            opexRequest.ModifiedAt = DateTime.Now;
+            opexRequest.ModifiedBy=current.UserId;
+            opexRequest.BudgetLineId = dto.BudgetLineId;
             opexRequest.Title = dto.Title;
             opexRequest.Amount = dto.Amount;
             opexRequest.RequestedBy = dto.RequestedBy;
@@ -238,9 +244,14 @@ namespace Backend_Fincore.Service
 
             return true;
         }
-        public async Task<OpexRequestReadDTO> Verify(int opexRequestId, int approvedBy, OpexRequestVerifyDTO dto)
+        public async Task<OpexRequestReadDTO> Verify(
+            int opexRequestId,
+            int approvedBy,
+            OpexRequestVerifyDTO dto)
         {
-            var opexRequest = await db.OpexRequest.FirstOrDefaultAsync(x => x.OpexRequestId == opexRequestId);
+            var opexRequest = await db.OpexRequest
+                .FirstOrDefaultAsync(x =>
+                    x.OpexRequestId == opexRequestId);
 
             if (opexRequest == null)
                 throw new Exception("OPEX Request not found.");
@@ -248,22 +259,96 @@ namespace Backend_Fincore.Service
             if (opexRequest.Status == "Approved")
                 throw new Exception("OPEX Request is already approved.");
 
-            if (dto.Status != "Approved" && dto.Status != "Rejected")
-                throw new Exception("Status must be Approved or Rejected.");
+            if (opexRequest.Status == "Rejected")
+                throw new Exception("OPEX Request is already rejected.");
 
-            var approver = await db.User.FirstOrDefaultAsync(x => x.UserId == approvedBy);
+            if (dto.Status != "Approved" &&
+                dto.Status != "Rejected")
+            {
+                throw new Exception(
+                    "Status must be Approved or Rejected.");
+            }
+
+            var approver = await db.User
+                .FirstOrDefaultAsync(x => x.UserId == approvedBy);
 
             if (approver == null)
                 throw new Exception("Approver user not found.");
 
-       
-            opexRequest.Status = dto.Status;
-            opexRequest.ApprovedBy = approvedBy;
-            opexRequest.ApprovedDate = DateTime.Now;
+            await using var transaction =
+                await db.Database.BeginTransactionAsync();
 
-            await db.SaveChangesAsync();
+            try
+            {
+                // Rejection does not create a Work Order
+                if (dto.Status == "Rejected")
+                {
+                    opexRequest.Status = "Rejected";
+                    opexRequest.ApprovedBy = approvedBy;
+                    opexRequest.ApprovedDate = DateTime.Now;
 
-            return mapper.Map<OpexRequestReadDTO>(opexRequest);
+                    await db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return mapper.Map<OpexRequestReadDTO>(
+                        opexRequest);
+                }
+
+                // Vendor is required when creating Work Order
+                if (dto.VendorId == null)
+                {
+                    throw new Exception(
+                        "Vendor is required to approve the OPEX Request.");
+                }
+
+                var vendorExists = await db.Vendor
+                    .AnyAsync(x => x.VendorId == dto.VendorId.Value);
+
+                if (!vendorExists)
+                    throw new Exception("Vendor not found.");
+
+                // Prevent duplicate Work Order
+                bool workOrderExists = await db.WorkOrder
+                    .AnyAsync(x =>
+                        x.OpexRequestId == opexRequestId);
+
+                if (workOrderExists)
+                {
+                    throw new Exception(
+                        "Work Order already exists for this OPEX Request.");
+                }
+
+                var workOrder = new WorkOrder
+                {
+                    OpexRequestId = opexRequest.OpexRequestId,
+                    WorkOrderNumber = $"WO-{DateTime.Now:yyyyMMddHHmmss}",
+                    VendorId = dto.VendorId.Value,
+                    Title = opexRequest.Title,
+                    Amount = opexRequest.Amount,
+                    StartDate = dto.StartDate ?? DateTime.Now,
+                    EndDate = null,
+                    Status = "Pending",
+                    CreatedBy = current.UserId,
+                    CreatedAt = DateTime.Now
+                };
+
+                await db.WorkOrder.AddAsync(workOrder);
+
+                opexRequest.Status = "Approved";
+                opexRequest.ApprovedBy = approvedBy;
+                opexRequest.ApprovedDate = DateTime.Now;
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return mapper.Map<OpexRequestReadDTO>(
+                    opexRequest);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<List<OpexRequestReadDTO>> SearchOpex(OpexSearchDTO dto)

@@ -6,13 +6,18 @@ namespace Backend_Fincore.Interface
     public interface IUserService
     {
         Task<List<UserReadDTO>> GetAll(PaginationDTO pagination);
-        Task<int> GetTotalUserRecords();
-        Task<UserReadDTO> GetById(int id);
 
-       Task<UserReadDTO> AddUser(UserWriteDTO u);
+        Task<int> GetTotalUserRecords(string? search);
 
-        Task<bool> UpdateUser(int id,UserWriteDTO u);
+        Task<UserReadDTO?> GetById(int id);
 
-        Task<bool > DeleteUser(int id);
+        
+        Task<UserReadDTO> AddUser(UserCreateDTO u);
+
+        
+        Task<bool> UpdateUser(int id, UserUpdateDTO u);
+
+       
+        Task<bool> DeleteUser(int id);
     }
 }

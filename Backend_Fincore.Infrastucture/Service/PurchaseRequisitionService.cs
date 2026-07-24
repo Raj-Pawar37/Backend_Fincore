@@ -24,13 +24,11 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<List<PurchaseRequisitionResponseDto>>> GetAllAsync(int userId)
         {
-            // 1. Validate input
             if (userId <= 0)
             {
                 return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "User ID is missing or invalid" };
             }
 
-            // 2. Fetch the User from the database, and INCLUDE their Role so we know who they are
             var user = await _context.User
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
@@ -40,7 +38,6 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "User ID not found" };
             }
 
-            // 3. Extract the Role Name safely from the database
             string roleName = user.Role.RoleName;
 
             if (roleName == "User")
@@ -50,10 +47,8 @@ namespace Backend_Fincore.Application.Services
 
             IQueryable<PurchaseRequisition> query = _context.PurchaseRequisition.AsQueryable();
 
-            // 4. Manager Logic (Securely fetch their department)
             if (roleName == "Manager")
             {
-                // Find the Employee record linked to this User to get their Department
                 var employee = await _context.Employee.FirstOrDefaultAsync(e => e.EmployeeId == user.MasterId);
 
                 if (employee == null)
@@ -63,7 +58,6 @@ namespace Backend_Fincore.Application.Services
 
                 int managerDeptId = employee.DepartmentId;
 
-                // Filter PRs where the requester is in the same department as the Manager
                 query = query.Where(pr => _context.CapexRequest.Any(cr =>
                                           cr.CapexRequestId == pr.CapexRequestId &&
                                           _context.User.Any(u =>
@@ -73,7 +67,7 @@ namespace Backend_Fincore.Application.Services
                                                   emp.EmployeeId == u.MasterId &&
                                                   emp.DepartmentId == managerDeptId))));
             }
-            // 5. CFO Logic
+            
             else if (roleName != "CFO")
             {
                 return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "Invalid Role" };
@@ -103,21 +97,23 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<PurchaseRequisitionResponseDto> { Success = true, Data = prDto, TotalNumberRecord = 1 };
         }
 
-        public async Task<ApiResponse<PurchaseRequisitionResponseDto>> UpdateAsync(int id, PurchaseRequisitionUpdateDto dto)
+        public async Task<ApiResponse<PurchaseRequisitionResponseDto>> UpdateAsync(int id, PurchaseRequisitionUpdateDto dto, int userId)
         {
             var pr = await _context.PurchaseRequisition.FindAsync(id);
 
-            // Rule 2: If PRId not found throw error
             if (pr == null)
             {
                 return new ApiResponse<PurchaseRequisitionResponseDto> { Success = false, Message = "PRId not found" };
             }
 
-            // Rule 2: Only update Status, Name (Title), PRNumber, Description
             if (!string.IsNullOrEmpty(dto.Title)) pr.Title = dto.Title;
             if (!string.IsNullOrEmpty(dto.PRNumber)) pr.PRNumber = dto.PRNumber;
             if (!string.IsNullOrEmpty(dto.Description)) pr.Description = dto.Description;
             if (!string.IsNullOrEmpty(dto.Status)) pr.Status = dto.Status;
+
+           
+            pr.ModifiedBy = userId;
+            pr.ModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
@@ -128,7 +124,6 @@ namespace Backend_Fincore.Application.Services
         {
             IQueryable<PurchaseRequisition> query = _context.PurchaseRequisition.AsQueryable();
 
-            // 1. Rule: If department is provided, filter by it. If null, skip this block (fetch all PRs).
             if (departmentId.HasValue && departmentId.Value > 0)
             {
                 query = query.Where(pr => _context.CapexRequest.Any(cr =>
@@ -141,16 +136,12 @@ namespace Backend_Fincore.Application.Services
                                                   emp.DepartmentId == departmentId.Value))));
             }
 
-            // 2. Rule: Apply search text and limit to Top 20
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 query = query.Where(pr => pr.PRNumber.Contains(searchText) || pr.Title.Contains(searchText))
                              .Take(20);
             }
-            // Optional safeguard: If you want to limit it to 20 even without search text to prevent huge payloads
-            // else { query = query.Take(50); } 
 
-            // 3. Project directly into the DTO (highly optimized SQL generation)
             var prs = await query.Select(pr => new PRDropdownResponseDto
             {
                 PRId = pr.PRId,

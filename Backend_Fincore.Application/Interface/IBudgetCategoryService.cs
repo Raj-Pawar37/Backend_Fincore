@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 
 namespace Backend_Fincore.Interface
 {
@@ -6,7 +7,8 @@ namespace Backend_Fincore.Interface
     {
         Task<BudgetCategoryReadDTO> AddBudgetCategory(BudgetCategoryWriteDTO dto);
 
-        Task<List<BudgetCategoryReadDTO>> GetAll();
+        Task<List<BudgetCategoryReadDTO>> GetAll(PaginationDTO pagination);
+        Task <int>  GetTotalRecord();
 
         Task<BudgetCategoryReadDTO?> GetById(int id);
 

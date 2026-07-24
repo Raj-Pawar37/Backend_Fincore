@@ -9,5 +9,10 @@ namespace Backend_Fincore.Application.DTOs.OpexRequest
     public class OpexRequestVerifyDTO
     {
         public string Status { get; set; } = null!;
+
+        // Required only when approving
+        public int? VendorId { get; set; }
+
+        public DateTime? StartDate { get; set; }
     }
 }

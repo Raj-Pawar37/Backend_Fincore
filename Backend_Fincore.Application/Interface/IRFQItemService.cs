@@ -5,9 +5,9 @@ namespace Backend_Fincore.Application.Interfaces
 {
     public interface IRFQItemService
     {
-        Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto);
-        Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId);
-        Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto);
+        Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto, int userId);
+        Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize);
+        Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto, int userId);
         Task<ApiResponse<bool>> DeleteAsync(int id);
     }
 }
