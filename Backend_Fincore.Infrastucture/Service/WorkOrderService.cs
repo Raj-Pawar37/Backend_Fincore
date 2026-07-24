@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.Data;
 using Backend_Fincore.Interface;
@@ -18,8 +19,104 @@ namespace Backend_Fincore.Services
             this.mapper = mapper;
         }
 
-        public async Task<List<WorkOrderReadDTO>> GetAll(int userId)
+        //public async Task<int> GetWorkOrderCount()
+        //{
+        //    return await db.WorkOrder.CountAsync();
+        //}
+        public async Task<int> GetWorkOrderCount(int userId,PaginationDTO pagination)
         {
+            var user = await db.User
+                .Include(x => x.Role)
+                .FirstOrDefaultAsync(x => x.UserId == userId);
+
+            if (user == null)
+                throw new Exception("User not found.");
+
+            if (user.Role == null)
+                throw new Exception("User role not found.");
+
+            IQueryable<WorkOrder> query = db.WorkOrder;
+
+            if (user.Role.RoleName == "CFO")
+            {
+                // CFO sees all
+            }
+            else
+            {
+                query = query.Where(x => x.CreatedBy == userId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                string searchText = pagination.Search.Trim();
+
+                query = query.Where(x =>
+                    x.WorkOrderId.ToString().Contains(searchText) ||
+                    x.WorkOrderNumber.Contains(searchText) ||
+                    x.Title.Contains(searchText) ||
+                    x.Status.Contains(searchText));
+            }
+
+            return await query.CountAsync();
+        }
+        //public async Task<List<WorkOrderReadDTO>> GetAll(int userId,PaginationDTO pagination)
+        //{
+        //    var search = db.WorkOrder.AsQueryable();
+        //    if (!string.IsNullOrEmpty(pagination.Search)) { 
+        //        search=search.Where(x=>
+        //            x.WorkOrderId.ToString().Contains(pagination.Search));
+        //    }
+
+        //    var data = await search
+        //                            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+        //                            .Take(pagination.PageSize)
+        //                            .ToListAsync();
+
+        //    var user = await db.User
+        //        .Include(x => x.Role)
+        //        .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        //    if (user == null)
+        //        throw new Exception("User not found.");
+
+        //    if (user.Role == null)
+        //        throw new Exception("User role not found.");
+
+        //    IQueryable<WorkOrder> query = db.WorkOrder
+        //        .Include(x => x.OpexRequest)
+        //        .Include(x => x.Vendor);
+        //    //.Include(x => x.CreatedByUser)
+        //    //.Include(x => x.ApprovedByUser);
+
+        //    if (user.Role.RoleName == "CFO")
+        //    {
+        //        // CFO sees all work orders
+        //    }
+        //    else if (user.Role.RoleName == "Manager")
+        //    {
+        //        query = query.Where(x =>x.CreatedBy ==user.RoleId);
+        //    }
+        //    else
+        //    {
+        //        query = query.Where(x =>x.CreatedBy == userId);
+        //    }
+
+        //    var workOrders = await query
+        //        .OrderByDescending(x => x.WorkOrderId)
+        //        .ToListAsync();
+
+        //    return mapper.Map<List<WorkOrderReadDTO>>(workOrders);
+        //}
+        public async Task<List<WorkOrderReadDTO>> GetAll(
+        int userId,
+        PaginationDTO pagination)
+        {
+            if (pagination.PageNumber <= 0)
+                pagination.PageNumber = 1;
+
+            if (pagination.PageSize <= 0)
+                pagination.PageSize = 10;
+
             var user = await db.User
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x => x.UserId == userId);
@@ -33,33 +130,37 @@ namespace Backend_Fincore.Services
             IQueryable<WorkOrder> query = db.WorkOrder
                 .Include(x => x.OpexRequest)
                 .Include(x => x.Vendor);
-            //.Include(x => x.CreatedByUser)
-            //.Include(x => x.ApprovedByUser);
 
+            // Role filtering
             if (user.Role.RoleName == "CFO")
             {
-                // CFO sees all work orders
-            }
-            else if (user.Role.RoleName == "Manager")
-            {
-                query = query.Where(x =>
-                    x.CreatedBy ==
-                    user.RoleId);
+              await  db.WorkOrder.ToListAsync();
             }
             else
             {
+                query = query.Where(x => x.CreatedBy == userId);
+            }
+
+       
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                string searchText = pagination.Search.Trim();
+
                 query = query.Where(x =>
-                    x.CreatedBy == userId);
+                    x.WorkOrderId.ToString().Contains(searchText) ||
+                    x.WorkOrderNumber.Contains(searchText) ||
+                    x.Title.Contains(searchText) ||
+                    x.Status.Contains(searchText));
             }
 
             var workOrders = await query
                 .OrderByDescending(x => x.WorkOrderId)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
-            return mapper.Map<List<WorkOrderReadDTO>>(
-                workOrders);
+            return mapper.Map<List<WorkOrderReadDTO>>(workOrders);
         }
-
         public async Task<WorkOrderReadDTO?> GetById(int id)
         {
             var data = await db.WorkOrder
@@ -73,8 +174,7 @@ namespace Backend_Fincore.Services
             return mapper.Map<WorkOrderReadDTO>(data);
         }
 
-        public async Task<WorkOrderReadDTO> Create(
-      WorkOrderWriteDTO dto)
+        public async Task<WorkOrderReadDTO> Create(WorkOrderWriteDTO dto)
         {
           
 
@@ -84,8 +184,7 @@ namespace Backend_Fincore.Services
                     x.WorkOrderNumber == dto.WorkOrderNumber);
 
             if (workOrderNumberExists)
-                throw new Exception(
-                    "Work Order Number already exists.");
+                throw new Exception("Work Order Number already exists.");
 
             var opexRequest = await db.OpexRequest
                 .FirstOrDefaultAsync(x =>
@@ -95,8 +194,7 @@ namespace Backend_Fincore.Services
                 throw new Exception("OPEX Request not found.");
 
             if (opexRequest.Status != "Approved")
-                throw new Exception(
-                    "Only approved OPEX Request can be used.");
+                throw new Exception("Only approved OPEX Request can be used.");
 
             var vendor = await db.Vendor
                 .FirstOrDefaultAsync(x =>
@@ -106,8 +204,7 @@ namespace Backend_Fincore.Services
                 throw new Exception("Vendor not found.");
 
             if (dto.Amount <= 0)
-                throw new Exception(
-                    "Work Order amount must be greater than zero.");
+                throw new Exception("Work Order amount must be greater than zero.");
 
             decimal usedAmount = await db.WorkOrder
                 .Where(x =>
@@ -121,8 +218,7 @@ namespace Backend_Fincore.Services
 
             if (dto.Amount > availableAmount)
             {
-                throw new Exception(
-                    $"Work Order amount exceeds available OPEX amount of {availableAmount}.");
+                throw new Exception($"Work Order amount exceeds available OPEX amount of {availableAmount}.");
             }
 
             var workOrder = mapper.Map<WorkOrder>(dto);
@@ -137,9 +233,7 @@ namespace Backend_Fincore.Services
             return mapper.Map<WorkOrderReadDTO>(workOrder);
         }
 
-        public async Task<WorkOrderReadDTO> Update(
-          int workOrderId,
-          WorkOrderWriteDTO dto)
+        public async Task<WorkOrderReadDTO> Update(int workOrderId,WorkOrderWriteDTO dto)
         {
             var workOrder = await db.WorkOrder
                 .FirstOrDefaultAsync(x =>
@@ -149,8 +243,7 @@ namespace Backend_Fincore.Services
                 throw new Exception("Work Order not found.");
 
             if (workOrder.Status == "Approved")
-                throw new Exception(
-                    "Approved Work Order cannot be updated.");
+                throw new Exception("Approved Work Order cannot be updated.");
 
             bool numberExists = await db.WorkOrder
                 .AnyAsync(x =>
@@ -158,8 +251,7 @@ namespace Backend_Fincore.Services
                     x.WorkOrderId != workOrderId);
 
             if (numberExists)
-                throw new Exception(
-                    "Work Order Number already exists.");
+                throw new Exception("Work Order Number already exists.");
 
             var opexRequest = await db.OpexRequest
                 .FirstOrDefaultAsync(x =>
@@ -169,8 +261,7 @@ namespace Backend_Fincore.Services
                 throw new Exception("OPEX Request not found.");
 
             if (opexRequest.Status != "Approved")
-                throw new Exception(
-                    "Only approved OPEX Request can be used.");
+                throw new Exception("Only approved OPEX Request can be used.");
 
             var vendorExists = await db.Vendor
                 .AnyAsync(x => x.VendorId == dto.VendorId);
@@ -179,8 +270,7 @@ namespace Backend_Fincore.Services
                 throw new Exception("Vendor not found.");
 
             if (dto.Amount <= 0)
-                throw new Exception(
-                    "Work Order amount must be greater than zero.");
+                throw new Exception("Work Order amount must be greater than zero.");
 
             decimal usedAmount = await db.WorkOrder
                 .Where(x =>
@@ -190,13 +280,11 @@ namespace Backend_Fincore.Services
                     x.Status != "Cancelled")
                 .SumAsync(x => x.Amount);
 
-            decimal availableAmount =
-                opexRequest.Amount - usedAmount;
+            decimal availableAmount =opexRequest.Amount - usedAmount;
 
             if (dto.Amount > availableAmount)
             {
-                throw new Exception(
-                    $"Work Order amount exceeds available OPEX amount of {availableAmount}.");
+                throw new Exception($"Work Order amount exceeds available OPEX amount of {availableAmount}.");
             }
 
             workOrder.OpexRequestId = dto.OpexRequestId;
@@ -222,8 +310,7 @@ namespace Backend_Fincore.Services
                 throw new Exception("Work Order not found.");
 
             if (workOrder.Status == "Approved")
-                throw new Exception(
-                    "Approved Work Order cannot be deleted.");
+                throw new Exception("Approved Work Order cannot be deleted.");
 
             db.WorkOrder.Remove(workOrder);
 
@@ -249,8 +336,7 @@ namespace Backend_Fincore.Services
             if (dto.Status != "Approved" &&
                 dto.Status != "Rejected")
             {
-                throw new Exception(
-                    "Status must be Approved or Rejected.");
+                throw new Exception("Status must be Approved or Rejected.");
             }
 
             var approver = await db.User
@@ -267,12 +353,10 @@ namespace Backend_Fincore.Services
 
                 if (workOrder.OpexRequest.Status != "Approved")
                 {
-                    throw new Exception(
-                        "Work Order cannot be approved because OPEX Request is not approved.");
+                    throw new Exception("Work Order cannot be approved because OPEX Request is not approved.");
                 }
 
-                decimal otherWorkOrderAmount =
-                    await db.WorkOrder
+                decimal otherWorkOrderAmount =await db.WorkOrder
                         .Where(x =>
                             x.OpexRequestId ==
                                 workOrder.OpexRequestId &&
@@ -280,14 +364,11 @@ namespace Backend_Fincore.Services
                             x.Status == "Approved")
                         .SumAsync(x => x.Amount);
 
-                decimal availableAmount =
-                    workOrder.OpexRequest.Amount -
-                    otherWorkOrderAmount;
+                decimal availableAmount =workOrder.OpexRequest.Amount - otherWorkOrderAmount;
 
                 if (workOrder.Amount > availableAmount)
                 {
-                    throw new Exception(
-                        $"Work Order amount exceeds available OPEX amount of {availableAmount}.");
+                    throw new Exception($"Work Order amount exceeds available OPEX amount of {availableAmount}.");
                 }
             }
 
