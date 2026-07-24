@@ -6,7 +6,7 @@ namespace Backend_Fincore.Interface
 {
     public interface IGRNService
     {
-        Task<List<GRNDTO>> GetAllGrns(string masterType, int masterId, GrnStatusDTO dto,PaginationDTO pagination);
+        Task<List<GRNDTO>> GetAllGrns(GrnStatusDTO dto,PaginationDTO pagination);
 
         Task<int> GetAllGRNCount();
 

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Backend_Fincore.Infrastucture.Service
 {
@@ -19,10 +20,13 @@ namespace Backend_Fincore.Infrastucture.Service
         private readonly AppDbContext db;
 
         IMapper mapper;
-        public GRNItemsService(AppDbContext db,IMapper mapper)
+
+        private readonly ICurrentUserService current;
+        public GRNItemsService(AppDbContext db,IMapper mapper,ICurrentUserService current)
         {
             this.db = db;
             this.mapper = mapper;
+            this.current = current;
         }
 
         public async Task<int> GetAllGrnItemsCount()
@@ -32,30 +36,22 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<GRNItemsDTO>> getAllGrnItems(PaginationDTO pagination)
         {
-            var search = db.GRN.AsQueryable();
+            var data = db.GRNItem.Include(x => x.POItem).AsQueryable();
 
-            if (!string.IsNullOrEmpty(pagination.Search))
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                search = search.Where(x =>
-                    x.GRNNumber.Contains(pagination.Search) ||
-
-                    x.Status.Contains(pagination.Search)
-
-                    );
+                data = data.Where(x =>
+                    x.POItem.ItemName.Contains(pagination.Search) ||
+                    x.GRN.Status.Contains(pagination.Search));
             }
 
-            var data1 = await search
+            var result = await data.OrderByDescending(x => x.CreatedAt)
                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                                    .Take(pagination.PageSize)
                                    .ToListAsync();
 
-            mapper.Map<PurchaseOrderItemDTO>(data1);
 
-            var data = await db.GRNItem.Include(x => x.POItem).ToListAsync();
-
-            var res = mapper.Map<List<GRNItemsDTO>>(data);
-
-            return res;
+            return mapper.Map<List<GRNItemsDTO>>(result); 
         }
 
         public async Task<GRNItemsDTO> GetGRNItemById(int id)
@@ -75,8 +71,8 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task DeleteGRNItem(int id)
         {
            
-            var grnItem = await db.GRNItem.Include(x => x.GRN).Include(x => x.POItem).FirstOrDefaultAsync(x => x.GRNItemId == id);
-
+            var grnItem = await db.GRNItem.Include(x => x.GRN).Include(x => x.POItem)
+                               .FirstOrDefaultAsync(x => x.GRNItemId == id);
 
             if (grnItem == null)
             {
@@ -89,7 +85,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
           
-            // grnItem.POItem.Status = "Not Received";
+             grnItem.POItem.Status = "Not Received";
 
             db.GRNItem.Remove(grnItem);
 
@@ -97,7 +93,7 @@ namespace Backend_Fincore.Infrastucture.Service
         }
 
 
-        public async Task AddGRNItem(GRNItemsCUDTO dto, int createdBy)
+        public async Task AddGRNItem(GRNItemsCUDTO dto)
         {
            
             var grn = await db.GRN.FirstOrDefaultAsync(x => x.GRNId == dto.GRNId);
@@ -129,19 +125,19 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (exists)
             {
-                throw new Exception("This Purchase Order Item already exists in a GRN.");
+                throw new Exception("This Purchase Order Item already exists in a GRN Items.");
             }
 
             var item = mapper.Map<GRNItem>(dto);
 
-            item.CreatedBy = createdBy;
+            item.CreatedBy =current.UserId;
             item.CreatedAt = DateTime.Now;
 
             db.GRNItem.Add(item);
 
             // Update PO Item Status
             poItem.Status = "Received";      
-            poItem.ModifiedBy = createdBy;
+            poItem.ModifiedBy = current.UserId;
             poItem.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

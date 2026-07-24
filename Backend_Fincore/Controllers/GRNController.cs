@@ -28,13 +28,9 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllGRNs(GrnStatusDTO dto,PaginationDTO pagination)
+        public async Task<IActionResult> GetAllGRNs([FromBody]GrnStatusDTO dto,[FromQuery]PaginationDTO pagination)
         {
-
-            var masterType = User.FindFirst("masterType")?.Value;
-            var masterId = int.Parse(User.FindFirst("masterId")!.Value);
-
-            var data = await gRNService.GetAllGrns(masterType!, masterId, dto,pagination);
+            var data = await gRNService.GetAllGrns( dto,pagination);
 
             var totalCounts = await gRNService.GetAllGRNCount();
             var totalpages = (int)Math.Ceiling(totalCounts / (double)pagination.PageSize);
@@ -112,10 +108,7 @@ namespace Backend_Fincore.Controllers
 
         [HttpPut("{id}")]
         public async Task<IActionResult> updateGrn(GRNCUDTO grn,int id)
-        {
-
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
+        { 
             await gRNService.UpdateGRN(grn, id);
 
             return Ok(new ApiResponse<object>
@@ -157,7 +150,7 @@ namespace Backend_Fincore.Controllers
        
         public async Task<IActionResult> UpdateGRNStatus(int id, GrnStatusDTO dto)
         {
-            //int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            
 
             await gRNService.UpdateGRNStatus(id, dto);
 

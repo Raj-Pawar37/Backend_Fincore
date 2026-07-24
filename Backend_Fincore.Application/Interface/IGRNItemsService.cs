@@ -17,11 +17,9 @@ namespace Backend_Fincore.Application.Interface
         Task<int> GetAllGrnItemsCount();
         Task<GRNItemsDTO> GetGRNItemById(int id);
 
-
         Task DeleteGRNItem(int id);
 
-
-        Task AddGRNItem(GRNItemsCUDTO dto, int createdBy);
+        Task AddGRNItem(GRNItemsCUDTO dto);
 
         Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto);
     }

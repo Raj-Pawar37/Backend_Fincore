@@ -5,7 +5,7 @@ using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +17,7 @@ namespace Backend_Fincore.Controllers
     [Route("api/v1/[controller]")]
     [ApiController]
     [EnableRateLimiting("Fixed")]
+    [Authorize]
     public class PurchaseOrderController : ControllerBase
     {
         private readonly IPurchaseOrderService purchaseOrderService;
@@ -28,7 +29,7 @@ namespace Backend_Fincore.Controllers
 
         // Get All Purchase Orders
         [HttpPost("GetAllPurchaseOrders")]
-        public async Task<IActionResult> GetAllPurchaseOrders(PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
+        public async Task<IActionResult> GetAllPurchaseOrders([FromBody]PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
         {
             var data = await purchaseOrderService.GetAllPurchasedOrder(pof,pagination);
 

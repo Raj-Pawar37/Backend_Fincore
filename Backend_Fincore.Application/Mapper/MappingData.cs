@@ -47,7 +47,7 @@ public class MappingData : Profile
         CreateMap<GRNCUDTO, GRN>();
 
         CreateMap<GRNItem, GRNItemsDTO>().ForMember(d => d.ItemName, o => o.MapFrom(s => s.POItem.ItemName))
-                                          .ForMember(d => d.ItemType, o => o.MapFrom(s => s.POItem.ItemType))
+                                          
                                            .ForMember(d => d.OrderedQty, o => o.MapFrom(s => s.POItem.Qty))
                                             .ForMember(d => d.ReceivedQty, o => o.MapFrom(s => s.Qty))
                                             .ForMember(d => d.UnitPrice, o => o.MapFrom(s => s.POItem.UnitPrice))
@@ -58,16 +58,14 @@ public class MappingData : Profile
         CreateMap<GRNItemsCUDTO,GRNItem>();
 
 
+        CreateMap<QuotationItem, PurchaseOrderItem>().ForMember(x => x.Qty, x => x.MapFrom(x => x.Quantity))
+                                                     .ForMember(x => x.ItemName, x => x.MapFrom(x => x.RFQItem.Name))
+                                                     .ForMember(x => x.QuotationItemId, x => x.MapFrom(x => x.QuotationItemId))
+                                                     .ForMember(x => x.Status, x => x.MapFrom(x => "Pending"));
 
 
 
 
-
-
-
-
-
-     
 
         //APInvoice
         CreateMap<APInvoice, APInvoiceDTO>().ForMember(x => x.VendorName,

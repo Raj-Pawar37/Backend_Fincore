@@ -1,11 +1,11 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Backend_Fincore.Service;
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,6 +16,7 @@ namespace Backend_Fincore.Controllers
     [Route("api/v1/[controller]")]
     [ApiController]
     [EnableRateLimiting("Fixed")]
+    [Authorize]
     public class PurchaseOrderItemController : ControllerBase
     {
         private readonly IPurchaseOrderItemService purchaseOrderItemService;
@@ -27,9 +28,9 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost("GetAll")]
-        public async Task<IActionResult> GetAllPurchasedItemByRole(ReadPoItemsDTO dto,PaginationDTO pagination)
+        public async Task<IActionResult> GetAllPurchasedItemByRole([FromQuery]PaginationDTO pagination)
         {
-            var data = await purchaseOrderItemService.getAllPurchasedItem(dto, pagination);
+            var data = await purchaseOrderItemService.getAllPurchasedItem(pagination);
 
             var totalRecords = await purchaseOrderItemService.GetPurchasedItemCount();
             var totalPages = (int)Math.Ceiling(
@@ -92,7 +93,7 @@ namespace Backend_Fincore.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> updatePurchasedItem(int id,PurchaseOrderItemCUDTO Pi)
         {
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+         
 
             await purchaseOrderItemService.UpdatePurchaseOrderItem(Pi, id);
 
@@ -115,7 +116,7 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> deleteItemById(int id)
         {
-            var data = await purchaseOrderItemService.DeleteItem(id);
+            await purchaseOrderItemService.DeleteItem(id);
 
             return Ok(new ApiResponse<object>
             {

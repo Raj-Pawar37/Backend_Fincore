@@ -1,12 +1,12 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 
 namespace Backend_Fincore.Interface
 {
     public interface IPurchaseOrderItemService
     {
-        Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(ReadPoItemsDTO poItem,PaginationDTO pagination);
+        Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination);
 
         Task<int> GetPurchasedItemCount();
 
@@ -16,6 +16,6 @@ namespace Backend_Fincore.Interface
 
         Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO dto, int id);
 
-        Task<bool> DeleteItem(int id);
+        Task DeleteItem(int id);
     }
 }
