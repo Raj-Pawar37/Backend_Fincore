@@ -11,17 +11,19 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-
-        public CustomerService(AppDbContext db, IMapper mapper)
+        private readonly ICurrentUserService currentUser;
+        public CustomerService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser )
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<CustomerReadDTO> AddCutomer(CustomerWriteDTO c)
         {
             var data = mapper.Map<Customer>(c);
-
+            data.CreatedAt= DateTime.Now;
+            data.CreatedBy = currentUser.UserId;
             await db.Customer.AddAsync(data);
             await db.SaveChangesAsync();
 
@@ -66,27 +68,28 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<CustomerReadDTO>> GetAll(PaginationDTO pagination)
         {
+            var search = db.Customer
+                .Include(x => x.Company)
+                .AsQueryable();
 
-            var search =  db.Customer.AsQueryable();
-            if(!string.IsNullOrEmpty(pagination.Search))
+            if (!string.IsNullOrEmpty(pagination.Search))
             {
-                search = search.Where(x => x.Company.CompanyName.Contains(pagination.Search));
+                search = search.Where(x =>
+                    x.CustomerName.Contains(pagination.Search) ||
+                    x.CustomerCode.Contains(pagination.Search) ||
+                    x.Company.CompanyName.Contains(pagination.Search)
+                );
             }
 
-            var data = await db.Customer
-                .Include(x => x.Company)
+            var data = await search
                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                 .Take(pagination.PageSize)
                 .ToListAsync();
 
-            var mdata= mapper.Map<List<CustomerReadDTO>>(data);
-            return mdata;
+            return mapper.Map<List<CustomerReadDTO>>(data);
         }
 
-        public Task<List<CustomerReadDTO>> GetAll(LoginDto dto)
-        {
-            throw new NotImplementedException();
-        }
+
 
         public async Task<CustomerReadDTO> GetById(int id)
         {
@@ -100,9 +103,22 @@ namespace Backend_Fincore.Infrastucture.Service
             return mapper.Map<CustomerReadDTO>(data);
         }
 
-        public async Task<int> GetTotalCustomerRecords()
+        public async Task<int> GetTotalCustomerRecords(string? search)
         {
-            return await db.Customer.CountAsync(); 
+            var data = db.Customer
+                .Include(x => x.Company)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                data = data.Where(x =>
+                    x.CustomerName.Contains(search) ||
+                    x.CustomerCode.Contains(search) ||
+                    x.Company.CompanyName.Contains(search)
+                );
+            }
+
+            return await data.CountAsync();
         }
 
         public async Task<bool> UpdateCustomer(int id, CustomerWriteDTO c)
@@ -113,7 +129,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 return false;
 
             mapper.Map(c, data);
-
+            data.ModifiedAt = DateTime.Now;
+            data.ModifiedBy = currentUser.UserId;
             await db.SaveChangesAsync();
 
             return true;
