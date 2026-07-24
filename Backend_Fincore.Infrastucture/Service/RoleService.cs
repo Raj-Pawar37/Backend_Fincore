@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -16,11 +17,13 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService current;
 
-        public RoleService(AppDbContext db, IMapper mapper)
+        public RoleService(AppDbContext db, IMapper mapper, ICurrentUserService current)
         {
             _db = db;
             _mapper = mapper;
+            this.current = current;
         }
 
         public async Task<ApiResponse<IEnumerable<RoleDTO>>> GetAllRolesAsync()
@@ -89,7 +92,10 @@ namespace Backend_Fincore.Service
             try
             {
                 var role = _mapper.Map<Role>(dto);
+                role.ModifiedBy = current.UserId;
+                role.ModifiedAt = DateTime.Now;
                 _db.Role.Add(role);
+
                 await _db.SaveChangesAsync();
 
                 var createdDto = _mapper.Map<RoleDTO>(role);
