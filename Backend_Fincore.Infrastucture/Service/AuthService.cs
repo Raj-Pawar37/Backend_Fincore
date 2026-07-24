@@ -182,8 +182,12 @@ namespace Backend_Fincore.Infrastructure.Service
 
             User user = new User
             {
+                RoleId = 2,
+                MasterId = 1,
+                MasterType ="Employee",
                 Username = username,
                 PasswordHash = passwordHash,
+                
                 Email = $"{username}@domain.com",
                 IsEmailVerified = 0,
                 FailedLoginAttempts = 0,
