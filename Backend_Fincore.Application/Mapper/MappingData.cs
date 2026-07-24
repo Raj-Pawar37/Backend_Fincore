@@ -104,10 +104,16 @@ public class MappingData : Profile
         CreateMap<Employee, EmployeeWriteDTO>()
             .ReverseMap();
 
-        //user
+        // User Read
         CreateMap<User, UserReadDTO>()
-              .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
-        CreateMap<User, UserWriteDTO>().ReverseMap();
+            .ForMember(dest => dest.RoleName,
+                opt => opt.MapFrom(src => src.Role.RoleName));
+
+        // User Create
+        CreateMap<UserCreateDTO, User>().ReverseMap();
+
+        // User Update
+        CreateMap<UserUpdateDTO, User>().ReverseMap();
 
 
         //company
