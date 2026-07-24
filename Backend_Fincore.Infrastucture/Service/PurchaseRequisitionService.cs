@@ -24,13 +24,13 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<List<PurchaseRequisitionResponseDto>>> GetAllAsync(int userId)
         {
-            // 1. Validate input
+            // Validate input
             if (userId <= 0)
             {
                 return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "User ID is missing or invalid" };
             }
 
-            // 2. Fetch the User from the database, and INCLUDE their Role so we know who they are
+            //  Fetch the User from the database, and INCLUDE their Role so we know who they are
             var user = await _context.User
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
@@ -150,7 +150,7 @@ namespace Backend_Fincore.Application.Services
             // Optional safeguard: If you want to limit it to 20 even without search text to prevent huge payloads
             // else { query = query.Take(50); } 
 
-            // 3. Project directly into the DTO (highly optimized SQL generation)
+            //  Project directly into the DTO (highly optimized SQL generation)
             var prs = await query.Select(pr => new PRDropdownResponseDto
             {
                 PRId = pr.PRId,

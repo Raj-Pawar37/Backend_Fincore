@@ -44,7 +44,6 @@ namespace Backend_Fincore.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            // The controller simply asks the service to do the heavy lifting
             var response = await _rfqVendorService.DeleteAsync(id);
             return response.Success ? Ok(response) : BadRequest(response);
         }

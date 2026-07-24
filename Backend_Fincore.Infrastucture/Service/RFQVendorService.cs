@@ -114,26 +114,32 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
-            // Update: Switch to FirstOrDefaultAsync and include Quotations
-            var rfqVendor = await _context.RFQVendor
-                .Include(v => v.Quotations)
-                .FirstOrDefaultAsync(v => v.RFQVendorId == id);
-
-            if (rfqVendor == null)
+            try
             {
-                return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
-            }
+                var rfqVendor = await _context.RFQVendor.FindAsync(id);
 
-            // Remove restricted Quotations first
-            if (rfqVendor.Quotations != null && rfqVendor.Quotations.Any())
+                if (rfqVendor == null)
+                {
+                    return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
+                }
+
+                // remove only the RFQVendor
+                _context.RFQVendor.Remove(rfqVendor);
+                await _context.SaveChangesAsync();
+
+                return new ApiResponse<bool> { Success = true, Message = "RFQ Vendor removed successfully.", Data = true };
+            }
+            catch (Exception)
             {
-                _context.Quotation.RemoveRange(rfqVendor.Quotations);
+                // If the database blocks the deletion (e.g., because a Quotation exists),
+                // we catch the error here so the server doesn't crash with a 500 error.
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Cannot delete this RFQ Vendor because they have linked records in Quotation ",
+                    Data = false
+                };
             }
-
-            _context.RFQVendor.Remove(rfqVendor);
-            await _context.SaveChangesAsync();
-
-            return new ApiResponse<bool> { Success = true, Message = "RFQ Vendor removed successfully.", Data = true };
         }
     }
 }
