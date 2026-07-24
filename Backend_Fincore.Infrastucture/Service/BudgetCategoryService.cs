@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -12,11 +13,13 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
+        private readonly ICurrentUserService currentUser;
 
-        public BudgetCategoryService(AppDbContext db, IMapper mapper)
+        public BudgetCategoryService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<BudgetCategoryReadDTO> AddBudgetCategory(BudgetCategoryWriteDTO dto)
@@ -30,13 +33,9 @@ namespace Backend_Fincore.Service
 
             var data = mapper.Map<BudgetCategory>(dto);
 
-            // JWT code - use later
-            // int userId = GetLoggedInUserId();
+            //int userId = 1;
 
-            // Temporary user ID for testing
-            int userId = 1;
-
-            data.CreatedBy = userId;
+            data.CreatedBy = currentUser.UserId;
             data.CreatedAt = DateTime.Now;
 
             await db.BudgetCategory.AddAsync(data);
@@ -130,13 +129,9 @@ namespace Backend_Fincore.Service
             }
 
             mapper.Map(dto, data);
-            // JWT code - use later
-            // int userId = GetLoggedInUserId();
 
-            // Temporary user ID for testing
-            int userId = 1;
-
-            data.ModifiedBy = userId;
+            //int userId = 1;
+            data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

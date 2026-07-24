@@ -9,12 +9,12 @@ namespace Backend_Fincore.Interface
 
         Task<CapexReadDTO> AddCapexRequest(CapexWriteDTO dto);
 
-        Task<List<CapexReadDTO>> GetAll(int userId,PaginationDTO pagination);
+        Task<List<CapexReadDTO>> GetAll(PaginationDTO pagination);
         Task<int> GetTotalRecord();
 
         Task<CapexReadDTO?> GetById(int capexRequestId);
 
-        Task<bool> UpdateCapexRequest(int capexRequestId,int userId,CapexWriteDTO dto); 
+        Task<bool> UpdateCapexRequest(int capexRequestId,CapexWriteDTO dto); 
 
         Task<bool> DeleteCapexRequest(int capexRequestId,int userId);
 
