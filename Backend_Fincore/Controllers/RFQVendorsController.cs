@@ -1,9 +1,15 @@
 ﻿using Backend_Fincore.Application.DTOs.RFQVendor;
 using Backend_Fincore.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
+    [Authorize]
+    [EnableRateLimiting("fixed")]
     [Route("api/v1/rfq-vendors")]
     [ApiController]
     public class RFQVendorsController : ControllerBase
@@ -18,21 +24,27 @@ namespace Backend_Fincore.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RFQVendorCreateDto dto)
         {
-            var response = await _rfqVendorService.CreateAsync(dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqVendorService.CreateAsync(dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
         [HttpGet("by-rfq/{rfqId}")]
-        public async Task<IActionResult> GetByRfqId(int rfqId)
+        public async Task<IActionResult> GetByRfqId(int rfqId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var response = await _rfqVendorService.GetByRfqIdAsync(rfqId);
+            var response = await _rfqVendorService.GetByRfqIdAsync(rfqId, pageNumber, pageSize);
             return response.Success ? Ok(response) : NotFound(response);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RFQVendorUpdateDto dto)
         {
-            var response = await _rfqVendorService.UpdateAsync(id, dto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            var response = await _rfqVendorService.UpdateAsync(id, dto, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
