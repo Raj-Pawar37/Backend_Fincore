@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -15,17 +16,20 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-        //private readonly IHttpContextAccessor httpContextAccessor;
+        private readonly ICurrentUserService current;
 
-        public ExpenseClaimService(AppDbContext db,IMapper mapper)
+        public ExpenseClaimService(AppDbContext db,IMapper mapper, ICurrentUserService current)
         {
             this.db = db;
             this.mapper = mapper;
-            //this.httpContextAccessor = httpContextAccessor;
+            this.current = current;
+           
         }
 
-        public async Task<int> GetExpenseClaimCount(int userId, PaginationDTO pagination)
+        public async Task<int> GetExpenseClaimCount(PaginationDTO pagination)
         {
+            int userId = current.UserId;
+
             var user = await db.User
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x => x.UserId == userId);
@@ -33,21 +37,25 @@ namespace Backend_Fincore.Service
             if (user == null)
                 throw new Exception("User not found.");
 
+            if (user.Role == null)
+                throw new Exception("User role not found.");
+
             IQueryable<ExpenseClaim> query = db.ExpenseClaim
                 .Include(x => x.ClaimedByUser);
 
-         
-            if (user.Role.RoleName == "CFO")
+            if (user.Role.RoleId == 1)
             {
-                db.ExpenseClaim.ToList();
+                // CFO sees all expense claims.
             }
-            else if (user.Role.RoleName == "Manager")
+            else if (user.Role.RoleId == 2 || user.Role.RoleId == 4 || user.Role.RoleId == 5)
             {
-                query = query.Where(x => x.ClaimedByUser.RoleId == user.RoleId);
+                query = query.Where(x =>
+                    x.ClaimedByUser.RoleId == user.RoleId);
             }
             else
             {
-                query = query.Where(x => x.ClaimedBy == userId);
+                query = query.Where(x =>
+                    x.ClaimedBy == userId);
             }
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
@@ -59,8 +67,10 @@ namespace Backend_Fincore.Service
 
             return await query.CountAsync();
         }
-        public async Task<List<ExpenseClaimReadDTO>> GetAll(int userId, PaginationDTO pagination)
+        public async Task<List<ExpenseClaimReadDTO>> GetAll(PaginationDTO pagination)
         {
+            var userId = current.UserId;
+
             var user = await db.User
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x => x.UserId == userId);
@@ -68,21 +78,25 @@ namespace Backend_Fincore.Service
             if (user == null)
                 throw new Exception("User not found.");
 
+            if (user.Role == null)
+                throw new Exception("User role not found.");
+
             IQueryable<ExpenseClaim> query = db.ExpenseClaim
                 .Include(x => x.ClaimedByUser);
 
-            // Role-wise filtering
-            if (user.Role.RoleName == "CFO")
+            if (user.Role.RoleId == 1)
             {
-                await db.ExpenseClaim.ToListAsync();
+                // CFO sees all expense claims.
             }
-            else if (user.Role.RoleName == "Manager")
+            else if (user.Role.RoleId ==  2 || user.Role.RoleId == 4 || user.Role.RoleId == 5)
             {
-                query = query.Where(x => x.ClaimedByUser.RoleId == user.RoleId);
+                query = query.Where(x =>
+                    x.ClaimedByUser.RoleId == user.RoleId);
             }
             else
             {
-                query = query.Where(x => x.ClaimedBy == userId);
+                query = query.Where(x =>
+                    x.ClaimedBy == userId);
             }
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
@@ -92,9 +106,8 @@ namespace Backend_Fincore.Service
                     x.Status.Contains(pagination.Search));
             }
 
-            int totalRecords = await query.CountAsync();
-          
             var expenseClaims = await query
+                .OrderByDescending(x => x.ExpenseClaimId)
                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                 .Take(pagination.PageSize)
                 .ToListAsync();
@@ -117,8 +130,8 @@ namespace Backend_Fincore.Service
 
         public async Task<ExpenseClaimReadDTO> Create(ExpenseClaimWriteDTO dto)
         {
-            //var userId = Convert.ToInt32(httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
+           
+       
 
         
             bool claimExists = await db.ExpenseClaim
@@ -134,7 +147,7 @@ namespace Backend_Fincore.Service
 
             var expenseClaim = mapper.Map<ExpenseClaim>(dto);
 
-            //expenseClaim.CreatedBy = userId;
+            expenseClaim.CreatedBy = current.UserId;
             expenseClaim.CreatedAt= DateTime.Now;
             expenseClaim.Status = "Pending";
             expenseClaim.ApprovedBy = null;
@@ -168,7 +181,7 @@ namespace Backend_Fincore.Service
             if (claimNumberExists)
                 throw new Exception("Claim Number already exists.");
 
-            //expenseClaim.CreatedBy = userId;
+            expenseClaim.CreatedBy = current.UserId;
             expenseClaim.ModifiedAt= DateTime.Now;
             expenseClaim.ClaimNumber = dto.ClaimNumber;
             expenseClaim.ExpenseAmount = dto.ExpenseAmount;

@@ -2,6 +2,7 @@
 using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -10,6 +11,7 @@ namespace Backend_Fincore.Controllers
     [Route("api/v1/[controller]")]
     [ApiController]
     [EnableRateLimiting("fixed")]
+    [Authorize]
     public class OpexRequestController : ControllerBase
     {
         private readonly IOpexRequestService service;
@@ -21,7 +23,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(int userId,[FromQuery] PaginationDTO pagination)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
             if (pagination.PageNumber <= 0)
                 pagination.PageNumber = 1;
@@ -29,10 +31,10 @@ namespace Backend_Fincore.Controllers
             if (pagination.PageSize <= 0)
                 pagination.PageSize = 10;
 
-            var data = await service.GetAll(userId, pagination);
+            var data = await service.GetAll( pagination);
 
             var totalRecords = await service
-                .GetOpexRequestCount(userId, pagination);
+                .GetOpexRequestCount(pagination);
 
             var totalPages = (int)Math.Ceiling(
                 totalRecords / (double)pagination.PageSize);

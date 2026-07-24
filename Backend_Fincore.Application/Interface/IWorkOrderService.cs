@@ -9,8 +9,8 @@ namespace Backend_Fincore.Interface
       
             Task<WorkOrderReadDTO> Create(WorkOrderWriteDTO dto);
 
-            Task<List<WorkOrderReadDTO>> GetAll(int userId ,PaginationDTO pagination);
-        Task<int> GetWorkOrderCount(int userId,PaginationDTO pagination);//total record
+            Task<List<WorkOrderReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetWorkOrderCount(PaginationDTO pagination);//total record
 
         Task<WorkOrderReadDTO> Update(int workOrderId,WorkOrderWriteDTO dto);
 
