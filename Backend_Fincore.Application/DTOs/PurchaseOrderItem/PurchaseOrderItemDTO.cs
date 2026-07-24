@@ -8,7 +8,7 @@
 
         public string ItemName { get; set; }
 
-        public string ItemType { get; set; }
+        
 
         public decimal UnitPrice { get; set; }
 

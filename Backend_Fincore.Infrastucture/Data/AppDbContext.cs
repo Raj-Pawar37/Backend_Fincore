@@ -1254,9 +1254,7 @@ PURCHASE ORDER
                     .HasMaxLength(50)
                     .IsRequired();
 
-                entity.Property(x => x.ItemType)
-                    .HasColumnType("varchar(20)")
-                    .HasMaxLength(20);
+               
 
                 entity.Property(x => x.UnitPrice)
                     .HasColumnType("decimal(18,2)")
