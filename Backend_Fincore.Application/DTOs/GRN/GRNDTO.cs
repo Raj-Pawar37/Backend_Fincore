@@ -6,7 +6,7 @@
 
         public int PurchaseOrderId { get; set; }
 
-        public string PONumber { get; set; } = null!;
+        public string PONumber { get; set; } = null!;   
 
         public string GRNNumber { get; set; } = null!;
 

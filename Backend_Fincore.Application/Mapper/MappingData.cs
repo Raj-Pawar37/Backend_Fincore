@@ -10,6 +10,8 @@ using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
 using Backend_Fincore.Application.DTOs.RFQ;
+using Backend_Fincore.Application.DTOs.RFQItem;
+using Backend_Fincore.Application.DTOs.RFQVendor;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.DTOs;
@@ -43,6 +45,29 @@ public class MappingData : Profile
 
 
         CreateMap<GRNCUDTO, GRN>();
+
+        CreateMap<GRNItem, GRNItemsDTO>().ForMember(d => d.ItemName, o => o.MapFrom(s => s.POItem.ItemName))
+                                          .ForMember(d => d.ItemType, o => o.MapFrom(s => s.POItem.ItemType))
+                                           .ForMember(d => d.OrderedQty, o => o.MapFrom(s => s.POItem.Qty))
+                                            .ForMember(d => d.ReceivedQty, o => o.MapFrom(s => s.Qty))
+                                            .ForMember(d => d.UnitPrice, o => o.MapFrom(s => s.POItem.UnitPrice))
+                                             .ForMember(d => d.Tax, o => o.MapFrom(s => s.POItem.Tax))
+                                              .ForMember(d => d.Discount, o => o.MapFrom(s => s.POItem.Discount));
+
+
+        CreateMap<GRNItemsCUDTO,GRNItem>();
+
+
+
+
+
+
+
+
+
+
+
+     
 
         //APInvoice
         CreateMap<APInvoice, APInvoiceDTO>().ForMember(x => x.VendorName,
@@ -101,6 +126,18 @@ public class MappingData : Profile
 
         CreateMap<Vendor, VendorWriteDTO>()
             .ReverseMap();
+
+        //customer
+        CreateMap<Customer, CustomerReadDTO>()
+    .ForMember(dest => dest.CompanyName,
+        opt => opt.MapFrom(src => src.Company.CompanyName));
+
+        CreateMap<Customer, CustomerWriteDTO>().ReverseMap();
+
+
+
+
+
 
         // < src , dest >
         CreateMap<Role, RoleDTO>().ReverseMap();
@@ -182,13 +219,15 @@ public class MappingData : Profile
 
 
 
-        CreateMap<PurchaseRequisitionCreateDto, PurchaseRequisition>();
         CreateMap<PurchaseRequisitionUpdateDto, PurchaseRequisition>();
         CreateMap<PurchaseRequisition, PurchaseRequisitionResponseDto>();
 
         CreateMap<RFQCreateDto, RFQ>();
-        CreateMap<RFQItemCreateDto, RFQItem>();
         CreateMap<RFQ, RFQResponseDto>();
+        CreateMap<RFQItem, RFQItemResponseDto>();
+        CreateMap<RFQVendor, RFQVendorResponseDto>();
+
+
 
 
         CreateMap<RolePermissionDTOs, RolePermission>();

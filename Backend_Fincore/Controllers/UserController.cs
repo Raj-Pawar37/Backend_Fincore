@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Mvc;
@@ -17,16 +18,29 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
         {
-            var data = await service.GetAll();
+            var res= await service.GetAll(pagination);
+            var totalRecords = await service.GetTotalUserRecords();
+            var totalPages = (int)Math.Ceiling(
+                  totalRecords /
+                  (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<UserReadDTO>>
             {
                 Success = true,
                 Message = "Users fetched successfully.",
-                Data = data,
-                Error = null
+                Data = res,
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = res.Count
+                }
             });
         }
 
