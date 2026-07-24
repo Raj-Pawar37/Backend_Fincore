@@ -1,11 +1,15 @@
 ﻿using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/v1/permissions")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class PermissionController : ControllerBase
     {
         private readonly IPermissionService _permissionService;

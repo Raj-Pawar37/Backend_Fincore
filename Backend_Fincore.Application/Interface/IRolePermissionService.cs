@@ -12,5 +12,7 @@ namespace Backend_Fincore.Interface
         Task<ApiResponse<IEnumerable<RolePermissionResponseDto>>> GetByRoleIdAsync(int roleId);
         Task<ApiResponse<RolePermissionResponseDto>> CreateAsync(RolePermissionDTOs dto);
         Task<ApiResponse<bool>> DeleteAsync(int id);
+
+        
     }
 }

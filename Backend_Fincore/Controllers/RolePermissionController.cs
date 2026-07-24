@@ -1,12 +1,17 @@
 ﻿using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
+    
     [Route("api/v1/role_permissions")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class RolePermissionController : ControllerBase
     {
         private readonly IRolePermissionService _rolePermissionService;
@@ -50,5 +55,6 @@ namespace Backend_Fincore.Controllers
             var response = await _rolePermissionService.DeleteAsync(id);
             return response.Success ? Ok(response) : NotFound(response);
         }
+
     }
 }

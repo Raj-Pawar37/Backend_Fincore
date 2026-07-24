@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -16,11 +17,13 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService current;
 
-        public RolePermissionService(AppDbContext db, IMapper mapper)
+        public RolePermissionService(AppDbContext db, IMapper mapper, ICurrentUserService current)
         {
             _db = db;
             _mapper = mapper;
+            this.current = current;
         }
 
         public async Task<ApiResponse<IEnumerable<RolePermissionResponseDto>>> GetAllAsync()
@@ -127,7 +130,7 @@ namespace Backend_Fincore.Service
         {
             try
             {
-                // Verify Role and Permission exist before mapping
+               
                 var roleExists = await _db.Role.AnyAsync(r => r.RoleId == dto.RoleId);
                 var permissionExists = await _db.Permission.AnyAsync(p => p.PermissionId == dto.PermissionId);
 
@@ -142,10 +145,13 @@ namespace Backend_Fincore.Service
                 }
 
                 var rolePermission = _mapper.Map<RolePermission>(dto);
+                rolePermission.CreatedBy = current.UserId; 
+                rolePermission.CreatedAt = DateTime.UtcNow; 
+
                 _db.RolePermission.Add(rolePermission);
                 await _db.SaveChangesAsync();
 
-                // Reload entity to load navigation properties for mapping back
+    
                 await _db.Entry(rolePermission).Reference(rp => rp.Role).LoadAsync();
                 await _db.Entry(rolePermission).Reference(rp => rp.Permission).LoadAsync();
 

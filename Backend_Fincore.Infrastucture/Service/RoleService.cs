@@ -92,8 +92,9 @@ namespace Backend_Fincore.Service
             try
             {
                 var role = _mapper.Map<Role>(dto);
-                role.ModifiedBy = current.UserId;
-                role.ModifiedAt = DateTime.Now;
+                role.CreatedBy = current.UserId;
+                role.CreatedAt = DateTime.Now;
+               
                 _db.Role.Add(role);
 
                 await _db.SaveChangesAsync();
@@ -123,6 +124,7 @@ namespace Backend_Fincore.Service
             try
             {
                 var role = await _db.Role.FindAsync(id);
+
                 if (role == null)
                 {
                     return new ApiResponse<RoleDTO>
@@ -132,7 +134,9 @@ namespace Backend_Fincore.Service
                         Error = new { code = "NOT_FOUND", details = $"Role with ID {id} was not found." }
                     };
                 }
-
+                role.ModifiedBy = current.UserId;
+                role.ModifiedAt = DateTime.Now;
+               
                 _mapper.Map(dto, role);
                 await _db.SaveChangesAsync();
 

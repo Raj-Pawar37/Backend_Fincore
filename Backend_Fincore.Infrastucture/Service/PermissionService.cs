@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -16,11 +17,13 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService current;
 
-        public PermissionService(AppDbContext db, IMapper mapper)
+        public PermissionService(AppDbContext db, IMapper mapper, ICurrentUserService current)
         {
             _db = db;
             _mapper = mapper;
+            this.current = current;
         }
 
         public async Task<ApiResponse<IEnumerable<PermissionDTO>>> GetAllPermissionsAsync(int? id)
@@ -96,6 +99,8 @@ namespace Backend_Fincore.Service
             try
             {
                 var permission = _mapper.Map<Permission>(dto);
+                permission.CreatedBy = current.UserId;
+                permission.CreatedAt = DateTime.UtcNow;
                 _db.Permission.Add(permission);
                 await _db.SaveChangesAsync();
 
@@ -124,6 +129,9 @@ namespace Backend_Fincore.Service
             try
             {
                 var permission = await _db.Permission.FindAsync(id);
+                permission.ModifiedBy = current.UserId;
+                permission.ModifiedAt = DateTime.UtcNow;
+
                 if (permission == null)
                 {
                     return new ApiResponse<PermissionDTO>

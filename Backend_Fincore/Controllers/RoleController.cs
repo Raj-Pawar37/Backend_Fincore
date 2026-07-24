@@ -3,13 +3,14 @@ using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
     [Route("api/v1/roles")]
     [ApiController]
-   
+    [EnableRateLimiting("fixed")]
     public class RoleController : ControllerBase
     {
         private readonly IRoleService _roleService;
