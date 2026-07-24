@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
-using Backend_Fincore.Migrations;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,11 +13,12 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-
-        public BudgetLineService(AppDbContext db, IMapper mapper)
+        private readonly ICurrentUserService currentUser;
+        public BudgetLineService(AppDbContext db, IMapper mapper,ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<BudgetLineReadDTO> AddBudgetLine(
@@ -72,13 +73,9 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             var data = mapper.Map<BudgetLine>(dto);
-            // JWT code - use later
-            // int userId = GetLoggedInUserId();
+           // int userId = 1;
 
-            // Temporary user ID for testing
-            int userId = 1;
-
-            data.CreatedBy = userId;
+            data.CreatedBy = currentUser.UserId;
             data.CreatedAt = DateTime.Now;
 
             await db.BudgetLine.AddAsync(data);
@@ -239,13 +236,8 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             mapper.Map(dto, data);
-            // JWT code - use later
-            // int userId = GetLoggedInUserId();
-
-            // Temporary user ID for testing
-            int userId = 1;
-
-            data.ModifiedBy = userId;
+       
+            data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
