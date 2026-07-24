@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -11,11 +13,12 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-
-        public BudgetLineService(AppDbContext db, IMapper mapper)
+        private readonly ICurrentUserService currentUser;
+        public BudgetLineService(AppDbContext db, IMapper mapper,ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<BudgetLineReadDTO> AddBudgetLine(
@@ -70,6 +73,10 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             var data = mapper.Map<BudgetLine>(dto);
+           // int userId = 1;
+
+            data.CreatedBy = currentUser.UserId;
+            data.CreatedAt = DateTime.Now;
 
             await db.BudgetLine.AddAsync(data);
             await db.SaveChangesAsync();
@@ -115,14 +122,28 @@ namespace Backend_Fincore.Infrastucture.Service
             return true;
         }
 
-        public async Task<List<BudgetLineReadDTO>> GetAll()
+        public async Task<List<BudgetLineReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.BudgetLine
+            var search = db.BudgetLine.AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                var keyword = pagination.Search.Trim();
+
+                search = search.Where(x =>
+                    x.CostCenter.Contains(keyword) ||
+                    x.Budget.Company.CompanyName.Contains(keyword) ||
+                    x.Budget.Department.DepartmentName.Contains(keyword));
+            }
+
+            var data = await search
                 .Include(x => x.Budget)
                     .ThenInclude(x => x.Company)
                 .Include(x => x.Budget)
                     .ThenInclude(x => x.Department)
                 .Include(x => x.BudgetCategory)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
             return mapper.Map<List<BudgetLineReadDTO>>(data);
@@ -144,6 +165,11 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             return mapper.Map<BudgetLineReadDTO>(data);
+        }
+
+        public async Task<int> GetTotalRecord()
+        {
+            return await db.BudgetLine.CountAsync();
         }
 
         public async Task<bool> UpdateBudgetLine(
@@ -210,6 +236,9 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             mapper.Map(dto, data);
+       
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 

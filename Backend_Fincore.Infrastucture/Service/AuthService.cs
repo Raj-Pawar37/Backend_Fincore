@@ -53,6 +53,8 @@ namespace Backend_Fincore.Infrastructure.Service
             if (!passwordMatch)
                 throw new UnauthorizedAccessException("Invalid Password.");
 
+            user.LastLoginDate = DateTime.UtcNow;
+
 
             string accessToken = tokenService.GenerateAccessToken(user);
             string refreshToken = tokenService.GenerateRefreshToken();

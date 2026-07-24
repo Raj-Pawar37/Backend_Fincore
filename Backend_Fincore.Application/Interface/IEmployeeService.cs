@@ -5,8 +5,8 @@ namespace Backend_Fincore.Interface
 {
     public interface IEmployeeService
     {
-        Task<List<EmployeeReadDTO>> GetAll();
-        Task<int> GetTotalEmployeeRecords();
+        Task<List<EmployeeReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetTotalEmployeeRecords(string? search);
 
         Task<EmployeeReadDTO> GetById(int id);
 

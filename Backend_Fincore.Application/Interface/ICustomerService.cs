@@ -11,7 +11,7 @@ namespace Backend_Fincore.Application.Interface
     {
 
         Task<List<CustomerReadDTO>> GetAll(PaginationDTO pagination);
-        Task<int> GetTotalCustomerRecords();
+        Task<int> GetTotalCustomerRecords(string? search);
 
         Task<CustomerReadDTO> GetById(int id);
 

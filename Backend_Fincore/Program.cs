@@ -185,7 +185,7 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
-
+app.UseRateLimiter();
 
 app.UseAuthentication();
 

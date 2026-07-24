@@ -8,7 +8,7 @@ namespace Backend_Fincore.Interface
 
         Task<List<VendorReadDTO>> GetAll(PaginationDTO pagination);
 
-        Task<int> GetTotalVendorRecord();
+        Task<int> GetTotalVendorRecord(string? search);
 
         Task<VendorReadDTO> GetById(int id);
 
