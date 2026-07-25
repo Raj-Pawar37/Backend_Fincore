@@ -1,9 +1,10 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.RFQItem;
 using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
-using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,20 +15,22 @@ namespace Backend_Fincore.Application.Services
 {
     public class RFQItemService : IRFQItemService
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly AppDbContext db;
+        private readonly IMapper mapper;
+        private readonly ICurrentUserService current;
 
-        public RFQItemService(AppDbContext context, IMapper mapper)
+        public RFQItemService(AppDbContext db, IMapper mapper, ICurrentUserService current)
         {
-            _context = context;
-            _mapper = mapper;
+            this.db = db;
+            this.mapper = mapper;
+            this.current = current;
         }
 
-        public async Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto, int userId)
+        public async Task CreateAsync(RFQItemCreateDto dto)
         {
-            if (await _context.RFQItem.AnyAsync(x => x.RFQId == dto.RFQId && x.Name == dto.Name && x.IsActive == 1))
+            if (await db.RFQItem.AnyAsync(x => x.RFQId == dto.RFQId && x.Name == dto.Name && x.IsActive == 1))
             {
-                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "An active item with this Name already exists in this RFQ." };
+                throw new Exception("An active item with this Name already exists in this RFQ.");
             }
 
             var rfqItem = new RFQItem
@@ -37,86 +40,75 @@ namespace Backend_Fincore.Application.Services
                 Quantity = dto.Quantity,
                 Description = dto.Description,
 
-                CreatedBy = userId,
+                CreatedBy = current.UserId,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = 1
             };
 
-            _context.RFQItem.Add(rfqItem);
-            await _context.SaveChangesAsync();
-
-            var responseDto = _mapper.Map<RFQItemResponseDto>(rfqItem);
-            return new ApiResponse<RFQItemResponseDto> { Success = true, Message = "RFQ Item added successfully", Data = responseDto, TotalNumberRecord = 1 };
+            await db.RFQItem.AddAsync(rfqItem);
+            await db.SaveChangesAsync();
         }
 
-        public async Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize)
+        public async Task<int> GetCountByRfqIdAsync(int rfqId)
         {
-            // FIXED: Added == 1 here
-            var query = _context.RFQItem.Where(x => x.RFQId == rfqId && x.IsActive == 1);
-            int totalRecords = await query.CountAsync();
+            return await db.RFQItem.Where(x => x.RFQId == rfqId && x.IsActive == 1).CountAsync();
+        }
+
+        public async Task<List<RFQItemResponseDto>> GetByRfqIdAsync(int rfqId, PaginationDTO pagination)
+        {
+            var query = db.RFQItem.Where(x => x.RFQId == rfqId && x.IsActive == 1);
+
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                query = query.Where(x => x.Name.Contains(pagination.Search));
+            }
 
             var items = await query.OrderByDescending(x => x.RFQItemId)
-                                   .Skip((pageNumber - 1) * pageSize)
-                                   .Take(pageSize)
+                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                   .Take(pagination.PageSize)
                                    .ToListAsync();
 
-            var itemDtos = _mapper.Map<List<RFQItemResponseDto>>(items);
-
-            return new ApiResponse<List<RFQItemResponseDto>>
-            {
-                Success = true,
-                Message = "RFQ Items fetched successfully",
-                Data = itemDtos,
-                TotalNumberRecord = totalRecords
-            };
+            return mapper.Map<List<RFQItemResponseDto>>(items);
         }
 
-        public async Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto, int userId)
+        public async Task UpdateAsync(int id, RFQItemUpdateDto dto)
         {
-            // FIXED: Added == 1 here
-            var rfqItem = await _context.RFQItem.FirstOrDefaultAsync(x => x.RFQItemId == id && x.IsActive == 1);
+            var rfqItem = await db.RFQItem.FirstOrDefaultAsync(x => x.RFQItemId == id && x.IsActive == 1);
 
             if (rfqItem == null)
             {
-                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "RFQ Item ID not found or has been deleted." };
+                throw new Exception("RFQ Item ID not found or has been deleted.");
             }
 
-            // FIXED: Added == 1 here
-            if (await _context.RFQItem.AnyAsync(x => x.RFQId == rfqItem.RFQId && x.Name == dto.Name && x.RFQItemId != id && x.IsActive == 1))
+            if (await db.RFQItem.AnyAsync(x => x.RFQId == rfqItem.RFQId && x.Name == dto.Name && x.RFQItemId != id && x.IsActive == 1))
             {
-                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "Another active item with this Name already exists in this RFQ." };
+                throw new Exception("Another active item with this Name already exists in this RFQ.");
             }
 
             rfqItem.Name = dto.Name;
             rfqItem.Quantity = dto.Quantity;
             rfqItem.Description = dto.Description;
 
-            rfqItem.ModifiedBy = userId;
+            rfqItem.ModifiedBy = current.UserId;
             rfqItem.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
-
-            var responseDto = _mapper.Map<RFQItemResponseDto>(rfqItem);
-            return new ApiResponse<RFQItemResponseDto> { Success = true, Message = "RFQ Item updated successfully", Data = responseDto, TotalNumberRecord = 1 };
+            await db.SaveChangesAsync();
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(int id, int userId)
+        public async Task DeleteAsync(int id)
         {
-            var rfqItem = await _context.RFQItem.FirstOrDefaultAsync(x => x.RFQItemId == id && x.IsActive == 1);
+            var rfqItem = await db.RFQItem.FirstOrDefaultAsync(x => x.RFQItemId == id && x.IsActive == 1);
 
             if (rfqItem == null)
             {
-                return new ApiResponse<bool> { Success = false, Message = "RFQ Item ID not found or already deleted.", Data = false };
+                throw new Exception("RFQ Item ID not found or already deleted.");
             }
 
-            // Soft delete logic
             rfqItem.IsActive = 0;
-            rfqItem.ModifiedBy = userId;
+            rfqItem.ModifiedBy = current.UserId;
             rfqItem.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
-
-            return new ApiResponse<bool> { Success = true, Message = "RFQ Item deleted successfully.", Data = true };
+            await db.SaveChangesAsync();
         }
     }
 }

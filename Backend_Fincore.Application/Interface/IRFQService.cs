@@ -1,14 +1,17 @@
-﻿using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Response;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.RFQ;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.Interfaces
 {
     public interface IRFQService
     {
-        Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto, int userId);
-        Task<ApiResponse<List<RFQResponseDto>>> GetAllAsync(int userId, int pageNumber, int pageSize);
-        Task<ApiResponse<RFQResponseDto>> GetByIdAsync(int id);
-        Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto, int userId);
-        Task<ApiResponse<bool>> DeleteAsync(int id, int userId);
+        Task<List<RFQResponseDto>> GetAllAsync(PaginationDTO pagination);
+        Task<int> GetCountAsync();
+        Task<RFQResponseDto> GetByIdAsync(int id);
+        Task CreateAsync(RFQCreateDto dto);
+        Task UpdateAsync(int id, RFQUpdateDto dto);
+        Task DeleteAsync(int id);
     }
 }

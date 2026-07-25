@@ -1,63 +1,115 @@
-﻿using Backend_Fincore.Application.DTOs.RFQItem;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.RFQItem;
 using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Security.Claims;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
-    [Authorize]
-    [EnableRateLimiting("fixed")]
     [Route("api/v1/rfq-items")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
+    [Authorize]
     public class RFQItemsController : ControllerBase
     {
-        private readonly IRFQItemService _rfqItemService;
+        private readonly IRFQItemService rfqItemService;
 
         public RFQItemsController(IRFQItemService rfqItemService)
         {
-            _rfqItemService = rfqItemService;
+            this.rfqItemService = rfqItemService;
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] RFQItemCreateDto dto)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
-            int.TryParse(userIdClaim, out int userId);
+            await rfqItemService.CreateAsync(dto);
 
-            var response = await _rfqItemService.CreateAsync(dto, userId);
-            return response.Success ? Ok(response) : BadRequest(response);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ Item created successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new { RFQId = dto.RFQId },
+                TotalNumberRecord = 1
+            });
         }
 
         [HttpGet("by-rfq/{rfqId}")]
-        public async Task<IActionResult> GetByRfqId(int rfqId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetByRfqId(int rfqId, [FromQuery] PaginationDTO pagination)
         {
-            var response = await _rfqItemService.GetByRfqIdAsync(rfqId, pageNumber, pageSize);
-            return response.Success ? Ok(response) : NotFound(response);
+            var data = await rfqItemService.GetByRfqIdAsync(rfqId, pagination);
+
+            // LOGICAL CHECK: Are there no items for this RFQ?
+            if (data == null || data.Count == 0)
+            {
+                return Ok(new ApiResponse<List<RFQItemResponseDto>>
+                {
+                    Success = false,
+                    Message = "Data does not exist for this id.",
+                    Data = new List<RFQItemResponseDto>(),
+                    Error = null,
+                    Metadata = new { },
+                    TotalNumberRecord = 0
+                });
+            }
+
+            var totalRecords = await rfqItemService.GetCountByRfqIdAsync(rfqId);
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)pagination.PageSize);
+
+            return Ok(new ApiResponse<List<RFQItemResponseDto>>
+            {
+                Success = true,
+                Message = "RFQ Items fetched successfully.",
+                Data = data,
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
+            });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] RFQItemUpdateDto dto)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
-            int.TryParse(userIdClaim, out int userId);
+            await rfqItemService.UpdateAsync(id, dto);
 
-            var response = await _rfqItemService.UpdateAsync(id, dto, userId);
-            return response.Success ? Ok(response) : BadRequest(response);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ Item updated successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
+            });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            // Extract the user ID so the service knows who deleted the item
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
-            int.TryParse(userIdClaim, out int userId);
+            await rfqItemService.DeleteAsync(id);
 
-            // Pass the userId to the service
-            var response = await _rfqItemService.DeleteAsync(id, userId);
-            return response.Success ? Ok(response) : BadRequest(response);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ Item deleted successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
+            });
         }
     }
 }
