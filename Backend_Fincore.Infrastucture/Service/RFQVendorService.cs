@@ -5,6 +5,10 @@ using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System;
 
 namespace Backend_Fincore.Application.Services
 {
@@ -19,24 +23,18 @@ namespace Backend_Fincore.Application.Services
             _mapper = mapper;
         }
 
-        // ==========================================
-        // 1. CREATE
-        // ==========================================
-        public async Task<ApiResponse<RFQVendorResponseDto>> CreateAsync(RFQVendorCreateDto dto)
+        public async Task<ApiResponse<RFQVendorResponseDto>> CreateAsync(RFQVendorCreateDto dto, int userId)
         {
-            // Rule: If RFQ doesnt exist throw error 
             if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId))
             {
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ ID not found." };
             }
 
-            // Rule: If VendorID doesnt exist throw error
             if (!await _context.Vendor.AnyAsync(v => v.VendorId == dto.VendorId))
             {
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "Vendor ID not found." };
             }
 
-            // Extra safety rule: Prevent duplicate vendor invitations for the same RFQ (based on your DB Index)
             if (await _context.RFQVendor.AnyAsync(rv => rv.RFQId == dto.RFQId && rv.VendorId == dto.VendorId))
             {
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "This Vendor is already invited to this RFQ." };
@@ -47,7 +45,11 @@ namespace Backend_Fincore.Application.Services
                 RFQId = dto.RFQId,
                 VendorId = dto.VendorId,
                 SentDate = dto.SentDate,
-                ResponseStatus = "Invited" // DB default behavior
+                ResponseStatus = "Invited",
+
+                // Audit Trail
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.RFQVendor.Add(rfqVendor);
@@ -57,14 +59,15 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQVendorResponseDto> { Success = true, Message = "Vendor added to RFQ successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        // ==========================================
-        // 2. READ BY RFQ ID
-        // ==========================================
-        public async Task<ApiResponse<List<RFQVendorResponseDto>>> GetByRfqIdAsync(int rfqId)
+        public async Task<ApiResponse<List<RFQVendorResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize)
         {
-            var vendors = await _context.RFQVendor
-                                        .Where(x => x.RFQId == rfqId)
-                                        .ToListAsync();
+            var query = _context.RFQVendor.Where(x => x.RFQId == rfqId);
+            int totalRecords = await query.CountAsync();
+
+            var vendors = await query.OrderByDescending(x => x.RFQVendorId)
+                                     .Skip((pageNumber - 1) * pageSize)
+                                     .Take(pageSize)
+                                     .ToListAsync();
 
             var vendorDtos = _mapper.Map<List<RFQVendorResponseDto>>(vendors);
 
@@ -73,30 +76,24 @@ namespace Backend_Fincore.Application.Services
                 Success = true,
                 Message = "RFQ Vendors fetched successfully",
                 Data = vendorDtos,
-                TotalNumberRecord = vendorDtos.Count
+                TotalNumberRecord = totalRecords
             };
         }
 
-        // ==========================================
-        // 3. UPDATE
-        // ==========================================
-        public async Task<ApiResponse<RFQVendorResponseDto>> UpdateAsync(int id, RFQVendorUpdateDto dto)
+        public async Task<ApiResponse<RFQVendorResponseDto>> UpdateAsync(int id, RFQVendorUpdateDto dto, int userId)
         {
             var rfqVendor = await _context.RFQVendor.FindAsync(id);
 
-            // Rule: If RFQVendorId doesnt found then throw error 
             if (rfqVendor == null)
             {
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ Vendor mapping ID not found." };
             }
 
-            // Rule: If RFQ doesnt exist throw error 
             if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId))
             {
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ ID not found." };
             }
 
-            // Rule: If VendorID doesnt exist throw error
             if (!await _context.Vendor.AnyAsync(v => v.VendorId == dto.VendorId))
             {
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "Vendor ID not found." };
@@ -114,30 +111,41 @@ namespace Backend_Fincore.Application.Services
                 rfqVendor.ResponseDate = dto.ResponseDate;
             }
 
+            // Audit Trail
+            rfqVendor.ModifiedBy = userId;
+            rfqVendor.ModifiedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             var responseDto = _mapper.Map<RFQVendorResponseDto>(rfqVendor);
             return new ApiResponse<RFQVendorResponseDto> { Success = true, Message = "RFQ Vendor updated successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        // ==========================================
-        // 4. DELETE RFQ VENDOR
-        // ==========================================
         public async Task<ApiResponse<bool>> DeleteAsync(int id)
         {
-            var rfqVendor = await _context.RFQVendor.FindAsync(id);
-
-            // Rule: If RFQVendorId doesnt found then throw error 
-            if (rfqVendor == null)
+            try
             {
-                return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
+                var rfqVendor = await _context.RFQVendor.FindAsync(id);
+
+                if (rfqVendor == null)
+                {
+                    return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
+                }
+
+                _context.RFQVendor.Remove(rfqVendor);
+                await _context.SaveChangesAsync();
+
+                return new ApiResponse<bool> { Success = true, Message = "RFQ Vendor removed successfully.", Data = true };
             }
-
-            // Rule: else delete it
-            _context.RFQVendor.Remove(rfqVendor);
-            await _context.SaveChangesAsync();
-
-            return new ApiResponse<bool> { Success = true, Message = "RFQ Vendor removed successfully.", Data = true };
+            catch (Exception)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Cannot delete this RFQ Vendor because they have linked records in Quotation ",
+                    Data = false
+                };
+            }
         }
     }
 }

@@ -2,13 +2,17 @@
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize]
+    [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class VendorController : ControllerBase
     {
         private readonly IVendorService vendorService;
@@ -19,19 +23,30 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
             var res = await vendorService.GetAll(pagination);
-            var totalRecords = await vendorService.GetTotalVendorRecord();
+            var totalRecords = await vendorService.GetTotalVendorRecord(pagination.Search);
             var totalPages = (int)Math.Ceiling(
-                  totalRecords /
-                  (double)pagination.PageSize);
+                totalRecords / (double)pagination.PageSize);
 
+            if (!res.Any())
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Vendor not found.",
+                    Data = null,
+                    Error = !string.IsNullOrEmpty(pagination.Search)
+                        ? $"No vendor found for '{pagination.Search}'."
+                        : "No vendors available."
+                });
+            }
 
             return Ok(new ApiResponse<List<VendorReadDTO>>
             {
                 Success = true,
-                Message = "Vendors fetch successfully.",
+                Message = "Vendors fetched successfully.",
                 Data = res,
                 Error = null,
                 TotalNumberRecord = totalRecords,

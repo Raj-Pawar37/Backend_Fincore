@@ -2,75 +2,91 @@
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
-{
-    [Route("api/[controller]")]
+{ 
+    [Authorize]
+    [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class UserController : ControllerBase
+{
+    private readonly IUserService service;
+
+    public UserController(IUserService service)
     {
-        private readonly IUserService service;
+        this.service = service;
+    }
 
-        public UserController(IUserService service)
-        {
-            this.service = service;
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
-        {
-            var res= await service.GetAll(pagination);
-            var totalRecords = await service.GetTotalUserRecords();
-            var totalPages = (int)Math.Ceiling(
-                  totalRecords /
-                  (double)pagination.PageSize);
-
-            return Ok(new ApiResponse<List<UserReadDTO>>
-            {
-                Success = true,
-                Message = "Users fetched successfully.",
-                Data = res,
-                Error = null,
-                TotalNumberRecord = totalRecords,
-                Metadata = new
-                {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalPages,
-                    RecordsOnCurrentPage = res.Count
-                }
-            });
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var data = await service.GetById(id);
-
-            if (data == null)
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
+    {
+        var res = await service.GetAll(pagination);
+       
+         var totalRecords = await service.GetTotalUserRecords(pagination.Search);
+         var totalPages = (int)Math.Ceiling( totalRecords /(double)pagination.PageSize);
+           
+            if (!res.Any())
             {
                 return NotFound(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "User not found.",
+                    Message = "No users found.",
                     Data = null,
-                    Error = $"No user found with Id = {id}"
+                    Error = pagination.Search != null
+                        ? $"No user found for search '{pagination.Search}'."
+                        : "No users available."
                 });
             }
 
-            return Ok(new ApiResponse<UserReadDTO>
+       return Ok(new ApiResponse<List<UserReadDTO>>
+        {
+            Success = true,
+            Message = "Users fetched successfully.",
+            Data = res,
+            Error = null,
+            TotalNumberRecord = totalRecords,
+            Metadata = new
             {
-                Success = true,
-                Message = "User fetched successfully.",
-                Data = data,
-                Error = null
+                pagination.PageNumber,
+                pagination.PageSize,
+                pagination.Search,
+                TotalPages = totalPages,
+                RecordsOnCurrentPage = res.Count
+            }
+        });
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var data = await service.GetById(id);
+
+        if (data == null)
+        {
+            return NotFound(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not found.",
+                Data = null,
+                Error = $"No user found with Id = {id}"
             });
         }
 
+        return Ok(new ApiResponse<UserReadDTO>
+        {
+            Success = true,
+            Message = "User fetched successfully.",
+            Data = data,
+            Error = null
+        });
+    }
+
         [HttpPost]
-        public async Task<IActionResult> AddUser(UserWriteDTO dto)
+        public async Task<IActionResult> AddUser(UserCreateDTO dto)
         {
             var data = await service.AddUser(dto);
 
@@ -84,7 +100,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, UserWriteDTO dto)
+        public async Task<IActionResult> UpdateUser(int id, UserUpdateDTO dto)
         {
             var result = await service.UpdateUser(id, dto);
 
@@ -108,29 +124,30 @@ namespace Backend_Fincore.Controllers
             });
         }
 
+
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var result = await service.DeleteUser(id);
+
+        if (!result)
         {
-            var result = await service.DeleteUser(id);
-
-            if (!result)
+            return NotFound(new ApiResponse<object>
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "User not found.",
-                    Data = null,
-                    Error = $"No user found with Id = {id}"
-                });
-            }
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "User deleted successfully.",
+                Success = false,
+                Message = "User not found.",
                 Data = null,
-                Error = null
+                Error = $"No user found with Id = {id}"
             });
         }
+
+        return Ok(new ApiResponse<object>
+        {
+            Success = true,
+            Message = "User deleted successfully.",
+            Data = null,
+            Error = null
+        });
     }
+}
 }

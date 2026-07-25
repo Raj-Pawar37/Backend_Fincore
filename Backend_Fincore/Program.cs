@@ -7,7 +7,9 @@ using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Middleware;
 using Backend_Fincore.Service;
+using Backend_Fincore.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +20,10 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAutoMapper(typeof(MappingData));
 builder.Services.AddScoped<IAccountMasterService, AccountMasterService>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
@@ -27,6 +33,7 @@ builder.Services.AddScoped<IBudgetCategoryService, BudgetCategoryService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IBudgetLineService, BudgetLineService>();
 builder.Services.AddScoped<ICapexRequestService,CapexRequestService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
 
 builder.Services.AddScoped<IPurchaseRequisitionService, PurchaseRequisitionService>();
 builder.Services.AddScoped<IRFQService, RFQService>();
@@ -47,6 +54,10 @@ builder.Services.AddScoped<IAssetsService, AssetsService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
+builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
@@ -176,8 +187,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
+app.UseHttpsRedirection();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 

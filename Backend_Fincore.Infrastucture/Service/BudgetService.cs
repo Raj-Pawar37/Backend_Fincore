@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -11,21 +13,15 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-
-        public BudgetService(AppDbContext db, IMapper mapper)
+        private readonly ICurrentUserService currentUser;
+        public BudgetService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
-        //public async Task<BudgetReadDTO> AddBudget(BudgetWriteDTO bdg)
-        //{
-        //    var addBudget = mapper.Map<Budget>(bdg);
-        //    await db.Budget.AddAsync(addBudget);
-        //    await db.SaveChangesAsync();
-        //    return mapper.Map<BudgetReadDTO>(addBudget);
-
-        //}
+       
         public async Task<BudgetReadDTO> AddBudget(BudgetWriteDTO dto)
         {
             bool companyExists = await db.Company
@@ -60,6 +56,9 @@ namespace Backend_Fincore.Service
             }
 
             var data = mapper.Map<Budget>(dto);
+            //int userId = 2;
+            data.CreatedBy = currentUser.UserId;
+            data.CreatedAt = DateTime.Now;
 
             await db.Budget.AddAsync(data);
             await db.SaveChangesAsync();
@@ -98,12 +97,21 @@ namespace Backend_Fincore.Service
             return true;
         }
 
-        public async Task<List<BudgetReadDTO>> GetAll()
+        public async Task<List<BudgetReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.Budget
+            var search = db.Budget.AsQueryable();
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.FinancialYear.Contains(pagination.Search));
+            }
+
+            var data = await search
                 .Include(x => x.Company)
                 .Include(x => x.Department)
                 .Include(x => x.ApprovedByUser)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
             return mapper.Map<List<BudgetReadDTO>>(data);
@@ -123,6 +131,11 @@ namespace Backend_Fincore.Service
             }
 
             return mapper.Map<BudgetReadDTO>(data);
+        }
+
+        public async Task<int> GetTotalRecord()
+        {
+            return await db.Budget.CountAsync();
         }
 
         public async Task<bool> UpdateBudget(int id, BudgetWriteDTO dto)
@@ -168,7 +181,9 @@ namespace Backend_Fincore.Service
             }
 
             mapper.Map(dto, data);
-
+            //int userId = 1;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
 
             return true;

@@ -63,7 +63,12 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<AccountMasterReadDTO>AddAccountMaster(AccountMasterWriteDTO dto)
         {
             var data = mapper.Map<AccountMaster>(dto);
+            bool accountCodeExists = await db.AccountMaster.AnyAsync(x =>x.AccountCode == dto.AccountCode);
 
+            if (accountCodeExists)
+            {
+                throw new Exception("Account Code already exists.");
+            }
             data.CreatedBy = currentUser.UserId;
 
             await db.AccountMaster.AddAsync(data);
