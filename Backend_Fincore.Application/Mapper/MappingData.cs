@@ -2,6 +2,7 @@
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.DTOs.Approval;
+using Backend_Fincore.Application.DTOs.ARInvoice;
 using Backend_Fincore.Application.DTOs.Country;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
@@ -9,6 +10,7 @@ using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
+using Backend_Fincore.Application.DTOs.RevenueEntry;
 using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.Application.DTOs.RFQItem;
 using Backend_Fincore.Application.DTOs.RFQVendor;
@@ -273,6 +275,19 @@ public class MappingData : Profile
         CreateMap<State, StateReadDTO>().ReverseMap();
 
         CreateMap<City, CityReadDTO>().ReverseMap();
+
+
+
+        //Ajit Code 
+        CreateMap<ARInvoice, ARInvoiceDto>().ReverseMap();
+        CreateMap<ARInvoiceCreateDto, ARInvoice>();
+        CreateMap<ARInvoiceUpdateDto, ARInvoice>();
+
+        CreateMap<RevenueEntry, RevenueEntryDto>().ReverseMap();
+        CreateMap<RevenueEntryCreateDto, RevenueEntry>();
+        CreateMap<RevenueEntryUpdateDto, RevenueEntry>();
+
+
     }
 
 

@@ -64,6 +64,16 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
+
+
+//Ajit Code 
+builder.Services.AddScoped<IRevenueEntryService, RevenueEntryService>();
+builder.Services.AddScoped<IARInvoiceService, ARInvoiceService>();
+
+
+
+
+
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // 3. Configure JWT Authentication
