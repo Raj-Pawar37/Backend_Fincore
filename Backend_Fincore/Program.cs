@@ -55,6 +55,10 @@ builder.Services.AddScoped<IQuotationItemService, QuotationItemService>();
 
 
 
+builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
+
+
+
 
 
 builder.Services.AddScoped<IAuthService, AuthService>();

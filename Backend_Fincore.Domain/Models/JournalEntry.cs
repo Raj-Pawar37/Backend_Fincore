@@ -7,6 +7,8 @@ namespace Backend_Fincore.Models
         [Key]
         public int JournalEntryId { get; set; }
 
+        public Guid TransactionGroupId { get; set; }
+        public string JournalNumber { get; set; } = null!;
         public int CompanyId { get; set; }
 
         // APInvoiceId / ARInvoiceId / PaymentId

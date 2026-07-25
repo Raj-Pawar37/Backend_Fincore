@@ -230,6 +230,18 @@ public class MappingData : Profile
         CreateMap<DocumentWriteDTO, Document>();
         CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
         CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
+
+
+
+
+
+        //Ledger  
+
+
+
+
+
+
     }
 
 
