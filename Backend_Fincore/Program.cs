@@ -49,6 +49,14 @@ builder.Services.AddScoped<IAssetsService, AssetsService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
+//Quotation
+builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<IQuotationItemService, QuotationItemService>();
+
+
+
+
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();

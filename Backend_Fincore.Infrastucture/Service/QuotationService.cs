@@ -100,14 +100,55 @@ namespace Backend_Fincore.Infrastucture.Service
             return data;
         }
 
-        public Task<QuotationDTO> GetQuotationById(int quotationId)
+        public async Task<QuotationDTO> GetQuotationById(int quotationId)
         {
-            throw new NotImplementedException();
+            var data = await db.Quotation.AsNoTracking().Where(x => x.QuotationId == quotationId)
+                .Select(x => new QuotationDTO
+                {
+                    QuotationId = x.QuotationId,
+                    RFQId = x.RFQId,
+                    RFQVendorId = x.RFQVendorId,
+                    QuotationNumber = x.QuotationNumber,
+                    Amount = x.Amount,
+                    Status = x.Status,
+                    Desc = x.Description,
+                    VendorName = x.RFQVendor.Vendor.VendorName
+                })
+                .FirstOrDefaultAsync();
+
+            if (data == null)
+            {
+                throw new Exception("Quotation not found.");
+            }
+
+            return data;
+
         }
 
-        public Task<List<QuotationDTO>> GetQuotationByRFQId(int rfqId)
+        public async Task<List<QuotationDTO>> GetQuotationByRFQId(int rfqId)
         {
-            throw new NotImplementedException();
+            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == rfqId);
+            if (!rfqExists)
+            {
+                throw new Exception("RFQ not found.");
+            }
+
+            var data = await db.Quotation.AsNoTracking().Where(x =>x.RFQId == rfqId)
+                .OrderBy(x => x.Amount)
+                .Select(x => new QuotationDTO
+                {
+                    QuotationId = x.QuotationId,
+                    RFQId = x.RFQId,
+                    RFQVendorId = x.RFQVendorId,
+                    QuotationNumber = x.QuotationNumber,
+                    Amount = x.Amount,
+                    Status = x.Status,
+                    Desc = x.Description,
+                    VendorName = x.RFQVendor.Vendor.VendorName
+                })
+                .ToListAsync();
+
+            return data;
         }
 
         public async Task UpdateQuotation(QuotationCUDTO dto)
