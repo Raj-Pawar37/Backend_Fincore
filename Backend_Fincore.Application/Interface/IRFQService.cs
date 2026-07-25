@@ -9,6 +9,6 @@ namespace Backend_Fincore.Application.Interfaces
         Task<ApiResponse<List<RFQResponseDto>>> GetAllAsync(int userId, int pageNumber, int pageSize);
         Task<ApiResponse<RFQResponseDto>> GetByIdAsync(int id);
         Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto, int userId);
-        Task<ApiResponse<bool>> DeleteAsync(int id);
+        Task<ApiResponse<bool>> DeleteAsync(int id, int userId);
     }
 }

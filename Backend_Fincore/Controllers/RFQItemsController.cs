@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
@@ -50,7 +51,12 @@ namespace Backend_Fincore.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var response = await _rfqItemService.DeleteAsync(id);
+            // Extract the user ID so the service knows who deleted the item
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            // Pass the userId to the service
+            var response = await _rfqItemService.DeleteAsync(id, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
     }

@@ -51,7 +51,12 @@ namespace Backend_Fincore.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var response = await _rfqVendorService.DeleteAsync(id);
+            // EXTRACT USER ID HERE
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+            int.TryParse(userIdClaim, out int userId);
+
+            // PASS USER ID TO THE SERVICE
+            var response = await _rfqVendorService.DeleteAsync(id, userId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
     }

@@ -25,9 +25,10 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQVendorResponseDto>> CreateAsync(RFQVendorCreateDto dto, int userId)
         {
-            if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId))
+            // Updated to check r.IsActive == 1
+            if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId && r.IsActive == 1))
             {
-                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ ID not found." };
+                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ ID not found or is inactive." };
             }
 
             if (!await _context.Vendor.AnyAsync(v => v.VendorId == dto.VendorId))
@@ -35,9 +36,10 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "Vendor ID not found." };
             }
 
-            if (await _context.RFQVendor.AnyAsync(rv => rv.RFQId == dto.RFQId && rv.VendorId == dto.VendorId))
+            // Updated to check rv.IsActive == 1
+            if (await _context.RFQVendor.AnyAsync(rv => rv.RFQId == dto.RFQId && rv.VendorId == dto.VendorId && rv.IsActive == 1))
             {
-                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "This Vendor is already invited to this RFQ." };
+                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "This Vendor is already actively invited to this RFQ." };
             }
 
             var rfqVendor = new RFQVendor
@@ -49,7 +51,8 @@ namespace Backend_Fincore.Application.Services
 
                 // Audit Trail
                 CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IsActive = 1 // Updated to byte value 1
             };
 
             _context.RFQVendor.Add(rfqVendor);
@@ -61,7 +64,8 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<List<RFQVendorResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize)
         {
-            var query = _context.RFQVendor.Where(x => x.RFQId == rfqId);
+            // Only fetch active records (Updated to == 1)
+            var query = _context.RFQVendor.Where(x => x.RFQId == rfqId && x.IsActive == 1);
             int totalRecords = await query.CountAsync();
 
             var vendors = await query.OrderByDescending(x => x.RFQVendorId)
@@ -82,16 +86,18 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQVendorResponseDto>> UpdateAsync(int id, RFQVendorUpdateDto dto, int userId)
         {
-            var rfqVendor = await _context.RFQVendor.FindAsync(id);
+            // Updated to FirstOrDefaultAsync with IsActive == 1
+            var rfqVendor = await _context.RFQVendor.FirstOrDefaultAsync(x => x.RFQVendorId == id && x.IsActive == 1);
 
             if (rfqVendor == null)
             {
-                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ Vendor mapping ID not found." };
+                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ Vendor mapping ID not found or deleted." };
             }
 
-            if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId))
+            // Updated to check r.IsActive == 1
+            if (!await _context.RFQ.AnyAsync(r => r.RFQId == dto.RFQId && r.IsActive == 1))
             {
-                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ ID not found." };
+                return new ApiResponse<RFQVendorResponseDto> { Success = false, Message = "RFQ ID not found or inactive." };
             }
 
             if (!await _context.Vendor.AnyAsync(v => v.VendorId == dto.VendorId))
@@ -121,18 +127,24 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQVendorResponseDto> { Success = true, Message = "RFQ Vendor updated successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(int id)
+        // Updated signature to include int userId
+        public async Task<ApiResponse<bool>> DeleteAsync(int id, int userId)
         {
             try
             {
-                var rfqVendor = await _context.RFQVendor.FindAsync(id);
+                // Updated to FirstOrDefaultAsync with IsActive == 1
+                var rfqVendor = await _context.RFQVendor.FirstOrDefaultAsync(x => x.RFQVendorId == id && x.IsActive == 1);
 
                 if (rfqVendor == null)
                 {
-                    return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found.", Data = false };
+                    return new ApiResponse<bool> { Success = false, Message = "RFQ Vendor mapping ID not found or already deleted.", Data = false };
                 }
 
-                _context.RFQVendor.Remove(rfqVendor);
+                // Soft delete logic
+                rfqVendor.IsActive = 0; // Updated to 0
+                rfqVendor.ModifiedBy = userId;
+                rfqVendor.ModifiedAt = DateTime.UtcNow;
+
                 await _context.SaveChangesAsync();
 
                 return new ApiResponse<bool> { Success = true, Message = "RFQ Vendor removed successfully.", Data = true };
@@ -142,7 +154,7 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<bool>
                 {
                     Success = false,
-                    Message = "Cannot delete this RFQ Vendor because they have linked records in Quotation ",
+                    Message = "An error occurred while trying to delete this RFQ Vendor.",
                     Data = false
                 };
             }

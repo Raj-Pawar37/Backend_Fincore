@@ -25,9 +25,9 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQItemResponseDto>> CreateAsync(RFQItemCreateDto dto, int userId)
         {
-            if (await _context.RFQItem.AnyAsync(x => x.RFQId == dto.RFQId && x.Name == dto.Name))
+            if (await _context.RFQItem.AnyAsync(x => x.RFQId == dto.RFQId && x.Name == dto.Name && x.IsActive == 1))
             {
-                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "An item with this Name already exists in this RFQ." };
+                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "An active item with this Name already exists in this RFQ." };
             }
 
             var rfqItem = new RFQItem
@@ -37,9 +37,9 @@ namespace Backend_Fincore.Application.Services
                 Quantity = dto.Quantity,
                 Description = dto.Description,
 
-                // Audit Trail
                 CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IsActive = 1
             };
 
             _context.RFQItem.Add(rfqItem);
@@ -51,7 +51,8 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<List<RFQItemResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize)
         {
-            var query = _context.RFQItem.Where(x => x.RFQId == rfqId);
+            // FIXED: Added == 1 here
+            var query = _context.RFQItem.Where(x => x.RFQId == rfqId && x.IsActive == 1);
             int totalRecords = await query.CountAsync();
 
             var items = await query.OrderByDescending(x => x.RFQItemId)
@@ -72,23 +73,24 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQItemResponseDto>> UpdateAsync(int id, RFQItemUpdateDto dto, int userId)
         {
-            var rfqItem = await _context.RFQItem.FindAsync(id);
+            // FIXED: Added == 1 here
+            var rfqItem = await _context.RFQItem.FirstOrDefaultAsync(x => x.RFQItemId == id && x.IsActive == 1);
 
             if (rfqItem == null)
             {
-                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "RFQ Item ID not found." };
+                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "RFQ Item ID not found or has been deleted." };
             }
 
-            if (await _context.RFQItem.AnyAsync(x => x.RFQId == rfqItem.RFQId && x.Name == dto.Name && x.RFQItemId != id))
+            // FIXED: Added == 1 here
+            if (await _context.RFQItem.AnyAsync(x => x.RFQId == rfqItem.RFQId && x.Name == dto.Name && x.RFQItemId != id && x.IsActive == 1))
             {
-                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "Another item with this Name already exists in this RFQ." };
+                return new ApiResponse<RFQItemResponseDto> { Success = false, Message = "Another active item with this Name already exists in this RFQ." };
             }
 
             rfqItem.Name = dto.Name;
             rfqItem.Quantity = dto.Quantity;
             rfqItem.Description = dto.Description;
 
-            // Audit Trail
             rfqItem.ModifiedBy = userId;
             rfqItem.ModifiedAt = DateTime.UtcNow;
 
@@ -98,16 +100,20 @@ namespace Backend_Fincore.Application.Services
             return new ApiResponse<RFQItemResponseDto> { Success = true, Message = "RFQ Item updated successfully", Data = responseDto, TotalNumberRecord = 1 };
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(int id)
+        public async Task<ApiResponse<bool>> DeleteAsync(int id, int userId)
         {
-            var rfqItem = await _context.RFQItem.FindAsync(id);
+            var rfqItem = await _context.RFQItem.FirstOrDefaultAsync(x => x.RFQItemId == id && x.IsActive == 1);
 
             if (rfqItem == null)
             {
-                return new ApiResponse<bool> { Success = false, Message = "RFQ Item ID not found.", Data = false };
+                return new ApiResponse<bool> { Success = false, Message = "RFQ Item ID not found or already deleted.", Data = false };
             }
 
-            _context.RFQItem.Remove(rfqItem);
+            // Soft delete logic
+            rfqItem.IsActive = 0;
+            rfqItem.ModifiedBy = userId;
+            rfqItem.ModifiedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             return new ApiResponse<bool> { Success = true, Message = "RFQ Item deleted successfully.", Data = true };

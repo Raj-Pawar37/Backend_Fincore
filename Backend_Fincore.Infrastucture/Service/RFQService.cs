@@ -25,19 +25,19 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQResponseDto>> CreateAsync(RFQCreateDto dto, int userId)
         {
-            if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber))
+            if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber && r.IsActive == 1))
             {
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists." };
             }
 
-            if (!await _context.PurchaseRequisition.AnyAsync(pr => pr.PRId == dto.PRId))
+            if (!await _context.PurchaseRequisition.AnyAsync(pr => pr.PRId == dto.PRId && pr.IsActive == 1))
             {
-                return new ApiResponse<RFQResponseDto> { Success = false, Message = "Purchase Requisition ID not found." };
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "Purchase Requisition ID not found or is inactive." };
             }
 
-            if (await _context.RFQ.AnyAsync(r => r.PRId == dto.PRId))
+            if (await _context.RFQ.AnyAsync(r => r.PRId == dto.PRId && r.IsActive == 1))
             {
-                return new ApiResponse<RFQResponseDto> { Success = false, Message = "An RFQ already exists for this Purchase Requisition." };
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "An active RFQ already exists for this Purchase Requisition." };
             }
 
             var rfq = new RFQ
@@ -50,9 +50,9 @@ namespace Backend_Fincore.Application.Services
                 PRId = dto.PRId,
                 Status = "Pending",
 
-               
                 CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IsActive = 1 // Updated to byte value 1
             };
 
             _context.RFQ.Add(rfq);
@@ -77,7 +77,8 @@ namespace Backend_Fincore.Application.Services
             if (roleName == "User")
                 return new ApiResponse<List<RFQResponseDto>> { Success = false, Message = "You do not have permission to view RFQs." };
 
-            IQueryable<RFQ> query = _context.RFQ.AsQueryable();
+            // Only query active RFQs (Updated to == 1)
+            IQueryable<RFQ> query = _context.RFQ.Where(r => r.IsActive == 1).AsQueryable();
 
             if (roleName == "Manager")
             {
@@ -90,7 +91,7 @@ namespace Backend_Fincore.Application.Services
                 int managerDeptId = employee.DepartmentId;
 
                 query = query.Where(rfq => _context.PurchaseRequisition.Any(pr =>
-                                           pr.PRId == rfq.PRId &&
+                                           pr.PRId == rfq.PRId && pr.IsActive == 1 && // Updated to == 1
                                            _context.CapexRequest.Any(cr =>
                                                cr.CapexRequestId == pr.CapexRequestId &&
                                                _context.User.Any(u =>
@@ -125,11 +126,11 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQResponseDto>> GetByIdAsync(int id)
         {
-            var rfq = await _context.RFQ.FindAsync(id);
+            var rfq = await _context.RFQ.FirstOrDefaultAsync(r => r.RFQId == id && r.IsActive == 1); // Updated to == 1
 
             if (rfq == null)
             {
-                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found." };
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found or has been deleted." };
             }
 
             var rfqDto = _mapper.Map<RFQResponseDto>(rfq);
@@ -138,11 +139,11 @@ namespace Backend_Fincore.Application.Services
 
         public async Task<ApiResponse<RFQResponseDto>> UpdateAsync(int id, RFQUpdateDto dto, int userId)
         {
-            var rfq = await _context.RFQ.FindAsync(id);
+            var rfq = await _context.RFQ.FirstOrDefaultAsync(r => r.RFQId == id && r.IsActive == 1); // Updated to == 1
 
             if (rfq == null)
             {
-                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found." };
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ ID not found or has been deleted." };
             }
 
             if (rfq.Status == "Open")
@@ -150,9 +151,9 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<RFQResponseDto> { Success = false, Message = "Cannot update RFQ once status is Open." };
             }
 
-            if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber && r.RFQId != id))
+            if (await _context.RFQ.AnyAsync(r => r.RFQNumber == dto.RFQNumber && r.RFQId != id && r.IsActive == 1)) // Updated to == 1
             {
-                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists for another record." };
+                return new ApiResponse<RFQResponseDto> { Success = false, Message = "RFQ Number already exists for another active record." };
             }
 
             rfq.RFQNumber = dto.RFQNumber;
@@ -161,7 +162,6 @@ namespace Backend_Fincore.Application.Services
             rfq.IssueDate = dto.IssueDate;
             rfq.ClosingDate = dto.ClosingDate;
 
-            
             rfq.ModifiedBy = userId;
             rfq.ModifiedAt = DateTime.UtcNow;
 
@@ -175,18 +175,18 @@ namespace Backend_Fincore.Application.Services
             return await GetByIdAsync(id);
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(int id)
+        public async Task<ApiResponse<bool>> DeleteAsync(int id, int userId)
         {
             var rfq = await _context.RFQ
                 .Include(r => r.RFQVendors)
                     .ThenInclude(v => v.Quotations)
                 .Include(r => r.RFQItems)
                     .ThenInclude(i => i.QuotationItems)
-                .FirstOrDefaultAsync(r => r.RFQId == id);
+                .FirstOrDefaultAsync(r => r.RFQId == id && r.IsActive == 1); // Updated to == 1
 
             if (rfq == null)
             {
-                return new ApiResponse<bool> { Success = false, Message = "RFQ ID not found.", Data = false };
+                return new ApiResponse<bool> { Success = false, Message = "RFQ ID not found or already deleted.", Data = false };
             }
 
             if (rfq.Status == "Open")
@@ -194,42 +194,56 @@ namespace Backend_Fincore.Application.Services
                 return new ApiResponse<bool> { Success = false, Message = "Cannot delete RFQ once status is Open.", Data = false };
             }
 
+            // Soft delete RFQ (Updated to 0)
+            rfq.IsActive = 0;
+            rfq.ModifiedBy = userId;
+            rfq.ModifiedAt = DateTime.UtcNow;
+
+            // Soft delete nested RFQ Items and Quotation Items (Updated to 0)
             if (rfq.RFQItems != null)
             {
                 foreach (var item in rfq.RFQItems)
                 {
+                    item.IsActive = 0;
+                    item.ModifiedBy = userId;
+                    item.ModifiedAt = DateTime.UtcNow;
+
                     if (item.QuotationItems != null && item.QuotationItems.Any())
                     {
-                        _context.QuotationItem.RemoveRange(item.QuotationItems);
+                        foreach (var quotationItem in item.QuotationItems)
+                        {
+                            quotationItem.IsActive = 0;
+                            quotationItem.ModifiedBy = userId;
+                            quotationItem.ModifiedAt = DateTime.UtcNow;
+                        }
                     }
                 }
             }
 
+            // Soft delete nested RFQ Vendors and Quotations (Updated to 0)
             if (rfq.RFQVendors != null)
             {
                 foreach (var vendor in rfq.RFQVendors)
                 {
+                    vendor.IsActive = 0;
+                    vendor.ModifiedBy = userId;
+                    vendor.ModifiedAt = DateTime.UtcNow;
+
                     if (vendor.Quotations != null && vendor.Quotations.Any())
                     {
-                        _context.Quotation.RemoveRange(vendor.Quotations);
+                        foreach (var quotation in vendor.Quotations)
+                        {
+                            quotation.IsActive = 0;
+                            quotation.ModifiedBy = userId;
+                            quotation.ModifiedAt = DateTime.UtcNow;
+                        }
                     }
                 }
             }
 
-            if (rfq.RFQItems != null && rfq.RFQItems.Any())
-            {
-                _context.RFQItem.RemoveRange(rfq.RFQItems);
-            }
-
-            if (rfq.RFQVendors != null && rfq.RFQVendors.Any())
-            {
-                _context.RFQVendor.RemoveRange(rfq.RFQVendors);
-            }
-
-            _context.RFQ.Remove(rfq);
             await _context.SaveChangesAsync();
 
-            return new ApiResponse<bool> { Success = true, Message = "RFQ, Items, and Vendors deleted successfully.", Data = true };
+            return new ApiResponse<bool> { Success = true, Message = "RFQ, Items, and Vendors softly deleted successfully.", Data = true };
         }
     }
 }
