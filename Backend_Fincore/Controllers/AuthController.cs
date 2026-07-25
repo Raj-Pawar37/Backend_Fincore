@@ -5,6 +5,7 @@ using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ namespace Backend_Fincore.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("fixed")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -248,4 +250,6 @@ namespace Backend_Fincore.Controllers
         public string Email { get; set; } = string.Empty;
         public string Otp { get; set; } = string.Empty;
     }
+
+
 }

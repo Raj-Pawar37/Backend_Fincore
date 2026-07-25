@@ -1,12 +1,16 @@
 ﻿using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/v1/role_permissions")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class RolePermissionController : ControllerBase
     {
         private readonly IRolePermissionService _rolePermissionService;
@@ -20,7 +24,7 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> GetAll()
         {
             var response = await _rolePermissionService.GetAllAsync();
-            return response.Success ? Ok(response) : StatusCode(500, response);
+            return Ok(response);
         }
 
         [HttpGet("{id}")]
@@ -34,7 +38,7 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> GetByRoleId(int roleId)
         {
             var response = await _rolePermissionService.GetByRoleIdAsync(roleId);
-            return response.Success ? Ok(response) : StatusCode(500, response);
+            return Ok(response);
         }
 
         [HttpPost]
@@ -42,6 +46,19 @@ namespace Backend_Fincore.Controllers
         {
             var response = await _rolePermissionService.CreateAsync(dto);
             return response.Success ? Ok(response) : BadRequest(response);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] RolePermissionDTOs dto)
+        {
+            var response = await _rolePermissionService.UpdateAsync(id, dto);
+            if (!response.Success)
+            {
+                return response.Error?.GetType().GetProperty("code")?.GetValue(response.Error)?.ToString() == "NOT_FOUND"
+                    ? NotFound(response)
+                    : BadRequest(response);
+            }
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
