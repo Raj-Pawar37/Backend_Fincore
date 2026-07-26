@@ -159,7 +159,24 @@ namespace Backend_Fincore.Controllers
         }
 
 
+        [HttpPost("devLogin")]
+        public async Task<IActionResult> DeveloperLogin(LoginRequestDto dto)
+        {
+            var tokens = await _authService.DeveloperLoginAsync(dto);
 
+            SetRefreshTokenCookie(tokens.RefreshToken,tokens.RefreshTokenExpiry);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Development login successful.",
+                Data = new
+                {
+                    tokens.AccessToken,
+                    tokens.AccessTokenExpiry
+                }
+            });
+        }
 
 
 

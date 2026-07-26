@@ -189,7 +189,7 @@ namespace Backend_Fincore.Infrastucture.Service
         {
             if (string.IsNullOrWhiteSpace(dto.RefreshToken)) throw new UnauthorizedAccessException("Refresh TOken not Provided");
 
-            var storedToken = await db.UserToken.Include(x => x.User).FirstOrDefaultAsync(x=> x.Token == dto.RefreshToken && x.TokenType == "RefreshToken");
+            var storedToken = await db.UserToken.Include(x => x.User).FirstOrDefaultAsync(x => x.Token == dto.RefreshToken && x.TokenType == "RefreshToken");
             if (storedToken == null) throw new UnauthorizedAccessException("Refresh Token Doent found");
             if (storedToken?.IsActive == 0) throw new UnauthorizedAccessException("Refresh Token is InActive");
             if (storedToken?.ExpiryDate <= DateTime.UtcNow)
@@ -214,7 +214,7 @@ namespace Backend_Fincore.Infrastucture.Service
             var accessTokenExpiry = DateTime.UtcNow.AddMinutes(15);
             var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
-            var newAccessToken = GenerateAccessToken(user,accessTokenExpiry);
+            var newAccessToken = GenerateAccessToken(user, accessTokenExpiry);
             var newRefreshToken = GenerateRefreshToken();
 
             storedToken.Token = newRefreshToken;
@@ -288,8 +288,18 @@ namespace Backend_Fincore.Infrastucture.Service
         }
 
 
-        //Temp 
 
+
+
+
+
+
+
+
+
+
+
+        //Temp 
         public async Task<string> RegisterAsync(LoginDto registerDto)
         {
             if (registerDto == null ||
@@ -331,7 +341,50 @@ namespace Backend_Fincore.Infrastucture.Service
         }
 
 
+        public async Task<AuthTokenResponseDto> DeveloperLoginAsync(LoginRequestDto dto)
+        {
+            var user = await LoginAsync(dto);
+            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(15);
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
+            var accessToken = GenerateAccessToken(user, accessTokenExpiry);
+            var refreshToken = GenerateRefreshToken();
+
+            var existingToken = await db.UserToken.FirstOrDefaultAsync(x => x.UserId == user.UserId && x.TokenType == "RefreshToken");
+
+            if (existingToken != null)
+            {
+                existingToken.Token = refreshToken;
+                existingToken.ExpiryDate = refreshTokenExpiry;
+                existingToken.IsActive = 1;
+                existingToken.ModifiedAt = DateTime.UtcNow;
+                existingToken.ModifiedBy = user.UserId;
+            }
+            else
+            {
+                await db.UserToken.AddAsync(new UserToken
+                {
+                    UserId = user.UserId,
+                    Token = refreshToken,
+                    TokenType = "RefreshToken",
+                    ExpiryDate = refreshTokenExpiry,
+                    IsActive = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = user.UserId
+                });
+            }
+
+            user.LastLoginDate = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            return new AuthTokenResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                AccessTokenExpiry = accessTokenExpiry,
+                RefreshTokenExpiry = refreshTokenExpiry
+            };
+        }
 
 
 
@@ -374,7 +427,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 new Claim("MasterType", user.MasterType)
             };
 
-            var credentials = new SigningCredentials(new SymmetricSecurityKey(key),SecurityAlgorithms.HmacSha256);
+            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
@@ -393,10 +446,6 @@ namespace Backend_Fincore.Infrastucture.Service
 
             return Convert.ToBase64String(randomBytes);
         }
-
-
-
-
 
 
     }

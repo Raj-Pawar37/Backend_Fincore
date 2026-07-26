@@ -18,5 +18,7 @@ namespace Backend_Fincore.Application.Interface
 
         //Temp 
         Task<string> RegisterAsync(LoginDto registerDto);
+        Task<AuthTokenResponseDto> DeveloperLoginAsync(LoginRequestDto dto);
+    
     }
 }
