@@ -1165,17 +1165,12 @@ CAPEX REQUEST
                     .HasColumnType("varchar(200)")
                     .HasMaxLength(200);
 
-                entity.HasOne(x => x.RFQVendor)
-                    .WithMany(x => x.Quotations)
-                    .HasForeignKey(x => x.RFQVendorId)
-                    .OnDelete(DeleteBehavior.Restrict);
+
 
                 entity.HasIndex(x => x.QuotationNumber)
                     .IsUnique();
 
-                // One vendor quotation per RFQ invitation
-                entity.HasIndex(x => x.RFQVendorId)
-                    .IsUnique();
+
             });
 
 

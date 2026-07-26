@@ -1,7 +1,7 @@
 ﻿using Backend_Fincore.Application.DTOs.PurchaseRequisition;
 using Backend_Fincore.Response;
 
-namespace Backend_Fincore.Application.Interfaces
+namespace Backend_Fincore.Application.Interface
 {
     public interface IPurchaseRequisitionService
     {

@@ -8,7 +8,6 @@ using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
-using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 

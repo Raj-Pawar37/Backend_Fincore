@@ -5,11 +5,11 @@ using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
-using Backend_Fincore.Interface;
+
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Backend_Fincore.Service
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class GRNService : IGRNService
     {

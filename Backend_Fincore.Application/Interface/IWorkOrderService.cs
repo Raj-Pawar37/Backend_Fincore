@@ -2,25 +2,25 @@
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IWorkOrderService
     {
-      
-            Task<WorkOrderReadDTO> Create(WorkOrderWriteDTO dto);
 
-            Task<List<WorkOrderReadDTO>> GetAll(PaginationDTO pagination);
+        Task<WorkOrderReadDTO> Create(WorkOrderWriteDTO dto);
+
+        Task<List<WorkOrderReadDTO>> GetAll(PaginationDTO pagination);
         Task<int> GetWorkOrderCount(PaginationDTO pagination);//total record
 
-        Task<WorkOrderReadDTO> Update(int workOrderId,WorkOrderWriteDTO dto);
+        Task<WorkOrderReadDTO> Update(int workOrderId, WorkOrderWriteDTO dto);
 
-            Task<bool> Delete(int workOrderId);
+        Task<bool> Delete(int workOrderId);
 
-            Task<WorkOrderReadDTO> Verify(int workOrderId,int approvedBy,WorkOrderVerifyDTO dto);
+        Task<WorkOrderReadDTO> Verify(int workOrderId, int approvedBy, WorkOrderVerifyDTO dto);
 
-            Task<WorkOrderReadDTO?> GetById(int id);
+        Task<WorkOrderReadDTO?> GetById(int id);
 
-         
+
 
 
     }

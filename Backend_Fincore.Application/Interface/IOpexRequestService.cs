@@ -1,7 +1,7 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.OpexRequest;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IOpexRequestService
     {

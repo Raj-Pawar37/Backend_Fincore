@@ -1257,6 +1257,10 @@ namespace Backend_Fincore.Migrations
                     b.Property<byte>("IsActive")
                         .HasColumnType("tinyint");
 
+                    b.Property<string>("JournalNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("MasterId")
                         .HasColumnType("int");
 
@@ -1669,6 +1673,9 @@ namespace Backend_Fincore.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<int>("RFQId")
+                        .HasColumnType("int");
+
                     b.Property<int>("RFQVendorId")
                         .HasColumnType("int");
 
@@ -1684,8 +1691,7 @@ namespace Backend_Fincore.Migrations
                     b.HasIndex("QuotationNumber")
                         .IsUnique();
 
-                    b.HasIndex("RFQVendorId")
-                        .IsUnique();
+                    b.HasIndex("RFQVendorId");
 
                     b.ToTable("Quotations", (string)null);
                 });
@@ -2708,7 +2714,7 @@ namespace Backend_Fincore.Migrations
                     b.HasOne("Backend_Fincore.Models.RFQVendor", "RFQVendor")
                         .WithMany("Quotations")
                         .HasForeignKey("RFQVendorId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("RFQVendor");

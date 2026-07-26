@@ -9,7 +9,7 @@ using BCrypt.Net;
 using OtpNet;
 using QRCoder;
 
-namespace Backend_Fincore.Infrastructure.Service
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class AuthService : IAuthService
     {

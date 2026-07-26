@@ -11,6 +11,7 @@
         public string MasterType { get; set; } = null!;
 
         public decimal InvoiceAmount { get; set; }
+        public string InvoiceNumber { get; set; } = null!;
 
         public DateTime InvoiceDate { get; set; }
 
