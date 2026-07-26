@@ -1,5 +1,5 @@
 ﻿using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;

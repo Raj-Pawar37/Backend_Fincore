@@ -4,13 +4,12 @@ using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
-using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace Backend_Fincore.Service
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class ExpenseClaimService : IExpenseClaimService
     {

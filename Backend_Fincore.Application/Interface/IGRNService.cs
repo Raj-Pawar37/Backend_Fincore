@@ -2,7 +2,7 @@
 using Backend_Fincore.Application.DTOs.GRN;
 using Backend_Fincore.DTOs.GRN;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IGRNService
     {

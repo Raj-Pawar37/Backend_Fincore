@@ -1,13 +1,13 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.APInvoice;
-using Backend_Fincore.Interface;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace Backend_Fincore.Service
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class APInvoiceService : IAPInvoiceService
     {

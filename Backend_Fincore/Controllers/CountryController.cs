@@ -1,7 +1,6 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.Country;
 using Backend_Fincore.Application.Interface;
-using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

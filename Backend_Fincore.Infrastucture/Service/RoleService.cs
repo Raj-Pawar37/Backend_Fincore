@@ -1,9 +1,8 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
-using Backend_Fincore.Interface;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Service
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class RoleService : IRoleService
     {

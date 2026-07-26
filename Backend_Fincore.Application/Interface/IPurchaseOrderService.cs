@@ -4,7 +4,7 @@ using Backend_Fincore.Application.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.Models;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IPurchaseOrderService
     {

@@ -3,11 +3,10 @@ using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
-using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Backend_Fincore.Services
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class WorkOrderService : IWorkOrderService
     {
