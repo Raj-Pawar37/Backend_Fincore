@@ -21,5 +21,6 @@ namespace Backend_Fincore.Application.DTOs.RevenueEntry
         public DateTime RevenueDate { get; set; }
 
         public string? Status { get; set; }
+        public int? ModifiedBy { get; set; }
     }
 }

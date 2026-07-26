@@ -1,16 +1,13 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.RevenueEntry;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Backend_Fincore.Application.Response;
+using Backend_Fincore.Response;
 
 namespace Backend_Fincore.Application.Interface
 {
     public interface IRevenueEntryService
     {
-        Task<List<RevenueEntryDto>> GetAllAsync(PaginationDTO pagination);
+        Task<ApiResponse<List<RevenueEntryDto>>> GetAllAsync(PaginationDTO pagination);
 
         Task<RevenueEntryDto?> GetByIdAsync(int id);
 

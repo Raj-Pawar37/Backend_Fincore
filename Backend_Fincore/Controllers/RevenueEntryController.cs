@@ -1,14 +1,16 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.RevenueEntry;
 using Backend_Fincore.Application.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [EnableRateLimiting("fixed")]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/v1/revenueEntry")]
     public class RevenueEntryController : ControllerBase
     {
         private readonly IRevenueEntryService _service;

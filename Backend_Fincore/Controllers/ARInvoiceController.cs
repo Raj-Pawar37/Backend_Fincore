@@ -1,14 +1,17 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.ARInvoice;
 using Backend_Fincore.Application.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+
+    [Authorize]
     [EnableRateLimiting("fixed")]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/vi/[controller]")]
     public class ARInvoiceController : ControllerBase
     {
         private readonly IARInvoiceService _service;
