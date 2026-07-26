@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs.RFQItem;
-using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
 
-namespace Backend_Fincore.Application.Services
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class RFQItemService : IRFQItemService
     {

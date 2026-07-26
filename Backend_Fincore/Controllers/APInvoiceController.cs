@@ -1,6 +1,5 @@
-﻿using Backend_Fincore.DTOs.APInvoice;
-using Backend_Fincore.Interface;
-using Backend_Fincore.Service;
+﻿using Backend_Fincore.Application.Interface;
+using Backend_Fincore.DTOs.APInvoice;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

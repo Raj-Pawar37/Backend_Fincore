@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.DTOs;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IBudgetService
     {

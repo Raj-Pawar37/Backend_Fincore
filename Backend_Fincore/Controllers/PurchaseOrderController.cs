@@ -2,7 +2,7 @@
 using Backend_Fincore.Application.DTOs.PurchaseOrder;
 
 using Backend_Fincore.DTOs.PurchaseOrder;
-using Backend_Fincore.Interface;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;

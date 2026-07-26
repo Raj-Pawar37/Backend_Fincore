@@ -1,7 +1,6 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Application.Response;
-using Backend_Fincore.Infrastructure.Service;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

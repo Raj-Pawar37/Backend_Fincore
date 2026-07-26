@@ -1,6 +1,6 @@
 ﻿using Backend_Fincore.DTOs.APInvoice;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IAPInvoiceService
     {

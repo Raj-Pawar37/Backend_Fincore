@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Backend_Fincore.Application\Backend_Fincore.Application.csproj" />
+    <ProjectReference Include="..\Backend_Fincore.Infrastucture\Backend_Fincore.Infrastructure.csproj" />
     <ProjectReference Include="..\Backend_Fincore.Infrastucture\Backend_Fincore.Infrastucture.csproj" />
   </ItemGroup>
 

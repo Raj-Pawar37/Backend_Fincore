@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
-using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Backend_Fincore.Response;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace Backend_Fincore.Application.Services
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class PurchaseRequisitionService : IPurchaseRequisitionService
     {

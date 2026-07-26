@@ -2,7 +2,7 @@
 
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IPurchaseOrderItemService
     {

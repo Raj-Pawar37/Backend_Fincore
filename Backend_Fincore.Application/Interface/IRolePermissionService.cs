@@ -3,7 +3,7 @@ using Backend_Fincore.Response;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Interface
+namespace Backend_Fincore.Application.Interface
 {
     public interface IRolePermissionService
     {
