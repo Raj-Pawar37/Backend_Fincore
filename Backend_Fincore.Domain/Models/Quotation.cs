@@ -10,6 +10,7 @@ namespace Backend_Fincore.Models
         public int QuotationId { get; set; }
 
         public int RFQVendorId { get; set; }
+        public int RFQId { get; set; }
 
         public string QuotationNumber { get; set; } = null!;
 

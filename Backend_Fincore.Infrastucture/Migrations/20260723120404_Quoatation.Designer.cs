@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723120404_Quoatation")]
+    partial class Quoatation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -131,22 +134,7 @@ namespace Backend_Fincore.Migrations
                     b.Property<int>("GRNItemId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
                     b.Property<int>("GRNId")
-                        .HasColumnType("int");
-
-                    b.Property<byte>("IsActive")
-                        .HasColumnType("tinyint");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ModifiedBy")
                         .HasColumnType("int");
 
                     b.Property<int>("POItemId")
@@ -1257,10 +1245,6 @@ namespace Backend_Fincore.Migrations
                     b.Property<byte>("IsActive")
                         .HasColumnType("tinyint");
 
-                    b.Property<string>("JournalNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("MasterId")
                         .HasColumnType("int");
 
@@ -1553,13 +1537,6 @@ namespace Backend_Fincore.Migrations
                     b.Property<int>("Qty")
                         .HasColumnType("int");
 
-                    b.Property<int?>("QuotationItemId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal?>("Tax")
                         .HasColumnType("decimal(18,2)");
 
@@ -1569,10 +1546,6 @@ namespace Backend_Fincore.Migrations
                     b.HasKey("POItemId");
 
                     b.HasIndex("PurchaseOrderId");
-
-                    b.HasIndex("QuotationItemId")
-                        .IsUnique()
-                        .HasFilter("[QuotationItemId] IS NOT NULL");
 
                     b.ToTable("PurchaseOrderItems", (string)null);
                 });
@@ -2688,14 +2661,7 @@ namespace Backend_Fincore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Backend_Fincore.Domain.Models.QuotationItem", "QuotationItem")
-                        .WithOne("PurchaseOrderItem")
-                        .HasForeignKey("Backend_Fincore.Models.PurchaseOrderItem", "QuotationItemId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("PurchaseOrder");
-
-                    b.Navigation("QuotationItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseRequisition", b =>
@@ -2860,11 +2826,6 @@ namespace Backend_Fincore.Migrations
                     b.Navigation("OpexRequest");
 
                     b.Navigation("Vendor");
-                });
-
-            modelBuilder.Entity("Backend_Fincore.Domain.Models.QuotationItem", b =>
-                {
-                    b.Navigation("PurchaseOrderItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.AccountMaster", b =>

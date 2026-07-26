@@ -23,6 +23,9 @@ using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
+using Backend_Fincore.Domain.Models;
+using Backend_Fincore.Application.DTOs.DocumentNumber;
+using Backend_Fincore.Application.DTOs.Payment;
 
 
 

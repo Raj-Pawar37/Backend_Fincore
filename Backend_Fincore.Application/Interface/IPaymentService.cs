@@ -1,4 +1,4 @@
-﻿using Backend_Fincore.Application.DTOs;
+﻿using Backend_Fincore.Application.DTOs.Payment;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +19,7 @@ namespace Backend_Fincore.Application.Interface
         Task UpdatePayment(PaymentCUDTO payment, int id);
 
         Task<bool> DeletePaymentById(int id);
+
+        Task<List<PaymentMasterSearchDTO>> SearchByMasterType(SearchByMasterTypeReqDTO dto);
     }
 }

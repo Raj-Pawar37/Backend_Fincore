@@ -59,6 +59,18 @@ builder.Services.AddScoped<IExpenseClaimService, ExpenseClaimService>();
 builder.Services.AddScoped<IOpexRequestService, OpexRequestService>();
 builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
+//Quotation
+builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<IQuotationItemService, QuotationItemService>();
+
+
+
+builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
+
+
+
+
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 //Jwt
 builder.Services.AddScoped<ITokenService, TokenService>();
