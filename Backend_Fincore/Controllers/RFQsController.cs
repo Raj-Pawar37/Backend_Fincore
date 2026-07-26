@@ -1,17 +1,20 @@
-﻿using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Application.Interface;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.RFQ;
+using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using System.Security.Claims;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.API.Controllers
 {
-    [Authorize]
-    [EnableRateLimiting("fixed")]
     [Route("api/v1/rfqs")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
+    [Authorize]
     public class RFQsController : ControllerBase
     {
         private readonly IRFQService _rfqService;
@@ -21,56 +24,125 @@ namespace Backend_Fincore.API.Controllers
             _rfqService = rfqService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] RFQCreateDto dto)
-        {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
-            int.TryParse(userIdClaim, out int userId);
-
-            var response = await _rfqService.CreateAsync(dto, userId);
-            return response.Success ? Ok(response) : BadRequest(response);
-        }
-
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetAllRFQs([FromQuery] PaginationDTO pagination)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdClaim))
+            var data = await _rfqService.GetAllAsync(pagination);
+
+            if (data == null || data.Count == 0)
             {
-                userIdClaim = User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
+                return Ok(new ApiResponse<List<RFQResponseDto>>
+                {
+                    Success = false,
+                    Message = "Data does not exist.",
+                    Data = new List<RFQResponseDto>(),
+                    Error = null,
+                    Metadata = new { },
+                    TotalNumberRecord = 0
+                });
             }
 
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized(new { Success = false, Message = "Invalid or missing token." });
-            }
+            var totalRecords = await _rfqService.GetCountAsync();
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)pagination.PageSize);
 
-            var response = await _rfqService.GetAllAsync(userId, pageNumber, pageSize);
-            return response.Success ? Ok(response) : BadRequest(response);
+            return Ok(new ApiResponse<List<RFQResponseDto>>
+            {
+                Success = true,
+                Message = "RFQs fetched successfully.",
+                Data = data,
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
+            });
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetRFQById(int id)
         {
-            var response = await _rfqService.GetByIdAsync(id);
-            return response.Success ? Ok(response) : NotFound(response);
+            var data = await _rfqService.GetByIdAsync(id);
+
+            if (data == null)
+            {
+                return Ok(new ApiResponse<RFQResponseDto>
+                {
+                    Success = false,
+                    Message = "Data does not exist for this id.",
+                    Data = null,
+                    Error = null,
+                    Metadata = new { },
+                    TotalNumberRecord = 0
+                });
+            }
+
+            return Ok(new ApiResponse<RFQResponseDto>
+            {
+                Success = true,
+                Message = "RFQ fetched successfully.",
+                Data = data,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = 1
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddRFQ(RFQCreateDto dto)
+        {
+            await _rfqService.CreateAsync(dto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ created successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new
+                {
+                    RFQNumber = dto.RFQNumber,
+                    PRId = dto.PRId,
+                    Status = "Pending"
+                },
+                TotalNumberRecord = 1
+            });
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] RFQUpdateDto dto)
+        public async Task<IActionResult> UpdateRFQ(int id, RFQUpdateDto dto)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("UserId") ?? User.FindFirstValue("id");
-            int.TryParse(userIdClaim, out int userId);
+            await _rfqService.UpdateAsync(id, dto);
 
-            var response = await _rfqService.UpdateAsync(id, dto, userId);
-            return response.Success ? Ok(response) : BadRequest(response);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ updated successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
+            });
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteRFQ(int id)
         {
-            var response = await _rfqService.DeleteAsync(id);
-            return response.Success ? Ok(response) : BadRequest(response);
+            await _rfqService.DeleteAsync(id);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ deleted successfully.",
+                Data = null,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
+            });
         }
     }
 }
