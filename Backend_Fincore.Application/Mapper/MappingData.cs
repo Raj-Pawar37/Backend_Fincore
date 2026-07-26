@@ -26,6 +26,9 @@ using Backend_Fincore.Models.Backend_Fincore.Models;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.Payment;
+using Backend_Fincore.Application.DTOs.Customer;
+using Backend_Fincore.Application.DTOs.Vendor;
+using Backend_Fincore.Application.DTOs.Company;
 
 
 
@@ -125,7 +128,7 @@ public class MappingData : Profile
             .ForMember(d => d.StateName, x => x.MapFrom(y => y.State.StateName))
             .ForMember(d => d.CityName, x => x.MapFrom(y => y.City.CityName));
         CreateMap<CompanyWriteDTO, Company>().ReverseMap();
-
+        CreateMap<Company, CompanyDropdownDTO>();
 
         //Vendor
 

@@ -11,7 +11,7 @@ using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddMemoryCache();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));
 builder.Services.AddHttpContextAccessor();
