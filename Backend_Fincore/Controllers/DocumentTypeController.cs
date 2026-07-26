@@ -1,32 +1,50 @@
-﻿using Backend_Fincore.Application.DTOs.Document;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+
+    [Authorize]
+    [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class DocumentTypeController : ControllerBase
     {
         private readonly IDocumentTypeService service;
-
         public DocumentTypeController(IDocumentTypeService service)
         {
             this.service = service;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
         {
-            var res = await service.GetAll();
+            var res = await service.GetAll(pagination);
+            var totalRecords = await service.GetTotalRecordsDocType();
+            var totalPages = (int)Math.Ceiling(
+                 totalRecords /
+                (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<DocumentTypeCUDTO>>
             {
                 Success = true,
                 Message = "DocumentType Masters fetched successfully.",
                 Data = res,
-                Error = null
+                Error = null,
+                TotalNumberRecord=totalRecords,
+                Metadata = new {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = res.Count
+
+                }
             });
         }
         [HttpGet("{id}")]
@@ -119,6 +137,21 @@ namespace Backend_Fincore.Controllers
                     Error = ex.Message
                 });
             }
+        }
+        [HttpGet("Dropdown")]
+        public async Task<IActionResult>GetDocumentTypeDropdown(string? search)
+        {
+            var res = await service.GetDocumentTypeDropdown(search);
+
+            return Ok(
+                new ApiResponse<List<DocumentTypeDropdownDTO>>
+                {
+                    Success = true,
+                    Message = "Document Types fetched successfully.",
+                    Data = res,
+                    Error = null,
+                    TotalNumberRecord = res.Count
+                });
         }
     }
 }

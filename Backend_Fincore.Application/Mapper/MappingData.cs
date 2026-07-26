@@ -2,12 +2,15 @@
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.DTOs.Approval;
+using Backend_Fincore.Application.DTOs.ARInvoice;
+using Backend_Fincore.Application.DTOs.Country;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Application.DTOs.OpexRequest;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
+using Backend_Fincore.Application.DTOs.RevenueEntry;
 using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.Application.DTOs.RFQItem;
 using Backend_Fincore.Application.DTOs.RFQVendor;
@@ -48,6 +51,27 @@ public class MappingData : Profile
 
         CreateMap<GRNCUDTO, GRN>();
 
+        CreateMap<GRNItem, GRNItemsDTO>().ForMember(d => d.ItemName, o => o.MapFrom(s => s.POItem.ItemName))
+                                          
+                                           .ForMember(d => d.OrderedQty, o => o.MapFrom(s => s.POItem.Qty))
+                                            .ForMember(d => d.ReceivedQty, o => o.MapFrom(s => s.Qty))
+                                            .ForMember(d => d.UnitPrice, o => o.MapFrom(s => s.POItem.UnitPrice))
+                                             .ForMember(d => d.Tax, o => o.MapFrom(s => s.POItem.Tax))
+                                              .ForMember(d => d.Discount, o => o.MapFrom(s => s.POItem.Discount));
+
+
+        CreateMap<GRNItemsCUDTO,GRNItem>();
+
+
+        CreateMap<QuotationItem, PurchaseOrderItem>().ForMember(x => x.Qty, x => x.MapFrom(x => x.Quantity))
+                                                     .ForMember(x => x.ItemName, x => x.MapFrom(x => x.RFQItem.Name))
+                                                     .ForMember(x => x.QuotationItemId, x => x.MapFrom(x => x.QuotationItemId))
+                                                     .ForMember(x => x.Status, x => x.MapFrom(x => "Pending"));
+
+
+
+
+
         //APInvoice
         CreateMap<APInvoice, APInvoiceDTO>().ForMember(x => x.VendorName,
                                             x => x.MapFrom(x => x.Vendor.VendorName));
@@ -83,10 +107,16 @@ public class MappingData : Profile
         CreateMap<Employee, EmployeeWriteDTO>()
             .ReverseMap();
 
-        //user
+        // User Read
         CreateMap<User, UserReadDTO>()
-              .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
-        CreateMap<User, UserWriteDTO>().ReverseMap();
+            .ForMember(dest => dest.RoleName,
+                opt => opt.MapFrom(src => src.Role.RoleName));
+
+        // User Create
+        CreateMap<UserCreateDTO, User>().ReverseMap();
+
+        // User Update
+        CreateMap<UserUpdateDTO, User>().ReverseMap();
 
 
         //company
@@ -105,6 +135,18 @@ public class MappingData : Profile
 
         CreateMap<Vendor, VendorWriteDTO>()
             .ReverseMap();
+
+        //customer
+        CreateMap<Customer, CustomerReadDTO>()
+    .ForMember(dest => dest.CompanyName,
+        opt => opt.MapFrom(src => src.Company.CompanyName));
+
+        CreateMap<Customer, CustomerWriteDTO>().ReverseMap();
+
+
+
+
+
 
         // < src , dest >
         CreateMap<Role, RoleDTO>().ReverseMap();
@@ -231,15 +273,22 @@ public class MappingData : Profile
         CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
         CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
 
+        CreateMap<Country, CountryReadDTO>().ReverseMap();
+
+        CreateMap<State, StateReadDTO>().ReverseMap();
+
+        CreateMap<City, CityReadDTO>().ReverseMap();
 
 
 
+        //Ajit Code 
+        CreateMap<ARInvoice, ARInvoiceDto>().ReverseMap();
+        CreateMap<ARInvoiceCreateDto, ARInvoice>();
+        CreateMap<ARInvoiceUpdateDto, ARInvoice>();
 
-        //Ledger  
-
-
-
-
+        CreateMap<RevenueEntry, RevenueEntryDto>().ReverseMap();
+        CreateMap<RevenueEntryCreateDto, RevenueEntry>();
+        CreateMap<RevenueEntryUpdateDto, RevenueEntry>();
 
 
     }

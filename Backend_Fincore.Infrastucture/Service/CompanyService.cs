@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Xml;
 
 namespace Backend_Fincore.Service
 {
@@ -11,21 +14,25 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-
-        public CompanyService(AppDbContext db, IMapper mapper)
+        private readonly ICurrentUserService currentUser;
+        public CompanyService(AppDbContext db, IMapper mapper,ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
         public async Task<CompanyReadDTO> AddCompany(CompanyWriteDTO c)
         {
             var data = mapper.Map<Company>(c);
-
+            data.CreatedAt= DateTime.Now;
+            data.CreatedBy = currentUser.UserId;
+            
             await db.Company.AddAsync(data);
             await db.SaveChangesAsync();
 
             var mdata = await db.Company
+                .AsNoTracking()
                 .Include(x => x.Country)
                 .Include(x => x.State)
                 .Include(x => x.City)
@@ -46,7 +53,7 @@ namespace Backend_Fincore.Service
 
             if (hasCustomers)
             {
-                throw new Exception("Company cannot be deleted because it has customer records.");
+                throw new InvalidOperationException("Company cannot be deleted because it has customer records.");
             }
 
             db.Company.Remove(company);
@@ -56,22 +63,35 @@ namespace Backend_Fincore.Service
             return true;
         }
 
-        public async Task<List<CompanyReadDTO>> GetAll()
+        public async Task<List<CompanyReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.Company
+            var search = db.Company
+                .AsNoTracking()
                 .Include(x => x.Country)
                 .Include(x => x.State)
                 .Include(x => x.City)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.CompanyName.Contains(pagination.Search) ||
+                    x.CompanyCode.Contains(pagination.Search)
+                );
+            }
+
+            var data = await search
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
-            var mdata = mapper.Map<List<CompanyReadDTO>>(data);
-
-            return mdata;
+            return mapper.Map<List<CompanyReadDTO>>(data);
         }
 
         public async Task<CompanyReadDTO> GetById(int id)
         {
             var gid = await db.Company
+                .AsNoTracking()
                 .Include(x => x.Country)
                 .Include(x => x.State)
                 .Include(x => x.City)
@@ -87,6 +107,21 @@ namespace Backend_Fincore.Service
             return mdata;
         }
 
+        public async Task<int> GetTotalCompanyRecords(string? search)
+        {
+            var data = db.Company.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                data = data.Where(x =>
+                    x.CompanyName.Contains(search) ||
+                    x.CompanyCode.Contains(search)
+                );
+            }
+
+            return await data.CountAsync();
+        }
+
         public async Task<bool> UpdateCompany(int id, CompanyWriteDTO c)
         {
             var data = await db.Company.FindAsync(id);
@@ -97,6 +132,8 @@ namespace Backend_Fincore.Service
             }
 
             mapper.Map(c, data);
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();
 

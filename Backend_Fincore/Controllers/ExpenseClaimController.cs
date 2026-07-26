@@ -1,12 +1,18 @@
-﻿using Backend_Fincore.Application.DTOs.ExpenseClaim;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.ExpenseClaim;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
+    [Authorize]
     public class ExpenseClaimController : ControllerBase
     {
         private readonly IExpenseClaimService service;
@@ -18,21 +24,44 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(int userId)
+     
+        public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
-            var data = await service.GetAll(userId);
+            if (pagination.PageNumber <= 0)
+                pagination.PageNumber = 1;
+
+            if (pagination.PageSize <= 0)
+                pagination.PageSize = 10;
+
+            var data = await service.GetAll( pagination);
+
+            var totalRecords = await service
+                .GetExpenseClaimCount( pagination);
+
+            var totalPages = (int)Math.Ceiling(
+                totalRecords / (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<ExpenseClaimReadDTO>>
             {
                 Success = true,
                 Message = "Expense Claims fetched successfully.",
                 Data = data,
-                Error = null
+                Error = null,
+                TotalNumberRecord = totalRecords,
+
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
             });
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetExpenseClaimById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
             var data = await service.GetById(id);
 
@@ -57,8 +86,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddExpenseClaim(
-            ExpenseClaimWriteDTO dto)
+        public async Task<IActionResult> Create(ExpenseClaimWriteDTO dto)
         {
             var data = await service.Create(dto);
 
@@ -72,9 +100,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateExpenseClaim(
-            int id,
-            ExpenseClaimWriteDTO dto)
+        public async Task<IActionResult> Update(int id,ExpenseClaimWriteDTO dto)
         {
             var data = await service.Update(id, dto);
 
@@ -99,7 +125,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteExpenseClaim(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await service.Delete(id);
 

@@ -1,12 +1,18 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize]
+    [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
+
     public class BudgetCategoryController : ControllerBase
     {
         private readonly IBudgetCategoryService service;
@@ -30,15 +36,28 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery]PaginationDTO pagination)
         {
-            var data = await service.GetAll();
+            var data = await service.GetAll(pagination);
+            var totalRecords = await service.GetTotalRecord();
+            var totalPages = (int)Math.Ceiling(
+                    totalRecords /
+                    (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<BudgetCategoryReadDTO>>
             {
                 Success = true,
                 Message = "Budget Categories retrieved successfully.",
-                Data = data
+                Data = data,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
             });
         }
 

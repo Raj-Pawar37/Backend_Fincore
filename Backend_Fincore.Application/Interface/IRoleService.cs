@@ -1,12 +1,15 @@
-﻿using Backend_Fincore.DTOs;
-using Backend_Fincore.Models;
-using Backend_Fincore.Response; // Using your ApiResponse namespace
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
+using Backend_Fincore.Response;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Backend_Fincore.Interface
 {
     public interface IRoleService
     {
-        Task<ApiResponse<IEnumerable<RoleDTO>>> GetAllRolesAsync();
+        Task<List<RoleDTO>> GetAllRolesAsync(PaginationDTO pagination);
+        Task<int> GetRoleCountAsync(PaginationDTO pagination);
         Task<ApiResponse<RoleDTO>> GetRoleByIdAsync(int id);
         Task<ApiResponse<RoleDTO>> CreateRoleAsync(RoleDTO dto);
         Task<ApiResponse<RoleDTO>> UpdateRoleAsync(int id, RoleDTO dto);

@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.DTOs;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 
 namespace Backend_Fincore.Interface
 {
@@ -8,14 +9,12 @@ namespace Backend_Fincore.Interface
 
         Task<CapexReadDTO> AddCapexRequest(CapexWriteDTO dto);
 
-        Task<List<CapexReadDTO>> GetAll(
-            int userId,
-            int pageNumber,
-            int pageSize);
+        Task<List<CapexReadDTO>> GetAll(PaginationDTO pagination);
+        Task<int> GetTotalRecord();
 
         Task<CapexReadDTO?> GetById(int capexRequestId);
 
-        Task<bool> UpdateCapexRequest(int capexRequestId,int userId,CapexWriteDTO dto); 
+        Task<bool> UpdateCapexRequest(int capexRequestId,CapexWriteDTO dto); 
 
         Task<bool> DeleteCapexRequest(int capexRequestId,int userId);
 

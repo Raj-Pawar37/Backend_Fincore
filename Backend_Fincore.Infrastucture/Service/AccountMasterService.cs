@@ -4,10 +4,13 @@ using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,10 +20,13 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
-        public AccountMasterService(AppDbContext db, IMapper mapper) {
+        private readonly ICurrentUserService currentUser;
+
+        public AccountMasterService( AppDbContext db, IMapper mapper,ICurrentUserService currentUser)
+        {
             this.db = db;
             this.mapper = mapper;
-
+            this.currentUser = currentUser;
         }
         public async Task<int> GetAccountMasterCount()
         {
@@ -57,7 +63,14 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<AccountMasterReadDTO>AddAccountMaster(AccountMasterWriteDTO dto)
         {
             var data = mapper.Map<AccountMaster>(dto);
-            data.CreatedBy = 1;//furhter we will add the jwt userid
+            bool accountCodeExists = await db.AccountMaster.AnyAsync(x =>x.AccountCode == dto.AccountCode);
+
+            if (accountCodeExists)
+            {
+                throw new Exception("Account Code already exists.");
+            }
+            data.CreatedBy = currentUser.UserId;
+
             await db.AccountMaster.AddAsync(data);
             await db.SaveChangesAsync();
             return mapper.Map<AccountMasterReadDTO>(data);
@@ -70,7 +83,7 @@ namespace Backend_Fincore.Infrastucture.Service
             {
                 throw new Exception("Account Master not found.");
             }
-            data.ModifiedBy = 1;//further i need to add jwt userid here
+            data.ModifiedBy = currentUser.UserId;
             mapper.Map(dto, data);
             await db.SaveChangesAsync();
         }

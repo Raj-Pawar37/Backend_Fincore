@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.Interface;
@@ -11,16 +13,21 @@ namespace Backend_Fincore.Service
     {
         private readonly AppDbContext db;
         private readonly IMapper mapper;
+        private readonly ICurrentUserService currentUser;
 
-        public VendorService(AppDbContext db, IMapper mapper)
+        public VendorService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
+       
 
         public async Task<VendorReadDTO> AddVendor(VendorWriteDTO v)
         {
             var data = mapper.Map<Vendor>(v);
+            data.CreatedBy = currentUser.UserId;
+            data.CreatedAt = DateTime.Now;
 
             await db.Vendor.AddAsync(data);
             await db.SaveChangesAsync();
@@ -32,10 +39,24 @@ namespace Backend_Fincore.Service
             return mapper.Map<VendorReadDTO>(mdata);
         }
 
-        public async Task<List<VendorReadDTO>> GetAll()
+        public async Task<List<VendorReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var data = await db.Vendor
+            var search = db.Vendor
                 .Include(x => x.Company)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(pagination.Search))
+            {
+                search = search.Where(x =>
+                    x.VendorName.Contains(pagination.Search) ||
+                    x.VendorCode.Contains(pagination.Search) ||
+                    x.Company.CompanyName.Contains(pagination.Search)
+                );
+            }
+
+            var data = await search
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
             return mapper.Map<List<VendorReadDTO>>(data);
@@ -65,6 +86,8 @@ namespace Backend_Fincore.Service
             }
 
             mapper.Map(v, data);
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
@@ -96,6 +119,26 @@ namespace Backend_Fincore.Service
             await db.SaveChangesAsync();
 
             return true;
+        }
+
+
+
+        public async Task<int> GetTotalVendorRecord(string? search)
+        {
+            var data = db.Vendor
+                .Include(x => x.Company)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                data = data.Where(x =>
+                    x.VendorName.Contains(search) ||
+                    x.VendorCode.Contains(search) ||
+                   
+                    x.Company.CompanyName.Contains(search));
+            }
+
+            return await data.CountAsync();
         }
     }
 }

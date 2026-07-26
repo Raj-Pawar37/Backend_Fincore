@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.Approval;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Approval;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,9 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IApprovalService
     {
-        Task<List<ApprovalReadDTO>> GetAll();
+        Task<List<ApprovalReadDTO>> GetAll(PaginationDTO pagination);
+
+        Task<int> GetTotalApprovalRecord();
         Task<ApprovalReadDTO> GetById(int id);
         Task<ApprovalReadDTO> AddApproval( ApprovalWriteDTO dto);
         Task UpdateApproval( int id,ApprovalWriteDTO dto);

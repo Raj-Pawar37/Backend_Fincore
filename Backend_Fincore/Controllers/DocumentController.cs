@@ -2,13 +2,17 @@
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
+    [Authorize]
     [Route("api/v1/[controller]")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class DocumentController : ControllerBase
     {
         private readonly IDocumentService service;
@@ -24,9 +28,7 @@ namespace Backend_Fincore.Controllers
         {
             var res = await service.GetAll(pagination);
             var totalRecords =await service.GetDocumentCount();
-            var totalPages = (int)Math.Ceiling(
-                 totalRecords /
-                (double)pagination.PageSize);
+            var totalPages = (int)Math.Ceiling( totalRecords /(double)pagination.PageSize);
             return Ok(
                 new ApiResponse<List<DocumentReadDTO>>
                 {
