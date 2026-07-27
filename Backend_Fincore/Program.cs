@@ -18,7 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(buil
 builder.Services.AddAutoMapper(typeof(MappingData));
 builder.Services.AddHttpContextAccessor();
 
-
+builder.Services.AddMemoryCache();
 
 
 

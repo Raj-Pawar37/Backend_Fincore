@@ -243,10 +243,9 @@ public class MappingData : Profile
 
 
 
+        CreateMap<RolePermissionDTO, RolePermission>();
 
-        CreateMap<RolePermissionDTOs, RolePermission>();
-
-        CreateMap<RolePermission, RolePermissionResponseDto>()
+        CreateMap<RolePermission, RolePermissionResponseDTO>()
             .ForMember(dest => dest.RoleName,
                        opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : string.Empty))
             .ForMember(dest => dest.PermissionName,

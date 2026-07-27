@@ -2,23 +2,26 @@
 
 namespace Backend_Fincore.DTOs
 {
-    public class RolePermissionDTOs
+    public class RolePermissionDTO
     {
+        public int RolePermissionId { get; set; }
+
         [Required]
         public int RoleId { get; set; }
 
         [Required]
         public int PermissionId { get; set; }
 
-        public int? CreatedByUserId { get; set; }
+        public bool IsActive { get; set; }
     }
 
-    public class RolePermissionResponseDto
+    public class RolePermissionResponseDTO
     {
         public int RolePermissionId { get; set; }
         public int RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
         public int PermissionId { get; set; }
         public string PermissionName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
     }
 }
