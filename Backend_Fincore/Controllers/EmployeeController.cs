@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/v1/employee")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class EmployeeController : ControllerBase

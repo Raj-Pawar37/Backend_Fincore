@@ -26,6 +26,11 @@ using Backend_Fincore.Models.Backend_Fincore.Models;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.Payment;
+using Backend_Fincore.Application.DTOs.Customer;
+using Backend_Fincore.Application.DTOs.Vendor;
+using Backend_Fincore.Application.DTOs.Company;
+using Backend_Fincore.Application.DTOs.Quotation;
+using Backend_Fincore.Application.DTOs.QuotationItem;
 
 
 
@@ -125,7 +130,7 @@ public class MappingData : Profile
             .ForMember(d => d.StateName, x => x.MapFrom(y => y.State.StateName))
             .ForMember(d => d.CityName, x => x.MapFrom(y => y.City.CityName));
         CreateMap<CompanyWriteDTO, Company>().ReverseMap();
-
+        CreateMap<Company, CompanyDropdownDTO>();
 
         //Vendor
 
@@ -238,10 +243,9 @@ public class MappingData : Profile
 
 
 
+        CreateMap<RolePermissionDTO, RolePermission>();
 
-        CreateMap<RolePermissionDTOs, RolePermission>();
-
-        CreateMap<RolePermission, RolePermissionResponseDto>()
+        CreateMap<RolePermission, RolePermissionResponseDTO>()
             .ForMember(dest => dest.RoleName,
                        opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : string.Empty))
             .ForMember(dest => dest.PermissionName,
@@ -287,7 +291,7 @@ public class MappingData : Profile
         CreateMap<State, StateReadDTO>().ReverseMap();
 
         CreateMap<City, CityReadDTO>().ReverseMap();
-
+        
 
 
         //Ajit Code 
@@ -298,6 +302,27 @@ public class MappingData : Profile
         CreateMap<RevenueEntry, RevenueEntryDto>().ReverseMap();
         CreateMap<RevenueEntryCreateDto, RevenueEntry>();
         CreateMap<RevenueEntryUpdateDto, RevenueEntry>();
+
+
+        CreateMap<Quotation, QuotationCDTO>().ReverseMap();
+        CreateMap<Quotation, QuotationUDTO>().ReverseMap();
+        CreateMap<Quotation, QuotationDTO>()
+            .ForMember(x => x.RFQNumber, y => y.MapFrom(z => z.RFQ.RFQNumber))
+            .ForMember(x => x.VendorName, y => y.MapFrom(z => z.RFQVendor.Vendor.VendorName));
+
+
+
+        CreateMap<QuotationItem, QuotationItemCDTO>().ReverseMap();
+        CreateMap<QuotationItem, QuotationItemUDTO>().ReverseMap();
+        CreateMap<QuotationItem, QuotationItemDTO>()
+            .ForMember(x => x.ItemName, y => y.MapFrom(z => z.RFQItem.Name))
+            .ForMember(x => x.SubTotal, y => y.MapFrom(z => z.Quantity * z.UnitPrice))
+            .ForMember(x => x.TotalAmount, y => y.MapFrom(z => (z.Quantity * z.UnitPrice) + z.Tax - z.Discount));
+
+
+
+
+
 
 
     }

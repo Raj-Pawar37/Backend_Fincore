@@ -20,6 +20,8 @@ namespace Backend_Fincore.Application.Interface
 
         Task<WorkOrderReadDTO?> GetById(int id);
 
+        Task<List<WorkOrderDropdownDTO>> GetDropdown();
+
 
 
 

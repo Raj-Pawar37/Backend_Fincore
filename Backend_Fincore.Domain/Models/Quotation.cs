@@ -25,6 +25,7 @@ namespace Backend_Fincore.Models
 
         // Navigation property
         public RFQVendor RFQVendor { get; set; } = null!;
+        public RFQ RFQ { get; set; } = null!;
 
         public PurchaseOrder? PurchaseOrder { get; set; }
 

@@ -1,14 +1,16 @@
-﻿using Backend_Fincore.Application.DTOs.RFQVendor;
-using Backend_Fincore.Response;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.RFQVendor;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace Backend_Fincore.Application.Interface
+namespace Backend_Fincore.Application.Interfaces
 {
     public interface IRFQVendorService
     {
-        Task<ApiResponse<RFQVendorResponseDto>> CreateAsync(RFQVendorCreateDto dto, int userId);
-        Task<ApiResponse<List<RFQVendorResponseDto>>> GetByRfqIdAsync(int rfqId, int pageNumber, int pageSize);
-        Task<ApiResponse<RFQVendorResponseDto>> UpdateAsync(int id, RFQVendorUpdateDto dto, int userId);
-        Task<ApiResponse<bool>> DeleteAsync(int id);
-
+        Task<List<RFQVendorResponseDto>> GetByRfqIdAsync(int rfqId, PaginationDTO pagination);
+        Task<int> GetCountByRfqIdAsync(int rfqId);
+        Task CreateAsync(RFQVendorCreateDto dto);
+        Task UpdateAsync(int id, RFQVendorUpdateDto dto);
+        Task DeleteAsync(int id);
     }
 }
