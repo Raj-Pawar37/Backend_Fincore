@@ -7,12 +7,7 @@ using Backend_Fincore.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Backend_Fincore.Infrastucture.Service
 {
@@ -30,11 +25,11 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task<int> GetAccountMasterCount()
         {
-            return await db.AccountMaster.CountAsync();
+            return await db.AccountMaster.Where(x=>x.IsActive==1).CountAsync();
         }
         public async Task<List<AccountMasterReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var search = db.AccountMaster.AsQueryable();
+            var search = db.AccountMaster.Where(x=>x.IsActive==1).AsQueryable();
             if (!string.IsNullOrEmpty(pagination.Search))
             {
                 search = search.Where(x =>
@@ -51,7 +46,8 @@ namespace Backend_Fincore.Infrastucture.Service
             return mapper.Map<List<AccountMasterReadDTO>>(data);
         }
         public async Task<AccountMasterReadDTO> GetById(int id){
-            var data = await db.AccountMaster.FirstOrDefaultAsync(x =>x.AccountMasterId == id);
+            var data = await db.AccountMaster
+                .FirstOrDefaultAsync(x => x.AccountMasterId == id && x.IsActive == 1);
 
             if (data == null)
             {
@@ -70,33 +66,45 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Account Code already exists.");
             }
             data.CreatedBy = currentUser.UserId;
+            data.CreatedBy = currentUser.UserId;
+            data.IsActive = 1;
 
             await db.AccountMaster.AddAsync(data);
             await db.SaveChangesAsync();
             return mapper.Map<AccountMasterReadDTO>(data);
         }
-        public async Task UpdateAccountMaster( int id, AccountMasterWriteDTO dto)
+        public async Task UpdateAccountMaster( int id, AccountMasterUpdateDTO dto)
         {
-            var data = await db.AccountMaster.FindAsync(id);
+            var data = await db.AccountMaster.FirstOrDefaultAsync(x => x.AccountMasterId == id && x.IsActive == 1);
 
             if (data == null)
             {
                 throw new Exception("Account Master not found.");
             }
+            bool accountCodeExists = await db.AccountMaster.AnyAsync(x =>
+                          x.AccountCode == dto.AccountCode && x.AccountMasterId != id && x.IsActive == 1);
+
+            if (accountCodeExists)
+            {
+                throw new Exception("Account Code already exists.");
+            }
             data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
             mapper.Map(dto, data);
             await db.SaveChangesAsync();
         }
         public async Task DeleteAccountMaster(int id)
         {
-            var data = await db.AccountMaster.FindAsync(id);
+            var data = await db.AccountMaster
+                .FirstOrDefaultAsync(x => x.AccountMasterId == id && x.IsActive == 1);
             if (data == null)
             {
                 throw new Exception("Account Master not found.");
             }
 
-            //db.AccountMaster.Remove(data);
             data.IsActive = 0;//soft delete by vikas 
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
         }
 

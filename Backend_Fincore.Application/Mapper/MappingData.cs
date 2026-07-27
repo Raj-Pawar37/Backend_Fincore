@@ -263,19 +263,28 @@ public class MappingData : Profile
 
         CreateMap<AccountMaster, AccountMasterReadDTO>();
         CreateMap<AccountMasterWriteDTO, AccountMaster>().ReverseMap();
+        CreateMap<AccountMasterUpdateDTO, AccountMaster>().ReverseMap();
 
 
         // Department
 
         CreateMap<Department, DepartmentReadDTO>().ForMember(d => d.CompanyName, x => x.MapFrom(y => y.Company.CompanyName));
         CreateMap<DepartmentWriteDTO, Department>().ReverseMap();
-        CreateMap<DocumentType, DocumentTypeCUDTO>().ReverseMap();
+        CreateMap<DepartmentUpdateDTO, Department>().ReverseMap();
+
+        // Read DTO
+        CreateMap<DocumentType, DocumentTypeCUDTO>();
+        CreateMap<DocumentTypeWriteDTO, DocumentType>();
+        CreateMap<DocumentTypeUpdateDTO, DocumentType>();
 
 
         CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName, x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
         CreateMap<DocumentWriteDTO, Document>();
+        CreateMap<DocumentUpdateDTO, Document>();
         CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
         CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
+        CreateMap<ApprovalUpdateDTO, Approval>().ReverseMap();
+
 
         CreateMap<Country, CountryReadDTO>().ReverseMap();
 

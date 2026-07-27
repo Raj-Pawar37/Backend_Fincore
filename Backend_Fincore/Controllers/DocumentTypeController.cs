@@ -50,8 +50,6 @@ namespace Backend_Fincore.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
                 var res = await service.GetById(id);
 
                 return Ok(new ApiResponse<DocumentTypeCUDTO>
@@ -61,20 +59,10 @@ namespace Backend_Fincore.Controllers
                     Data = res,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "DocumentType Master not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+         
         }
         [HttpPost]
-        public async Task<IActionResult> AddAccountMaster(DocumentTypeCUDTO dto)
+        public async Task<IActionResult> AddAccountMaster(DocumentTypeWriteDTO dto)
         {
             var res = await service.AddDocumentType(dto);
 
@@ -87,10 +75,8 @@ namespace Backend_Fincore.Controllers
             });
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAccountMaster(int id, DocumentTypeCUDTO dto)
+        public async Task<IActionResult> UpdateAccountMaster(int id, DocumentTypeUpdateDTO dto)
         {
-            try
-            {
                 await service.UpdateDocumentType(id, dto);
 
                 return Ok(new ApiResponse<object>
@@ -100,23 +86,12 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "DocumentType Master not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+            
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAccountMaster(int id)
         {
-            try
-            {
+           
                 await service.DeleteDocumentType(id);
 
                 return Ok(new ApiResponse<object>
@@ -126,19 +101,8 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "DocumentType Master not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
         }
-        [HttpGet("Dropdown")]
+        [HttpGet("dropdown")]
         public async Task<IActionResult>GetDocumentTypeDropdown(string? search)
         {
             var res = await service.GetDocumentTypeDropdown(search);

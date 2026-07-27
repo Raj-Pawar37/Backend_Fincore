@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.AccountMaster
 {
-    public class AccountMasterWriteDTO
+    public  class AccountMasterUpdateDTO
     {
         [Required]
         [StringLength(50)]
         [RegularExpression(
-           @"^[a-zA-Z0-9_-]+$", ErrorMessage = "Account Code can contain only letters, numbers, hyphen (-) and underscore (_).")]
+          @"^[a-zA-Z0-9_-]+$", ErrorMessage = "Account Code can contain only letters, numbers, hyphen (-) and underscore (_).")]
         public string AccountCode { get; set; } = null!;
 
 
@@ -29,12 +29,13 @@ namespace Backend_Fincore.Application.DTOs.AccountMaster
             @"^[a-zA-Z ]+$", ErrorMessage = "Account Type can contain only letters and spaces.")]
         public string AccountType { get; set; } = null!;
 
+        public byte IsActive { get; set; } 
+
 
 
         [RegularExpression(
     @"^[a-zA-Z0-9\s&.,'()/:\-_]+$", ErrorMessage = "Description contains invalid characters. Emojis and unsupported special characters are not allowed.")]
         public string? Description { get; set; }
-
 
     }
 }

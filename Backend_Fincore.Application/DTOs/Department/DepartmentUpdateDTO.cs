@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.Department
 {
-    public class DepartmentWriteDTO
+    public class DepartmentUpdateDTO
     {
         [Required]
         public int CompanyId { get; set; }
@@ -19,5 +19,9 @@ namespace Backend_Fincore.Application.DTOs.Department
         public string DepartmentCode { get; set; } = null!;
 
         public string? Description { get; set; }
+
+        [Required]
+        public byte IsActive { get; set; } = 1;
+
     }
 }

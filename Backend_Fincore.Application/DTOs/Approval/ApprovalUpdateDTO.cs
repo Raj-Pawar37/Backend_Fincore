@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.Approval
 {
-    public class ApprovalWriteDTO
+    public class ApprovalUpdateDTO
     {
         [Required]
         public decimal MinAmount { get; set; }
@@ -20,5 +20,8 @@ namespace Backend_Fincore.Application.DTOs.Approval
 
         [Required]
         public int RoleId { get; set; }
+
+        [Required]
+        public byte IsActive { get; set; }
     }
 }
