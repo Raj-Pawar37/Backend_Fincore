@@ -1,8 +1,10 @@
 ﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Auth;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Application.Response;
 using Backend_Fincore.WrapperClass;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System;
@@ -12,7 +14,7 @@ using System.Threading.Tasks;
 namespace Backend_Fincore.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/v1/auth")]
     [EnableRateLimiting("fixed")]
     public class AuthController : ControllerBase
     {
@@ -23,232 +25,198 @@ namespace Backend_Fincore.Controllers
             _authService = authService;
         }
 
+
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+        public async Task<IActionResult> Login(LoginRequestDto dto)
         {
-            try
+            var user = await _authService.LoginAsync(dto);
+
+            var response = new ApiResponse<LoginResponseDto>
             {
-                var response = await _authService.LoginAsync(loginDto);
+                Success = true,
+                Message = "Username and password verified successfully.",
+                Data = new LoginResponseDto
+                {
+                    UserId = user.UserId,
+                    Is2FAEnabled = user.Is2FAEnabled,
+                    Requires2FA = true,
+                    Message = user.Is2FAEnabled ? "Enter OTP from authenticator app." : "Two-factor authentication setup is required."
+                }
+            };
 
-                Response.Cookies.Append("accessToken", response.AccessToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTime.UtcNow.AddMinutes(15)
-                });
+            return Ok(response);
 
-                Response.Cookies.Append("refreshToken", response.RefreshToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = response.RefreshTokenExpiry
-                });
-
-                var authData = new AuthResponseDto
-                {
-                    AccessToken = response.AccessToken,
-                    RefreshToken = response.RefreshToken,
-                    RefreshTokenExpiry = response.RefreshTokenExpiry
-                };
-
-                return Ok(new ApiResponse<AuthResponseDto>
-                {
-                    Success = true,
-                    Message = "Login successful",
-                    Data = authData
-                });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Authentication failed",
-                    Error = ex.Message
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Invalid input",
-                    Error = ex.Message
-                });
-            }
         }
 
-        [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh([FromBody] TokenRequestDto tokenRequestDto)
-        {
-            try
-            {
-                var response = await _authService.RefreshTokenAsync(tokenRequestDto);
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Token refreshed successfully",
-                    Data = response
-                });
-            }
-            catch (UnauthorizedAccessException ex)
+        [HttpPost("setup2fa")]
+        public async Task<IActionResult> SetupTwoFactor(SetupTwoFactorRequestDto dto)
+        {
+            var response = await _authService.SetupTwoFactorAsync(dto);
+
+            return Ok(new ApiResponse<SetupTwoFactorResponseDto>
             {
-                return Unauthorized(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Token refresh failed",
-                    Error = ex.Message
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Invalid request",
-                    Error = ex.Message
-                });
-            }
+                Success = true,
+                Message = "QR Code generated successfully.",
+                Data = response,
+            });
         }
 
+
+        [HttpPost("verify2fa")]
+        public async Task<IActionResult> VerifyTwoFactor(VerifyTwoFactorRequestDto dto)
+        {
+            var tokens = await _authService.VerifyTwoFactorAsync(dto);
+
+            SetRefreshTokenCookie(tokens.RefreshToken, tokens.RefreshTokenExpiry);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Two-factor authentication verified successfully.",
+                Data = new
+                {
+                    tokens.AccessToken,
+                    tokens.AccessTokenExpiry
+                }
+            });
+        }
+
+
+        [HttpPost("refreshToken")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrWhiteSpace(refreshToken)) throw new UnauthorizedAccessException("Refresh token cookie is missing.");
+
+            var dto = new RefreshTokenRequestDto() { RefreshToken = refreshToken };
+            var tokens = await _authService.RefreshTokenAsync(dto);
+
+            SetRefreshTokenCookie(tokens.RefreshToken, tokens.RefreshTokenExpiry);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Access token refreshed successfully.",
+                Data = new
+                {
+                    tokens.AccessToken,
+                    tokens.AccessTokenExpiry
+                }
+            });
+        }
+
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            var dto = new LogoutRequestDto() { RefreshToken = refreshToken };
+            if (!string.IsNullOrWhiteSpace(refreshToken))
+            {
+                await _authService.LogoutAsync(dto);
+            }
+
+            DeleteRefreshTokenCookie();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Logged out successfully.",
+                Data = null
+            });
+        }
+
+
+        [Authorize]
+        [HttpPost("reset2fa")]
+        public async Task<IActionResult> ResetTwoFactor(ResetTwoFactorRequestDto dto)
+        {
+
+            await _authService.ResetTwoFactorAsync(dto);
+            DeleteRefreshTokenCookie();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Two-factor authentication reset successfully. Please log in and configure it again.",
+                Data = null
+            });
+        }
+
+
+
+        //Temp 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] LoginDto registerDto)
         {
-            try
-            {
-                var result = await _authService.RegisterAsync(registerDto);
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Registration successful",
-                    Data = result
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Registration failed",
-                    Error = ex.Message
-                });
-            }
+            var result = await _authService.RegisterAsync(registerDto);
+            return Ok(result);
+
         }
 
-        [HttpPost("logout")]
-        [Authorize]
-        public async Task<IActionResult> Logout()
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                                  ?? User.FindFirst("sub")?.Value;
 
-                if (int.TryParse(userIdClaim, out int userId))
+        [HttpPost("devLogin")]
+        public async Task<IActionResult> DeveloperLogin(LoginRequestDto dto)
+        {
+            var tokens = await _authService.DeveloperLoginAsync(dto);
+
+            SetRefreshTokenCookie(tokens.RefreshToken,tokens.RefreshTokenExpiry);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Development login successful.",
+                Data = new
                 {
-                    await _authService.LogoutAsync(userId);
+                    tokens.AccessToken,
+                    tokens.AccessTokenExpiry
                 }
-
-                Response.Cookies.Delete("accessToken", new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict
-                });
-
-                Response.Cookies.Delete("refreshToken", new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict
-                });
-
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Logged out successfully"
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "An error occurred during logout",
-                    Error = ex.Message
-                });
-            }
-        }
-
-        [HttpPost("GenerateOTP")]
-        public async Task<IActionResult> GenerateQRCode([FromBody] GenerateOtpRequest request)
-        {
-            var result = await _authService.GenerateQRCode(request.Email);
-
-            if (string.IsNullOrEmpty(result))
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "User not found or QR generation failed."
-                });
-            }
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "QR CODE DONE",
-                Data = new { qrCode = result }
             });
         }
 
-        [HttpPost("verifyOTP")]
-        public async Task<IActionResult> VerifyOTP([FromBody] VerifyOtpRequest request)
+
+
+
+
+
+
+
+
+
+
+
+
+        // Helper Fucntions 
+        private void SetRefreshTokenCookie(string refreshToken, DateTime refreshTokenExpiry)
         {
-            var result = await _authService.VerifyOTP(request.Email, request.Otp);
-
-            if (string.IsNullOrEmpty(result))
+            var cookieOptions = new CookieOptions
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "User not found or 2FA not initialized."
-                });
-            }
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = refreshTokenExpiry,
+                Path = "/api/auth"
+            };
 
-            if (result == "invalid otp")
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Invalid OTP provided.",
-                    Error = "invalid_otp"
-                });
-            }
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "OTP verified successfully",
-                Data = result
-            });
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
+
+
+        private void DeleteRefreshTokenCookie()
+        {
+            Response.Cookies.Delete("refreshToken",
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Path = "/api/auth"
+                });
+        }
+
     }
-
-    public class GenerateOtpRequest
-    {
-        public string Email { get; set; } = string.Empty;
-    }
-
-    public class VerifyOtpRequest
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Otp { get; set; } = string.Empty;
-    }
-
-
 }

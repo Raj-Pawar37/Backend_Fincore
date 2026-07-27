@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
+using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -101,6 +103,10 @@ builder.Services.AddScoped<IRevenueEntryService, RevenueEntryService>();
 builder.Services.AddScoped<IARInvoiceService, ARInvoiceService>();
 
 
+
+//caching
+
+builder.Services.AddMemoryCache();
 
 
 
