@@ -1,6 +1,5 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.DTOs;
-
+using Backend_Fincore.Application.DTOs.Company;
 
 namespace Backend_Fincore.Application.Interface
 {
@@ -10,6 +9,7 @@ namespace Backend_Fincore.Application.Interface
         Task<List<CompanyReadDTO>> GetAll(PaginationDTO pagination);
         Task<int> GetTotalCompanyRecords(string? search);
 
+        Task<List<CompanyDropdownDTO>> GetCompanyDropdown(string? search);
         Task<CompanyReadDTO> GetById(int id);
         
         Task<CompanyReadDTO> AddCompany(CompanyWriteDTO c);

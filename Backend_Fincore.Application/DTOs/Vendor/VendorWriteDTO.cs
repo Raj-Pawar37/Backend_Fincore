@@ -1,12 +1,8 @@
-﻿namespace Backend_Fincore.DTOs
+﻿namespace Backend_Fincore.Application.DTOs.Vendor
 {
-    public class VendorReadDTO
+    public class VendorWriteDTO
     {
-        public int VendorId { get; set; }
-
         public int CompanyId { get; set; }
-
-        public string CompanyName { get; set; } = null!;
 
         public string VendorName { get; set; } = null!;
 

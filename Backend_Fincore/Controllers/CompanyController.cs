@@ -1,6 +1,7 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.DTOs;
+using Backend_Fincore.Application.DTOs.Company;
 using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/company")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class CompanyController : ControllerBase
@@ -147,6 +148,32 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "Company deleted successfully.",
                 Data = null,
+                Error = null
+            });
+        }
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetCompanyDropdown([FromQuery] string? search)
+        {
+            var data = await service.GetCompanyDropdown(search);
+
+            if (!data.Any())
+            {
+                return Ok(new ApiResponse<List<CompanyDropdownDTO>>
+                {
+                    Success = true,
+                    Message = !string.IsNullOrEmpty(search)
+                        ? $"No company found for '{search}'."
+                        : "No companies found.",
+                    Data = new List<CompanyDropdownDTO>(),
+                    Error = null
+                });
+            }
+
+            return Ok(new ApiResponse<List<CompanyDropdownDTO>>
+            {
+                Success = true,
+                Message = "Company dropdown fetched successfully.",
+                Data = data,
                 Error = null
             });
         }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Backend_Fincore.DTOs
+namespace Backend_Fincore.Application.DTOs.Company
 {
     public class CompanyWriteDTO
     {
