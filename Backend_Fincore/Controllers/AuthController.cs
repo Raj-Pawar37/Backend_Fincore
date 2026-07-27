@@ -38,18 +38,19 @@ namespace Backend_Fincore.Controllers
                     Expires = DateTime.UtcNow.AddMinutes(15)
                 });
 
-                Response.Cookies.Append("refreshToken", response.RefreshToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = response.RefreshTokenExpiry
-                });
+                //Response.Cookies.Append("refreshToken", response.RefreshToken, new CookieOptions
+                //{
+                //    HttpOnly = true,
+                //    Secure = true,
+                //    SameSite = SameSiteMode.Strict,
+                //    Expires = response.RefreshTokenExpiry
+                //});
 
                 var authData = new AuthResponseDto
                 {
                     AccessToken = response.AccessToken,
-                    RefreshToken = response.RefreshToken,
+                    //RefreshToken = response.RefreshToken,
+                    RefreshToken = null,
                     RefreshTokenExpiry = response.RefreshTokenExpiry
                 };
 

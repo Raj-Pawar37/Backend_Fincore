@@ -15,16 +15,18 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext db;
         private readonly ITokenService tokenService;
+        private readonly ICurrentUserService  Current;
 
 
         private static readonly TimeSpan RefreshTokenExpiry = TimeSpan.FromDays(1);
 
         public object Base34Encoding { get; private set; }
 
-        public AuthService(AppDbContext db, ITokenService tokenService)
+        public AuthService(AppDbContext db, ITokenService tokenService, ICurrentUserService current)
         {
             this.db = db;
             this.tokenService = tokenService;
+            this.Current = current;
         }
 
 
@@ -105,8 +107,8 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<AuthResponseDto> RefreshTokenAsync(TokenRequestDto tokenRequestDto)
         {
             if (tokenRequestDto == null ||
-                string.IsNullOrWhiteSpace(tokenRequestDto.AccessToken) ||
-                string.IsNullOrWhiteSpace(tokenRequestDto.RefreshToken))
+                string.IsNullOrWhiteSpace(tokenRequestDto.AccessToken)) //||
+                //string.IsNullOrWhiteSpace(tokenRequestDto.RefreshToken))
             {
                 throw new ArgumentException("Invalid Request.");
             }
@@ -122,15 +124,22 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new ArgumentException("Invalid Access Token.");
             }
 
-            int userId = Convert.ToInt32(
-                principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            int userId = Current.UserId;
+
+
+            //var refreshToken = await db.UserToken
+            //    .FirstOrDefaultAsync(x =>
+            //        x.UserId == userId &&
+            //       // x.Token == tokenRequestDto.RefreshToken &&
+            //        x.TokenType == "RefreshToken" &&
+            //        x.IsActive == 1);
 
             var refreshToken = await db.UserToken
-                .FirstOrDefaultAsync(x =>
-                    x.UserId == userId &&
-                    x.Token == tokenRequestDto.RefreshToken &&
-                    x.TokenType == "RefreshToken" &&
-                    x.IsActive == 1);
+     .Where(x => x.UserId == userId)
+     //.Select(x => x.Token)
+     .FirstOrDefaultAsync(); // or SingleOrDefaultAsync()
+
+
 
             if (refreshToken == null)
                 throw new UnauthorizedAccessException("Invalid Refresh Token.");

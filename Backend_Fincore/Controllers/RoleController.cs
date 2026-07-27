@@ -62,7 +62,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet("dropdown")]
-        public async Task<IActionResult> getRoleDropdown([FromQuery] string? searchText)
+        public async Task<IActionResult> GetRoleDropdown([FromQuery] string? searchText)
         {
             var list = await _roleService.GetRoleDropdown(searchText);
             return Ok(new ApiResponse<List<RoleDropdownDTO>>
