@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.QuotationItem
 {
-    public class QuotationItemCUDTO
+    public class QuotationItemUDTO
     {
         public int QuotationItemId { get; set; }
+        public int isActive { get; set; }
 
         public int QuotationId { get; set; }
 

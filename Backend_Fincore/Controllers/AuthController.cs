@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace Backend_Fincore.Controllers
 {
     [ApiController]
-    [Route("api/auth")]
+    [Route("api/v1/auth")]
     [EnableRateLimiting("fixed")]
     public class AuthController : ControllerBase
     {

@@ -9,9 +9,9 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IQuotationItemService
     {
-        Task AddQuotationItem(QuotationItemCUDTO dto);
+        Task AddQuotationItem(QuotationItemCDTO dto);
 
-        Task UpdateQuotationItem(QuotationItemCUDTO dto);
+        Task UpdateQuotationItem(QuotationItemUDTO dto);
 
         Task DeleteQuotationItem(int quotationItemId);
 
