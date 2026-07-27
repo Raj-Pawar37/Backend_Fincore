@@ -20,6 +20,8 @@ namespace Backend_Fincore.Application.Interface
         Task<ExpenseClaimReadDTO> Verify(int expenseClaimId,int verifiedBy,ExpenseClaimVerifyDTO dto);
 
         Task<int> GetExpenseClaimCount(PaginationDTO pagination);
+
+        Task<List<ExpenseClaimDropdownDTO>> GetDropdown();
     }
 
 }
