@@ -25,5 +25,8 @@ namespace Backend_Fincore.Application.DTOs.Quotation
         public string? Desc { get; set; }
 
         public string? VendorName { get; set; }
+        public string? RFQNumber { get; set; }
+
+
     }
 }

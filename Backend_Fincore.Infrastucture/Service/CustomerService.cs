@@ -1,9 +1,15 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Customer;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Backend_Fincore.Infrastucture.Service
 {
@@ -12,18 +18,31 @@ namespace Backend_Fincore.Infrastucture.Service
         private readonly AppDbContext db;
         private readonly IMapper mapper;
         private readonly ICurrentUserService currentUser;
-        public CustomerService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser )
+        private readonly IMemoryCache cache;
+
+        private const string CacheKeyList = "Cache_Customer_List_";
+        private const string CacheKeySingle = "Cache_Customer_Id_";
+        private const string CacheKeyCount = "Cache_Customer_Count_";
+
+        public CustomerService(
+            AppDbContext db,
+            IMapper mapper,
+            ICurrentUserService currentUser,
+            IMemoryCache cache)
         {
             this.db = db;
             this.mapper = mapper;
             this.currentUser = currentUser;
+            this.cache = cache;
         }
 
         public async Task<CustomerReadDTO> AddCutomer(CustomerWriteDTO c)
         {
             var data = mapper.Map<Customer>(c);
-            data.CreatedAt= DateTime.Now;
+            data.IsActive = 1;
+            data.CreatedAt = DateTime.Now;
             data.CreatedBy = currentUser.UserId;
+
             await db.Customer.AddAsync(data);
             await db.SaveChangesAsync();
 
@@ -31,14 +50,15 @@ namespace Backend_Fincore.Infrastucture.Service
                 .Include(x => x.Company)
                 .FirstOrDefaultAsync(x => x.CustomerId == data.CustomerId);
 
+            ClearCustomerCache();
+
             return mapper.Map<CustomerReadDTO>(mdata);
         }
 
-      
-
         public async Task<bool> DeleteCustomer(int id)
         {
-            var customer = await db.Customer.FindAsync(id);
+            var customer = await db.Customer
+                .FirstOrDefaultAsync(x => x.CustomerId == id && x.IsActive == 1);
 
             if (customer == null)
                 return false;
@@ -48,7 +68,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (hasRevenue)
             {
-                throw new Exception("Customer cannot be deleted because it has revenue entries.");
+                throw new InvalidOperationException("Customer cannot be deleted because it has revenue entries.");
             }
 
             bool hasInvoices = await db.ARInvoice
@@ -56,20 +76,33 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (hasInvoices)
             {
-                throw new Exception("Customer cannot be deleted because it has AR invoices.");
+                throw new InvalidOperationException("Customer cannot be deleted because it has AR invoices.");
             }
 
-            db.Customer.Remove(customer);
+            // Soft Delete
+            customer.IsActive = 0;
+            customer.ModifiedAt = DateTime.Now;
+            customer.ModifiedBy = currentUser.UserId;
 
             await db.SaveChangesAsync();
+
+            ClearCustomerCache();
 
             return true;
         }
 
         public async Task<List<CustomerReadDTO>> GetAll(PaginationDTO pagination)
         {
+            string cacheKey = $"{CacheKeyList}Page_{pagination.PageNumber}_Size_{pagination.PageSize}_Search_{pagination.Search ?? "None"}";
+
+            if (cache.TryGetValue(cacheKey, out List<CustomerReadDTO>? cachedList) && cachedList != null)
+            {
+                return cachedList;
+            }
+
             var search = db.Customer
                 .Include(x => x.Company)
+                .Where(x => x.IsActive == 1)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(pagination.Search))
@@ -86,27 +119,48 @@ namespace Backend_Fincore.Infrastucture.Service
                 .Take(pagination.PageSize)
                 .ToListAsync();
 
-            return mapper.Map<List<CustomerReadDTO>>(data);
+            var result = mapper.Map<List<CustomerReadDTO>>(data);
+
+            cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+
+            return result;
         }
-
-
 
         public async Task<CustomerReadDTO> GetById(int id)
         {
+            string cacheKey = $"{CacheKeySingle}{id}";
+
+            if (cache.TryGetValue(cacheKey, out CustomerReadDTO? cachedItem) && cachedItem != null)
+            {
+                return cachedItem;
+            }
+
             var data = await db.Customer
                 .Include(x => x.Company)
-                .FirstOrDefaultAsync(x => x.CustomerId == id);
+                .FirstOrDefaultAsync(x => x.CustomerId == id && x.IsActive == 1);
 
             if (data == null)
                 return null;
 
-            return mapper.Map<CustomerReadDTO>(data);
+            var result = mapper.Map<CustomerReadDTO>(data);
+
+            cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+
+            return result;
         }
 
         public async Task<int> GetTotalCustomerRecords(string? search)
         {
+            string cacheKey = $"{CacheKeyCount}Search_{search ?? "None"}";
+
+            if (cache.TryGetValue(cacheKey, out int cachedCount))
+            {
+                return cachedCount;
+            }
+
             var data = db.Customer
                 .Include(x => x.Company)
+                .Where(x => x.IsActive == 1)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -118,12 +172,17 @@ namespace Backend_Fincore.Infrastucture.Service
                 );
             }
 
-            return await data.CountAsync();
+            int count = await data.CountAsync();
+
+            cache.Set(cacheKey, count, TimeSpan.FromMinutes(10));
+
+            return count;
         }
 
         public async Task<bool> UpdateCustomer(int id, CustomerWriteDTO c)
         {
-            var data = await db.Customer.FindAsync(id);
+            var data = await db.Customer
+                .FirstOrDefaultAsync(x => x.CustomerId == id && x.IsActive == 1);
 
             if (data == null)
                 return false;
@@ -131,9 +190,20 @@ namespace Backend_Fincore.Infrastucture.Service
             mapper.Map(c, data);
             data.ModifiedAt = DateTime.Now;
             data.ModifiedBy = currentUser.UserId;
+
             await db.SaveChangesAsync();
 
+            ClearCustomerCache();
+
             return true;
+        }
+
+        private void ClearCustomerCache()
+        {
+            if (cache is MemoryCache memoryCache)
+            {
+                memoryCache.Compact(1.0);
+            }
         }
     }
 }

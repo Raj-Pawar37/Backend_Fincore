@@ -1,5 +1,5 @@
-﻿using Backend_Fincore.DTOs;
-using Backend_Fincore.Response;
+﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -7,12 +7,11 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IRolePermissionService
     {
-        Task<ApiResponse<IEnumerable<RolePermissionResponseDto>>> GetAllAsync();
-        Task<ApiResponse<RolePermissionResponseDto>> GetByIdAsync(int id);
-        Task<ApiResponse<IEnumerable<RolePermissionResponseDto>>> GetByRoleIdAsync(int roleId);
-        Task<ApiResponse<RolePermissionResponseDto>> CreateAsync(RolePermissionDTOs dto);
-        Task<ApiResponse<RolePermissionResponseDto>> UpdateAsync(int id, RolePermissionDTOs dto);
-        Task<ApiResponse<bool>> DeleteAsync(int id);
-        Task<ApiResponse<bool>> DeleteRolePermissionAsync(int id);
+        Task<(List<RolePermissionResponseDTO> Items, int TotalRecords)> GetAllAsync(PaginationDTO pagination);
+        Task<RolePermissionResponseDTO> GetByIdAsync(int id);
+        Task<List<RolePermissionResponseDTO>> GetByRoleIdAsync(int roleId);
+        Task<RolePermissionResponseDTO> CreateAsync(RolePermissionDTO dto);
+        Task<RolePermissionResponseDTO> UpdateAsync(int id, RolePermissionDTO dto);
+        Task<bool> DeleteAsync(int id);
     }
 }

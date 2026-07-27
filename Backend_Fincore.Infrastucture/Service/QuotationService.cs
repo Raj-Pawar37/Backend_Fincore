@@ -13,26 +13,26 @@ namespace Backend_Fincore.Infrastucture.Service
 
         private readonly AppDbContext db;
         private readonly IMapper mapper;
+        private readonly ICurrentUserService currentUser;
 
 
-
-        public QuotationService(AppDbContext db, IMapper mapper)
+        public QuotationService(AppDbContext db, IMapper mapper, ICurrentUserService currentUser)
         {
             this.db = db;
             this.mapper = mapper;
+            this.currentUser = currentUser;
         }
 
 
-        public async Task AddQuotation(QuotationCUDTO dto)
+        public async Task AddQuotation(QuotationCDTO dto)
         {
-            int userId = 1;
-            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == dto.RFQId);
+            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == dto.RFQId && x.IsActive == 1);
             if (!rfqExists)
             {
                 throw new Exception("RFQ not found.");
             }
 
-            var rfqVendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.RFQVendorId == dto.RFQVendorId && x.RFQId == dto.RFQId);
+            var rfqVendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.RFQVendorId == dto.RFQVendorId && x.RFQId == dto.RFQId && x.IsActive == 1);
             if (rfqVendor == null)
             {
                 throw new Exception("The selected vendor does not belong to this RFQ.");
@@ -44,14 +44,14 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Quotation number already exists.");
             }
 
-            var existingVendorQuotation = await db.Quotation.AnyAsync(x => x.RFQId == dto.RFQId && x.RFQVendorId == dto.RFQVendorId);
+            var existingVendorQuotation = await db.Quotation.AnyAsync(x => x.RFQId == dto.RFQId && x.RFQVendorId == dto.RFQVendorId && x.IsActive == 1);
             if (existingVendorQuotation)
             {
                 throw new Exception("This vendor has already submitted a quotation for this RFQ.");
             }
 
             var quotation = mapper.Map<Quotation>(dto);
-            quotation.CreatedBy = userId;
+            quotation.CreatedBy = currentUser.UserId;
             quotation.CreatedAt = DateTime.UtcNow;
             quotation.IsActive = 1;
 
@@ -62,7 +62,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task DeleteQuotation(int quotationId)
         {
-            var quotation = await db.Quotation.FirstOrDefaultAsync(x => x.QuotationId == quotationId);
+            var quotation = await db.Quotation.FirstOrDefaultAsync(x => x.QuotationId == quotationId && x.IsActive == 1);
 
             if (quotation == null)
             {
@@ -74,7 +74,9 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception($"A {quotation.Status} quotation cannot be deleted.");
             }
 
-            db.Quotation.Remove(quotation);
+            quotation.IsActive = 0;
+            quotation.ModifiedBy = currentUser.UserId;
+            quotation.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
 
         }
@@ -83,6 +85,7 @@ namespace Backend_Fincore.Infrastucture.Service
         {
             var data = await db.Quotation
                 .AsNoTracking()
+                .Where(x=> x.IsActive == 1)
                 .Select(x => new QuotationDTO
                 {
                     QuotationId = x.QuotationId,
@@ -102,7 +105,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<QuotationDTO> GetQuotationById(int quotationId)
         {
-            var data = await db.Quotation.AsNoTracking().Where(x => x.QuotationId == quotationId)
+            var data = await db.Quotation.AsNoTracking().Where(x => x.QuotationId == quotationId && x.IsActive == 1)
                 .Select(x => new QuotationDTO
                 {
                     QuotationId = x.QuotationId,
@@ -127,46 +130,34 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<QuotationDTO>> GetQuotationByRFQId(int rfqId)
         {
-            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == rfqId);
+            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == rfqId && x.IsActive == 1);
             if (!rfqExists)
             {
                 throw new Exception("RFQ not found.");
             }
 
-            var data = await db.Quotation.AsNoTracking().Where(x =>x.RFQId == rfqId)
+            var data = await db.Quotation.AsNoTracking().Where(x =>x.RFQId == rfqId && x.IsActive == 1)
                 .OrderBy(x => x.Amount)
-                .Select(x => new QuotationDTO
-                {
-                    QuotationId = x.QuotationId,
-                    RFQId = x.RFQId,
-                    RFQVendorId = x.RFQVendorId,
-                    QuotationNumber = x.QuotationNumber,
-                    Amount = x.Amount,
-                    Status = x.Status,
-                    Desc = x.Description,
-                    VendorName = x.RFQVendor.Vendor.VendorName
-                })
                 .ToListAsync();
 
-            return data;
+            return mapper.Map<List<QuotationDTO>>(data);
         }
 
-        public async Task UpdateQuotation(QuotationCUDTO dto)
+        public async Task UpdateQuotation(QuotationUDTO dto)
         {
-            int userId = 1;
-            var quotation = await db.Quotation.FirstOrDefaultAsync(x =>x.QuotationId == dto.QuotationId );
+            var quotation = await db.Quotation.FirstOrDefaultAsync(x =>x.QuotationId == dto.QuotationId && x.IsActive == 1);
             if (quotation == null)
             {
                 throw new Exception("Quotation not found.");
             }
 
-            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == dto.RFQId);
+            var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == dto.RFQId && x.IsActive == 1);
             if (!rfqExists)
             {
                 throw new Exception("RFQ not found.");
             }
 
-            var rfqVendor = await db.RFQVendor.FirstOrDefaultAsync(x =>x.RFQVendorId == dto.RFQVendorId && x.RFQId == dto.RFQId);
+            var rfqVendor = await db.RFQVendor.FirstOrDefaultAsync(x =>x.RFQVendorId == dto.RFQVendorId && x.RFQId == dto.RFQId && x.IsActive == 1);
             if (rfqVendor == null)
             {
                 throw new Exception("The selected vendor does not belong to this RFQ.");
@@ -178,7 +169,10 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Another quotation already exists with this quotation number.");
             }
 
-            var vendorQuotationExists = await db.Quotation.AnyAsync(x =>x.RFQId == dto.RFQId && x.RFQVendorId == dto.RFQVendorId && x.QuotationId != dto.QuotationId);
+            var vendorQuotationExists = await db.Quotation.AnyAsync(x => x.RFQId == dto.RFQId &&
+                x.RFQVendorId == dto.RFQVendorId &&
+                x.QuotationId != dto.QuotationId &&
+                x.IsActive == 1);
 
             if (vendorQuotationExists)
             {
@@ -191,7 +185,7 @@ namespace Backend_Fincore.Infrastucture.Service
             quotation.Status = dto.Status;
             quotation.Description = dto.Desc;
 
-            quotation.ModifiedBy = userId;
+            quotation.ModifiedBy = currentUser.UserId;
             quotation.ModifiedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();
