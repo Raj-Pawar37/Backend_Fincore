@@ -6,16 +6,15 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.Quotation
 {
-    public class QuotationCUDTO
+    public class QuotationUDTO
     {
-        public int? QuotationId { get; set; }
+        public int QuotationId{ get; set; }
         public int RFQId { get; set; }
-
         public int RFQVendorId { get; set; }
 
         public string QuotationNumber { get; set; } = string.Empty;
 
-        public decimal Amount { get; set; }
+        public int isActive { get; set; }
 
         public DateTime QuotationDate { get; set; }
 
