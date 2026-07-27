@@ -17,7 +17,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<DocumentReadDTO> AddDocument(DocumentWriteDTO dto);
 
-        Task UpdateDocument(int id, DocumentWriteDTO dto);
+        Task UpdateDocument(int id, DocumentUpdateDTO dto);
 
         Task DeleteDocument(int id);
     }
