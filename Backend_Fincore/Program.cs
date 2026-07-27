@@ -220,7 +220,7 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 
 });
 
-
+builder.Services.AddMemoryCache();
 
 
 

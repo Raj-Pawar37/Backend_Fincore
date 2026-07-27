@@ -26,6 +26,7 @@ using Backend_Fincore.Models.Backend_Fincore.Models;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.Payment;
+using Backend_Fincore.Application.DTOs.GRNItems;
 
 
 

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.GRNItems;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Domain.Models;
@@ -36,33 +37,108 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<GRNItemsDTO>> getAllGrnItems(PaginationDTO pagination)
         {
-            var data = db.GRNItem.Include(x => x.POItem).AsQueryable();
+            var user = await db.User.Include(x => x.Role)
+                .FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
 
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            if (user.Role == null)
+            {
+                throw new Exception("Role not found.");
+            }
+
+            IQueryable<GRNItem> query = db.GRNItem
+                                          .Include(x => x.POItem)
+                                          .Include(x => x.GRN)
+                                          .ThenInclude(x => x.PurchaseOrder)
+                                          .Where(x => x.IsActive == 1);
+
+            
+            if (user.Role.RoleName == "User" || user.Role.RoleName == "Employee")
+            {
+                throw new Exception("You are not authorized.");
+            }
+
+            // Manager / HOD / Senior Manager
+            else if (user.Role.RoleName == "Manager" ||
+                     user.Role.RoleName == "HOD" ||
+                     user.Role.RoleName == "Senior Manager")
+            {
+                var employee = await db.Employee
+                                      .FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
+
+                if (employee == null)
+                {
+                    throw new Exception("Employee not found.");
+                }
+
+                var empIds = await db.Employee
+                                     .Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
+                                     .Select(x => x.EmployeeId)
+                                     .ToListAsync();
+
+                var userIds = await db.User
+                             .Where(x => x.MasterType == "Employee"
+                             && x.IsActive == 1
+                             && empIds.Contains(x.MasterId)
+                             && (x.Role.RoleName == "Manager"
+                              || x.Role.RoleName == "HOD"
+                              || x.Role.RoleName == "Senior Manager"))
+                    .Select(x => x.UserId)
+                    .ToListAsync();
+
+                query = query.Where(x => userIds.Contains(x.GRN.CreatedBy));
+            }
+
+            
+            else if (user.Role.RoleName == "Vendor")
+            {
+                query = query.Where(x => x.GRN.PurchaseOrder.VendorId == user.MasterId);
+            }
+
+            
+            else if (user.Role.RoleName == "CFO")
+            {
+                // No filter
+            }
+            else
+            {
+                throw new Exception("Invalid role.");
+            }
+
+            // Search
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                data = data.Where(x =>
+                query = query.Where(x =>
                     x.POItem.ItemName.Contains(pagination.Search) ||
                     x.GRN.Status.Contains(pagination.Search));
             }
 
-            var result = await data.OrderByDescending(x => x.CreatedAt)
-                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                                   .Take(pagination.PageSize)
-                                   .ToListAsync();
+            // Pagination
+            var result = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
+                .ToListAsync();
 
-
-            return mapper.Map<List<GRNItemsDTO>>(result); 
+            return mapper.Map<List<GRNItemsDTO>>(result);
         }
 
         public async Task<GRNItemsDTO> GetGRNItemById(int id)
         {
-            var data = await db.GRNItem.Include(x => x.GRN).Include(x => x.POItem)
-                             .FirstOrDefaultAsync(x => x.GRNItemId == id);
+            var data = await db.GRNItem
+                            .Include(x => x.GRN)
+                            .Include(x => x.POItem)
+                            .FirstOrDefaultAsync(x => x.GRNItemId == id && x.IsActive == 1);
 
             if (data == null)
             {
                 throw new Exception("GRN Item not found.");
             }
+
 
             return mapper.Map<GRNItemsDTO>(data);
         }
@@ -70,9 +146,10 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task DeleteGRNItem(int id)
         {
-           
-            var grnItem = await db.GRNItem.Include(x => x.GRN).Include(x => x.POItem)
-                               .FirstOrDefaultAsync(x => x.GRNItemId == id);
+            var grnItem = await db.GRNItem
+                .Include(x => x.GRN)
+                .Include(x => x.POItem)
+                .FirstOrDefaultAsync(x => x.GRNItemId == id && x.IsActive == 1);
 
             if (grnItem == null)
             {
@@ -85,9 +162,14 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
           
-             grnItem.POItem.Status = "Not Received";
+            grnItem.POItem.Status = "Pending";
+            grnItem.POItem.ModifiedBy = current.UserId;
+            grnItem.POItem.ModifiedAt = DateTime.Now;
 
-            db.GRNItem.Remove(grnItem);
+            
+            grnItem.IsActive = 0;
+            grnItem.ModifiedBy = current.UserId;
+            grnItem.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
         }
@@ -95,8 +177,8 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task AddGRNItem(GRNItemsCUDTO dto)
         {
-           
-            var grn = await db.GRN.FirstOrDefaultAsync(x => x.GRNId == dto.GRNId);
+            var grn = await db.GRN
+                .FirstOrDefaultAsync(x => x.GRNId == dto.GRNId && x.IsActive == 1);
 
             if (grn == null)
             {
@@ -108,7 +190,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Cannot add items. GRN is already Received.");
             }
 
-            var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == dto.POItemId);
+            var poItem = await db.PurchaseOrderItem
+                .FirstOrDefaultAsync(x => x.POItemId == dto.POItemId && x.IsActive == 1);
 
             if (poItem == null)
             {
@@ -120,50 +203,26 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("This Purchase Order Item is already Received.");
             }
 
-         
-            bool exists = await db.GRNItem.AnyAsync(x => x.POItemId == dto.POItemId);
+            bool exists = await db.GRNItem.AnyAsync(x =>
+                x.POItemId == dto.POItemId &&
+                x.IsActive == 1);
 
             if (exists)
             {
-                throw new Exception("This Purchase Order Item already exists in a GRN Items.");
+                throw new Exception("This Purchase Order Item already exists in a GRN.");
             }
 
             var item = mapper.Map<GRNItem>(dto);
 
-            item.CreatedBy =current.UserId;
+            item.CreatedBy = current.UserId;
             item.CreatedAt = DateTime.Now;
 
-            db.GRNItem.Add(item);
-
-            // Update PO Item Status
-            poItem.Status = "Received";      
-            poItem.ModifiedBy = current.UserId;
-            poItem.ModifiedAt = DateTime.Now;
+            await db.GRNItem.AddAsync(item);
 
             await db.SaveChangesAsync();
         }
 
-        public async Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto)
-        {
-            var query = db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == dto.PurchaseOrderId).AsQueryable();
 
-
-            if (!string.IsNullOrWhiteSpace(dto.Status))
-            {
-                query = query.Where(x => x.Status == dto.Status);
-            }
-
-            
-            if (!string.IsNullOrWhiteSpace(dto.SearchText))
-            {
-                query = query.Where(x => x.ItemName.Contains(dto.SearchText));
-            }
-
-            
-            var result = await query.OrderBy(x => x.ItemName).Take(20).ToListAsync();
-
-            return mapper.Map<List<POItemsSearchDTO>>(result);
-        }
 
     }
 }

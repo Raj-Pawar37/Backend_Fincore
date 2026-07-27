@@ -27,14 +27,14 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task AddGrn(GRNCUDTO grn)
         {
-            var purchsedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId);
+            var purchsedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId && x.IsActive == 1);
 
             if (purchsedOrder == null)
             {
                 throw new Exception("Purchase Order not found.");
             }
 
-            var GRNName = await db.GRN.FirstOrDefaultAsync(x => x.GRNNumber == grn.GRNNumber);
+            var GRNName = await db.GRN.FirstOrDefaultAsync(x => x.GRNNumber == grn.GRNNumber && x.IsActive == 1);
 
             if (GRNName != null)
             {
@@ -69,7 +69,7 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task DeletegrnById(int id)
         {
 
-            var grn = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id);
+            var grn = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id && x.IsActive == 1);
 
             if (grn == null)
             {
@@ -81,18 +81,28 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Received GRN cannot be deleted.");
             }
 
-            foreach (var item in grn.GRNItems)
+            foreach (var item in grn.GRNItems.Where(x => x.IsActive == 1))
             {
-                var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == item.POItemId);
+                // Update PO Item Status
+                var poItem = await db.PurchaseOrderItem
+                              .FirstOrDefaultAsync(x => x.POItemId == item.POItemId && x.IsActive == 1);
 
                 if (poItem != null)
                 {
-                    poItem.Status = "Not Recived";
+                    poItem.Status = "Pending";
+                    poItem.ModifiedBy = current.UserId;
+                    poItem.ModifiedAt = DateTime.Now;
                 }
+
+               
+                item.IsActive = 0;
+                item.ModifiedBy = current.UserId;
+                item.ModifiedAt = DateTime.Now;
             }
 
-            db.GRNItem.RemoveRange(grn.GRNItems);
-            db.GRN.Remove(grn);
+            grn.IsActive = 0;
+            grn.ModifiedBy = current.UserId;
+            grn.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
@@ -118,9 +128,9 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Role not exists");
             }
 
-            IQueryable<GRN> query = db.GRN.Include(x => x.PurchaseOrder).AsQueryable();
+            IQueryable<GRN> query = db.GRN.Include(x => x.PurchaseOrder).ThenInclude(x => x.Vendor).Where(x => x.IsActive == 1).AsQueryable();
 
-            if (user.Role.RoleName == "User")
+            if (user.Role.RoleName == "User" || user.Role.RoleName == "Employee")
             {
                 throw new Exception("You are not authorized.");
             }
@@ -129,18 +139,20 @@ namespace Backend_Fincore.Infrastucture.Service
             else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
             {
 
-                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
+                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
 
                 if (employee == null)
                 {
                     throw new Exception("Employee not found");
                 }
 
-                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
+                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
                                    .Select(x => x.EmployeeId).ToListAsync();
 
                 var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
-                                    .Contains(x.MasterId)).Select(x => x.UserId).ToListAsync();
+                                    .Contains(x.MasterId) && (x.Role.RoleName == "Manager"
+                                    || x.Role.RoleName == "HOD" || x.Role.RoleName == "Senior Manager"))
+                                    .Select(x => x.UserId).ToListAsync();
 
                 query = query.Where(x => userIds.Contains(x.CreatedBy));
 
@@ -190,21 +202,19 @@ namespace Backend_Fincore.Infrastucture.Service
         {
             var grn = await db.GRN.Include(x => x.PurchaseOrder)
                            .Include(x => x.ReceivedByUser)
-                          .FirstOrDefaultAsync(x => x.GRNId == id);
+                          .FirstOrDefaultAsync(x => x.GRNId == id && x.IsActive == 1);
 
-            if (grn != null)
+            if (grn == null)
             {
-                var data = mapper.Map<GRNDTO>(grn);
-
-                return data;
+                throw new Exception("GRN not found.");
             }
 
-            return null;
+            return mapper.Map<GRNDTO>(grn);
         }
 
         public async Task UpdateGRN(GRNCUDTO grn, int id)
         {
-            var data = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id);
+            var data = await db.GRN.Include(x => x.GRNItems).FirstOrDefaultAsync(x => x.GRNId == id && x.IsActive == 1);
 
 
             if (data == null)
@@ -212,7 +222,13 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("GRN not found.");
             }
 
-            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId);
+            if (data.Status == "Received")
+            {
+                throw new Exception("Received GRN cannot be edited.");
+            }
+
+
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId && x.IsActive == 1);
 
 
             if (purchaseOrder == null)
@@ -220,7 +236,13 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Purchase Order not found");
             }
 
-            bool exists = await db.GRN.AnyAsync(x => x.GRNNumber == grn.GRNNumber && x.GRNId != id);
+            if (purchaseOrder.Status != "Issued")
+            {
+                throw new Exception("Only Issued Purchase Orders can be linked to GRN.");
+            }
+
+
+            bool exists = await db.GRN.AnyAsync(x => x.GRNNumber == grn.GRNNumber && x.GRNId != id && x.IsActive == 1);
 
 
             if (exists)
@@ -228,17 +250,6 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("GRN Number already exists.");
             }
 
-
-            if (data.Status == "Received")
-            {
-                throw new Exception("Received GRN cannot be edited.");
-            }
-
-
-            if (purchaseOrder.Status != "Issued")
-            {
-                throw new Exception("Only Issued Purchase Orders can be linked to GRN.");
-            }
 
             if (grn.ReceivedDate > DateTime.Now)
             {
@@ -261,7 +272,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
 
-            mapper.Map<GRN>(data);
+            mapper.Map(grn, data);
 
 
             data.ModifiedBy = current.UserId;
@@ -275,46 +286,65 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task UpdateGRNStatus(int id, GrnStatusDTO dto)
         {
-            var grn = await db.GRN.Include(x => x.GRNItems)
-                              .FirstOrDefaultAsync(x => x.GRNId == id);
+            var grn = await db.GRN.Include(x => x.GRNItems.Where(i => i.IsActive == 1))
+                            .FirstOrDefaultAsync(x => x.GRNId == id && x.IsActive == 1);
 
             if (grn == null)
             {
                 throw new Exception("GRN not found.");
             }
 
-
-            if (grn.Status == dto.Status)
+            if (grn.Status == "Received")
             {
-                throw new Exception($"GRN is already {dto.Status}.");
+                throw new Exception("GRN is already Received.");
             }
 
-        
-            if (dto.Status != "Draft" &&
-                dto.Status != "Pending" &&
-                dto.Status != "Received" &&
-                dto.Status != "Rejected")
+            if (dto.Status != "Received")
             {
-                throw new Exception("Invalid GRN status.");
+                throw new Exception("GRN status can only be changed to Received.");
             }
 
-            grn.Status = dto.Status;
+            if (!grn.GRNItems.Any())
+            {
+                throw new Exception("At least one GRN Item is required before marking the GRN as Received.");
+            }
+
+           
+            grn.Status = "Received";
             grn.ModifiedBy = current.UserId;
             grn.ModifiedAt = DateTime.Now;
 
-            if (dto.Status == "Received")
+           
+            foreach (var item in grn.GRNItems)
             {
-                foreach (var item in grn.GRNItems)
-                {
-                    var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == item.POItemId);
+                var poItem = await db.PurchaseOrderItem
+                    .FirstOrDefaultAsync(x => x.POItemId == item.POItemId && x.IsActive == 1);
 
-                    if (poItem != null)
-                    {
-                        poItem.Status = "Received";
-                    }
+                if (poItem != null)
+                {
+                    poItem.Status = "Received";
+                    poItem.ModifiedBy = current.UserId;
+                    poItem.ModifiedAt = DateTime.Now;
                 }
             }
 
+            
+            var purchaseOrder = await db.PurchaseOrder
+                .FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId && x.IsActive == 1);
+
+            if (purchaseOrder != null)
+            {
+                bool allReceived = await db.PurchaseOrderItem
+                    .Where(x => x.PurchaseOrderId == purchaseOrder.PurchaseOrderId && x.IsActive == 1)
+                    .AllAsync(x => x.Status == "Received");
+
+                if (allReceived)
+                {
+                    purchaseOrder.Status = "Completed";
+                    purchaseOrder.ModifiedBy = current.UserId;
+                    purchaseOrder.ModifiedAt = DateTime.Now;
+                }
+            }
 
             await db.SaveChangesAsync();
         }

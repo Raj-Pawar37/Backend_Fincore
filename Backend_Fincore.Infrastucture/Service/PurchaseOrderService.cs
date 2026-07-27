@@ -2,7 +2,7 @@
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.AccountMaster;
 using Backend_Fincore.Application.DTOs.PurchaseOrder;
-
+using Microsoft.Extensions.Caching.Memory;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.PurchaseOrder;
@@ -21,19 +21,22 @@ namespace Backend_Fincore.Infrastucture.Service
         IMapper mapper;
 
         private readonly ICurrentUserService current;
-        public PurchaseOrderService(AppDbContext db, IMapper mapper,ICurrentUserService current)
+
+        private readonly IMemoryCache cache;
+        public PurchaseOrderService(AppDbContext db, IMapper mapper, ICurrentUserService current, IMemoryCache cache)
         {
             this.db = db;
 
             this.mapper = mapper;
             this.current = current;
+            this.cache = cache;
         }
 
         public async Task AddPurchaseOrderData(PurchaseOrderCUDTO PO)
         {
 
             var quotation = await db.Quotation.Include(x => x.RFQVendor)
-                                 .FirstOrDefaultAsync(x => x.QuotationId == PO.QuotationId);
+                                 .FirstOrDefaultAsync(x => x.QuotationId == PO.QuotationId && x.IsActive == 1);
 
 
             if (quotation == null)
@@ -41,20 +44,27 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("quotation not found");
             }
 
+            var vendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.VendorId == PO.VendorId && x.IsActive == 1);
+
+            if (vendor == null)
+            {
+                throw new Exception("vendor not found");
+            }
+
             if (quotation.RFQVendor.VendorId != PO.VendorId)
             {
                 throw new Exception("Selected vendor does not belong to the selected quotation.");
             }
 
-            var poExist = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.QuotationId == PO.QuotationId);
+            var poExist = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.QuotationId == PO.QuotationId && x.IsActive == 1);
 
             if (poExist != null)
             {
                 throw new Exception("Purchsed order for this quotation is alaredy exists");
             }
 
-        
-            var poName = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PONumber == PO.PONumber);
+
+            var poName = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PONumber == PO.PONumber && x.IsActive == 1);
 
             if (poName != null)
             {
@@ -63,7 +73,8 @@ namespace Backend_Fincore.Infrastucture.Service
 
 
             var quotationItems = await db.QuotationItem.Include(x => x.RFQItem)
-                                .Where(x => x.QuotationId == PO.QuotationId).ToListAsync();
+                                .Where(x => x.QuotationId == PO.QuotationId && x.IsActive == 1 && x.Status == "Selected")
+                                .ToListAsync();
 
             if (!quotationItems.Any())
             {
@@ -89,10 +100,11 @@ namespace Backend_Fincore.Infrastucture.Service
             {
                 var PoItems = mapper.Map<PurchaseOrderItem>(items);
 
-                
+
 
                 PoItems.PurchaseOrderId = purchaseOrder.PurchaseOrderId;
                 PoItems.CreatedBy = current.UserId;
+                PoItems.Status = "Pending";
 
                 decimal subTotal = PoItems.Qty * PoItems.UnitPrice;
                 decimal tax = subTotal * (PoItems.Tax ?? 0) / 100;
@@ -102,7 +114,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
                 await db.PurchaseOrderItem.AddAsync(PoItems);
 
-                items.Status = "Selected";
+                  
 
             }
 
@@ -110,149 +122,266 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await db.SaveChangesAsync();
 
+            cache.Remove($"PO_{purchaseOrder.PurchaseOrderId}");
+
 
         }
 
 
         public async Task DeletePurchaseOrderById(int purchasedId)
         {
-            var purchasePrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId && x.IsActive == 1);
 
-            if (purchasePrder == null)
+            if (purchaseOrder == null)
             {
                 throw new Exception("Purchased order not exists");
             }
 
-            var poItemsList = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchasedId).ToListAsync();
-
-
-
-            if (poItemsList.Any())
+            if (purchaseOrder.Status == "Issued" || purchaseOrder.Status == "Completed")
             {
-                db.PurchaseOrderItem.RemoveRange(poItemsList);
+                throw new Exception("Issued or Completed Purchase Orders cannot be deleted.");
+            }
+
+            var poItemsList = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchasedId && x.IsActive == 1).ToListAsync();
+
+
+
+            foreach (var item in poItemsList)
+            {
+                item.IsActive = 0;
+                item.ModifiedBy = current.UserId;
+                item.ModifiedAt = DateTime.Now;
             }
 
 
-            db.PurchaseOrder.Remove(purchasePrder);
+            purchaseOrder.IsActive = 0;
+            purchaseOrder.ModifiedBy = current.UserId;
+            purchaseOrder.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
+
+
+            cache.Remove($"PO_{purchasedId}");
+
+
 
         }
 
         public async Task<int> GetPurchasedOrderCount()
         {
-            return await db.PurchaseOrder.CountAsync();
+            return await db.PurchaseOrder.CountAsync(x=> x.IsActive == 1);
         }
 
-        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof,PaginationDTO pagination)
+        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof, PaginationDTO pagination)
         {
-      
-            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
 
-            if (user == null)
-            {
-                throw new Exception("User not found");
-            }
+            //string cacheKey = $"PO_List_{pof.Status}_{pagination.Search}_{pagination.PageNumber}_{pagination.PageSize}";
 
-            if (user.Role == null)
-            {
-                throw new Exception("Role not Exist");
-            }
 
-            IQueryable<PurchaseOrder> query = db.PurchaseOrder.Include(x => x.Vendor).Include(x => x.Quotation);
+            //if (!cache.TryGetValue(cacheKey, out List<PurchaseOrderDTO> result))
+            //{
 
-            if (user.Role.RoleName == "User" || user.Role.RoleName == "Employee")
-            {
-                throw new Exception("You are not authorized.");
-            }
+                var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
 
-            //manager / senior manager/hod  filter
-
-            else if (user.Role.RoleName =="Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
-
-            {
-                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
-
-                if (employee == null)
+                if (user == null)
                 {
-                    throw new Exception("Employee not found");
+                    throw new Exception("User not found");
                 }
 
-                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
-                                   .Select(x => x.EmployeeId).ToListAsync();
+                if (user.Role == null)
+                {
+                    throw new Exception("Role not Exist");
+                }
 
-                var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
-                                    .Contains(x.MasterId)).Select(x => x.UserId).ToListAsync();
+                IQueryable<PurchaseOrder> query = db.PurchaseOrder.Include(x => x.Vendor)
+                                                  .Include(x => x.Quotation).Where(x => x.IsActive == 1);
 
-                query = query.Where(x => userIds.Contains(x.CreatedBy));
-            }
+                if (user.Role.RoleName == "User" || user.Role.RoleName == "Employee")
+                {
+                    throw new Exception("You are not authorized.");
+                }
 
-            // Vendor
-            else if (user.Role.RoleName == "Vendor")
-            {
-                query = query.Where(x => x.VendorId == user.MasterId);
-            }
+                //manager / senior manager/hod  filter
 
-            else if (user.Role.RoleName == "CFO")
-            {
+                else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
 
-            }
-            else
-            {
-                throw new Exception("Invalid Role.");
-            }
+                {
+                    var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
 
-            if (!string.IsNullOrWhiteSpace(pof.Status))
-            {
-                query = query.Where(x => x.Status == pof.Status);
-            }
+                    if (employee == null)
+                    {
+                        throw new Exception("Employee not found");
+                    }
 
+                    var empIds = await db.Employee.Where(x => x.IsActive == 1)
+                                       .Select(x => x.EmployeeId).ToListAsync();
 
-            if (!string.IsNullOrWhiteSpace(pagination.Search))
-            {
-                query = query.Where(x =>
-                    x.PONumber.Contains(pagination.Search) ||
-                    x.Status.Contains(pagination.Search));
-            }
+                    var userIds = await db.User.Where(x => x.MasterType == "Employee" && x.IsActive == 1 && empIds
+                                        .Contains(x.MasterId))
+                                         .Select(x => x.UserId)
+                                        .ToListAsync();
 
-            var purchaseOrders = await query.OrderByDescending(x => x.CreatedAt).Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                                        .Take(pagination.PageSize).ToListAsync();
+                    query = query.Where(x => userIds.Contains(x.CreatedBy));
+                }
 
-
-            return mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
+                // Vendor
+                else if (user.Role.RoleName == "Vendor")
+                {
+                    var vendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.VendorId == user.MasterId && x.IsActive == 1);
 
 
-        }   
+                    if (vendor == null)
+                    {
+                        throw new Exception("Vendor not found.");
+                    }
+
+                    query = query.Where(x => x.VendorId == user.MasterId);
+                }
+
+                else if (user.Role.RoleName == "CFO")
+                {
+
+                }
+                else
+                {
+                    throw new Exception("Invalid Role.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(pof.Status))
+                {
+                    query = query.Where(x => x.Status == pof.Status);
+                }
+
+
+                if (!string.IsNullOrWhiteSpace(pagination.Search))
+                {
+                    query = query.Where(x =>
+                        x.PONumber.Contains(pagination.Search) ||
+                        x.Status.Contains(pagination.Search));
+                }
+
+                var purchaseOrders = await query.OrderByDescending(x => x.CreatedAt).Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                            .Take(pagination.PageSize).ToListAsync();
+
+
+                 var result = mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
+
+
+            //    var options = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)).SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
+
+            //    cache.Set(cacheKey, result, options);
+            //}
+
+
+            return result;
+
+
+        }
 
         public async Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId)
         {
-            var res = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId);
+            string cacheKey = $"PO_{purchasedId}";
 
 
-            if (res == null)
+            if (!cache.TryGetValue(cacheKey, out PurchaseOrderDTO data))
             {
-                throw new Exception("Purchased order not exists");
+
+                var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
+
+                if (user == null)
+                {
+                    throw new Exception("User not found.");
+                }
+
+                if (user.Role == null)
+                {
+                    throw new Exception("Role not found.");
+                }
+
+                var res = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchasedId && x.IsActive == 1);
+
+                if (res == null)
+                {
+                    throw new Exception("Purchased order not exists");
+                }
+
+                if (user.Role.RoleName == "User" || user.Role.RoleName == "Employee")
+                {
+                    throw new Exception("You are not authorized.");
+                }
+
+                else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "WareHouse Manager" || user.Role.RoleName == "Senior Manager")
+                {
+                    var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
+
+
+                    if (employee == null)
+                    {
+                        throw new Exception("Employee not found.");
+                    }
+
+                    var creator = await db.User
+                        .FirstOrDefaultAsync(x => x.UserId == res.CreatedBy && x.IsActive == 1);
+
+                    if (creator == null)
+                    {
+                        throw new Exception("Creator not found.");
+                    }
+
+                    var creatorEmployee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == creator.MasterId && x.IsActive == 1);
+
+
+                    if (creatorEmployee == null)
+                    {
+                        throw new Exception("Creator employee not found.");
+                    }
+
+                    if (employee.DepartmentId != creatorEmployee.DepartmentId)
+                    {
+                        throw new Exception("You are not authorized.");
+                    }
+                }
+                else if (user.Role.RoleName == "Vendor")
+                {
+                    if (res.VendorId != user.MasterId)
+                    {
+                        throw new Exception("You are not authorized.");
+                    }
+                }
+
+                else if (user.Role.RoleName == "CFO")
+                {
+
+                }
+                else
+                {
+                    throw new Exception("Invalid role.");
+                }
+
+                data = mapper.Map<PurchaseOrderDTO>(res);
+
+                cache.Set(cacheKey, data,
+                                          new MemoryCacheEntryOptions
+                                          {
+                                              SlidingExpiration = TimeSpan.FromMinutes(5),
+                                              AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+                                          });
             }
-
-
-            var data = mapper.Map<PurchaseOrderDTO>(res);
 
             return data;
 
         }
 
 
-
         public async Task UpdatePurchaseOrder(PurchaseOrderCUDTO Po, int id)
         {
-            var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
+            var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == id && x.IsActive == 1);
 
             if (purchasedOrder == null)
             {
                 throw new Exception("Purchased order not exists");
             }
 
-            bool quotationExist = await db.PurchaseOrder.AnyAsync(x => x.QuotationId == Po.QuotationId && x.PurchaseOrderId != id);
-
+            bool quotationExist = await db.PurchaseOrder.AnyAsync(x => x.QuotationId == Po.QuotationId && x.PurchaseOrderId != id && x.IsActive == 1);
 
 
             if (quotationExist)
@@ -260,7 +389,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Purchase Order already exists for this quotation.");
             }
 
-            bool exists = await db.PurchaseOrder.AnyAsync(x => x.PONumber == Po.PONumber && x.PurchaseOrderId != id);
+            bool exists = await db.PurchaseOrder.AnyAsync(x => x.PONumber == Po.PONumber && x.PurchaseOrderId != id && x.IsActive == 1);
 
 
             if (exists)
@@ -268,27 +397,28 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Purchase Order Number already exists.");
             }
 
-            if (purchasedOrder.Status == "Completed")
+            if (purchasedOrder.Status == "Issued" || purchasedOrder.Status == "Completed")
             {
-                throw new Exception("Completed Purchase Order cannot be updated.");
+                throw new Exception("Issued or Completed Purchase Orders cannot be updated.");
             }
-
 
             purchasedOrder.VendorId = Po.VendorId;
             purchasedOrder.QuotationId = Po.QuotationId;
             purchasedOrder.PONumber = Po.PONumber;
             purchasedOrder.ModifiedAt = DateTime.Now;
-            purchasedOrder.Status = Po.Status;
+            purchasedOrder.ModifiedBy = current.UserId;
 
 
             await db.SaveChangesAsync();
+
+            cache.Remove($"PO_{id}");
 
         }
 
 
         public async Task UpdatePOStatus(int purchaseOrderId, PurchasedOrderFilterDTO dto)
         {
-            var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
+            var purchasedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId && x.IsActive == 1);
 
             if (purchasedOrder == null)
             {
@@ -296,29 +426,42 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Purchase Order not found.");
             }
 
+            if (purchasedOrder.Status == "Completed")
+            {
+                throw new Exception("Completed Purchase Order cannot be updated.");
+            }
+
+            if (purchasedOrder.Status == "Cancelled")
+            {
+                throw new Exception("Cancelled Purchase Order cannot be updated.");
+            }
+
 
             if (purchasedOrder.Status != "Draft")
             {
 
-                throw new Exception("Only Draft Purchase Orders can be Issued.");
+                throw new Exception("Only Draft Purchase Orders can be Updated.");
             }
 
-            if (dto.Status != "Issued")
+            if (dto.Status != "Issued" && dto.Status != "Cancelled")
             {
-                throw new Exception("Purchase Order status can only be changed to Issued.");
+                throw new Exception("Purchase Order status can only be changed to Issued or Cancelled.");
             }
 
-
-            bool hasItems = await db.PurchaseOrderItem.AnyAsync(x => x.PurchaseOrderId == purchaseOrderId);
-
-            if (!hasItems)
+            if (dto.Status == "Issued")
             {
-                throw new Exception("Purchase Order must contain at least one item.");
-            }
+                bool hasItems = await db.PurchaseOrderItem
+                    .AnyAsync(x => x.PurchaseOrderId == purchaseOrderId && x.IsActive == 1);
 
-            if (purchasedOrder.TotalAmount <= 0)
-            {
-                throw new Exception("Purchase Order Total Amount should be greater than zero.");
+                if (!hasItems)
+                {
+                    throw new Exception("Purchase Order must contain at least one item.");
+                }
+
+                if (purchasedOrder.TotalAmount <= 0)
+                {
+                    throw new Exception("Purchase Order total amount should be greater than zero.");
+                }
             }
 
             purchasedOrder.Status = dto.Status;
@@ -327,10 +470,12 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await db.SaveChangesAsync();
 
+            cache.Remove($"PO_{purchaseOrderId}");
+
         }
 
-       
 
-       
+
+
     }
 }
