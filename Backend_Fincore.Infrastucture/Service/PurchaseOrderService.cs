@@ -122,7 +122,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await db.SaveChangesAsync();
 
-            cache.Remove($"PO_{purchaseOrder.PurchaseOrderId}");
+            //cache.Remove($"PO_{purchaseOrder.PurchaseOrderId}");
 
 
         }
@@ -180,7 +180,7 @@ namespace Backend_Fincore.Infrastucture.Service
             //if (!cache.TryGetValue(cacheKey, out List<PurchaseOrderDTO> result))
             //{
 
-                var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
+                var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
 
                 if (user == null)
                 {
@@ -202,7 +202,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
                 //manager / senior manager/hod  filter
 
-                else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
+                else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "Senior Manager")
 
                 {
                     var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
@@ -211,16 +211,16 @@ namespace Backend_Fincore.Infrastucture.Service
                     {
                         throw new Exception("Employee not found");
                     }
+                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
+                                                  .Select(x => x.EmployeeId).ToListAsync();
 
-                    var empIds = await db.Employee.Where(x => x.IsActive == 1)
-                                       .Select(x => x.EmployeeId).ToListAsync();
+                var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
+                                    .Contains(x.MasterId) && (x.Role.RoleName == "Manager"
+                                    ||  x.Role.RoleName == "Senior Manager"))
+                                    .Select(x => x.UserId).ToListAsync();
 
-                    var userIds = await db.User.Where(x => x.MasterType == "Employee" && x.IsActive == 1 && empIds
-                                        .Contains(x.MasterId))
-                                         .Select(x => x.UserId)
-                                        .ToListAsync();
 
-                    query = query.Where(x => userIds.Contains(x.CreatedBy));
+                query = query.Where(x => userIds.Contains(x.CreatedBy));
                 }
 
                 // Vendor
@@ -260,13 +260,14 @@ namespace Backend_Fincore.Infrastucture.Service
                 }
 
                 var purchaseOrders = await query.OrderByDescending(x => x.CreatedAt).Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                                            .Take(pagination.PageSize).ToListAsync();
+                                           .Take(pagination.PageSize)
+                                           .ToListAsync();
 
+                var result = mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
 
-                 var result = mapper.Map<List<PurchaseOrderDTO>>(purchaseOrders);
-
-
-            //    var options = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)).SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
+            //    var options = new MemoryCacheEntryOptions()
+            //                                               .SetSlidingExpiration(TimeSpan.FromMinutes(5))
+            //                                               .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
 
             //    cache.Set(cacheKey, result, options);
             //}
@@ -309,7 +310,7 @@ namespace Backend_Fincore.Infrastucture.Service
                     throw new Exception("You are not authorized.");
                 }
 
-                else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "WareHouse Manager" || user.Role.RoleName == "Senior Manager")
+                else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "Senior Manager")
                 {
                     var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
 
@@ -357,7 +358,7 @@ namespace Backend_Fincore.Infrastucture.Service
                     throw new Exception("Invalid role.");
                 }
 
-                data = mapper.Map<PurchaseOrderDTO>(res);
+                 data = mapper.Map<PurchaseOrderDTO>(res);
 
                 cache.Set(cacheKey, data,
                                           new MemoryCacheEntryOptions

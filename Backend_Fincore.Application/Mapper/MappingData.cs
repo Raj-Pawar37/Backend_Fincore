@@ -7,14 +7,19 @@ using Backend_Fincore.Application.DTOs.Country;
 using Backend_Fincore.Application.DTOs.Department;
 using Backend_Fincore.Application.DTOs.Document;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
+using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.ExpenseClaim;
+using Backend_Fincore.Application.DTOs.GRNItems;
 using Backend_Fincore.Application.DTOs.OpexRequest;
+using Backend_Fincore.Application.DTOs.Payment;
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
 using Backend_Fincore.Application.DTOs.RevenueEntry;
 using Backend_Fincore.Application.DTOs.RFQ;
 using Backend_Fincore.Application.DTOs.RFQItem;
 using Backend_Fincore.Application.DTOs.RFQVendor;
 using Backend_Fincore.Application.DTOs.WorkOrder;
+using Backend_Fincore.Domain.Models;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.DTOs;
 using Backend_Fincore.DTOs.APInvoice;
@@ -23,10 +28,6 @@ using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
-using Backend_Fincore.Domain.Models;
-using Backend_Fincore.Application.DTOs.DocumentNumber;
-using Backend_Fincore.Application.DTOs.Payment;
-using Backend_Fincore.Application.DTOs.GRNItems;
 
 
 
@@ -70,7 +71,7 @@ public class MappingData : Profile
                                                      .ForMember(x => x.Status, x => x.MapFrom(x => "Pending"));
 
 
-
+        CreateMap<PurchaseOrderItem, POItemsSearchDTO>();
 
 
         //APInvoice

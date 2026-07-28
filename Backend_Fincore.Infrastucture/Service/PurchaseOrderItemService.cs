@@ -52,7 +52,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<int> GetPurchasedItemCount()
         {
-            return await db.PurchaseOrderItem.CountAsync();
+            return await db.PurchaseOrderItem.CountAsync( x => x.IsActive == 1);
         }
 
         public async Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination)
@@ -80,7 +80,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             //Manager 
-            else if(user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
+            else if(user.Role.RoleName == "Manager" ||  user.Role.RoleName == "Senior Manager")
             {
 
                 var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
@@ -94,7 +94,8 @@ namespace Backend_Fincore.Infrastucture.Service
                                    .Select(x => x.EmployeeId).ToListAsync();
 
                 var userIds = await db.User.Include(x => x.Role).Where(x => x.MasterType == "Employee" && empIds
-                                    .Contains(x.MasterId))
+                                    .Contains(x.MasterId)
+                                    && ( x.Role.RoleName == "Manager" || x.Role.RoleName == "Senior Manager" ) && x.IsActive == 1 )
                                    .Select(x => x.UserId).ToListAsync();
 
                 query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
@@ -292,6 +293,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == dto.PurchaseOrderId && x.IsActive == 1);
 
+           
 
             if (purchaseOrder == null)
             {
@@ -307,9 +309,9 @@ namespace Backend_Fincore.Infrastucture.Service
             IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem
                 .Where(x => x.PurchaseOrderId == dto.PurchaseOrderId
                          && x.IsActive == 1
-                         && x.Status == "Pending");
+                         );
 
-           
+
 
             if (!string.IsNullOrWhiteSpace(dto.Status))
             {
@@ -323,9 +325,18 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
 
-            var result = await query.OrderBy(x => x.ItemName).Take(20).ToListAsync();
+            var result = await query.OrderBy(x => x.ItemName).Take(20).Select(x => new POItemsSearchDTO{
+                                                                                POItemId = x.POItemId,
+                                                                                ItemName = x.ItemName,
+                                                                                Qty = x.Qty,
+                                                                                UnitPrice = x.UnitPrice,
+                                                                                Status = x.Status
+                                                                                  })
+                                                                                  .ToListAsync();
 
-            return mapper.Map<List<POItemsSearchDTO>>(result);
+            return result;
+
+
         }
     }
 }

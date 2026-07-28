@@ -14,8 +14,7 @@ namespace Backend_Fincore.Models
 
         public string ItemName { get; set; } = null!;
 
-       
-
+     
         public decimal UnitPrice { get; set; }
 
         public decimal? Tax { get; set; }

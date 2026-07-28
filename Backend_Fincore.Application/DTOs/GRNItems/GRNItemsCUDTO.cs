@@ -18,8 +18,6 @@ namespace Backend_Fincore.Application.DTOs.GRNItems
 
         public decimal Qty { get; set; }
 
-        public int CreatedBy { get; set; }
-
-        public int? ModifiedBy { get; set; }
+       
     }
 }

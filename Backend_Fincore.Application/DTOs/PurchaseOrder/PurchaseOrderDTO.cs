@@ -12,8 +12,6 @@
 
         public decimal TotalAmount { get; set; }
 
-       
-
         public string Status { get; set; }
 
         //public string VendorName { get; set; }

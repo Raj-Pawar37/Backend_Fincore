@@ -27,7 +27,7 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        [HttpGet]
+        [HttpPost("GetAllByStatus")]
         public async Task<IActionResult> GetAllGRNs([FromBody]GrnStatusDTO dto,[FromQuery]PaginationDTO pagination)
         {
             var data = await gRNService.GetAllGrns( dto,pagination);

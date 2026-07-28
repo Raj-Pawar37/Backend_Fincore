@@ -1841,7 +1841,7 @@ OPEX REQUEST
             {
                 entity.HasOne(x => x.GRN)
                     .WithMany(x => x.GRNItems)
-                    .HasForeignKey(x => x.GRNItemId)
+                    .HasForeignKey(x => x.GRNId)
                     .OnDelete(DeleteBehavior.Restrict);
 
             });
