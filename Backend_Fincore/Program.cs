@@ -9,8 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
-using Backend_Fincore.Application.Interfaces;
-using Backend_Fincore.Application.Services;
+using Backend_Fincore.Application.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 

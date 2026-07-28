@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Application.Interfaces;
 using Backend_Fincore.Application.Interface; // Ensure this points to ICurrentUserService
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
@@ -12,7 +11,7 @@ using System.Collections.Generic;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Backend_Fincore.Application.Services
+namespace Backend_Fincore.Application.Service
 {
     public class RFQService : IRFQService
     {
