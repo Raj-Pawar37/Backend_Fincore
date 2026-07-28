@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Backend_Fincore.Application.Service
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class RFQService : IRFQService
     {
