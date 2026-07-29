@@ -168,12 +168,12 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (grn == null)
             {
-                throw new Exception("GRN not found.");
+                //throw new Exception("GRN not found.");
             }
 
             if (grn.Status == "Received")
             {
-                throw new Exception("Cannot add items. GRN is already Received.");
+                //throw new Exception("Cannot add items. GRN is already Received.");
             }
 
             var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == dto.POItemId && x.IsActive == 1);
@@ -181,7 +181,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (poItem == null)
             {
-                throw new Exception("Purchase Order Item not found.");
+                //throw new Exception("Purchase Order Item not found.");
             }
 
 
@@ -191,7 +191,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (exists)
             {
-                throw new Exception("Purchase Order Item already exists in this GRN.");
+                //throw new Exception("Purchase Order Item already exists in this GRN.");
             }
 
 
@@ -201,7 +201,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (alreadyReceived + dto.Qty > poItem.Qty)
             {
-                throw new Exception($"Maximum receivable quantity is {poItem.Qty - alreadyReceived}.");
+                //throw new Exception($"Maximum receivable quantity is {poItem.Qty - alreadyReceived}.");
             }
 
             var item = mapper.Map<GRNItem>(dto);

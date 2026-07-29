@@ -33,6 +33,6 @@ namespace Backend_Fincore.Models
 
         public ICollection<Asset> Assets { get; set; } = new List<Asset>();
 
-        public GRNItem? GRNItem { get; set; }
+        public ICollection<GRNItem> GRNItems { get; set; } = new List<GRNItem>();
     }
 }

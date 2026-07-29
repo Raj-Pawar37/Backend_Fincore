@@ -25,8 +25,7 @@ namespace Backend_Fincore.Domain.Models
             public decimal Qty { get; set; }
 
 
-            // Navigation properties
-            [ForeignKey(nameof(GRNId))]
+  
             public GRN GRN { get; set; } = null!;
 
             public PurchaseOrderItem POItem { get; set; } = null!;

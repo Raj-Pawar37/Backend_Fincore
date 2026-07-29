@@ -11,9 +11,7 @@ namespace Backend_Fincore.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "ItemType",
-                table: "PurchaseOrderItems");
+
 
             migrationBuilder.AddColumn<Guid>(
                 name: "TransactionGroupId",

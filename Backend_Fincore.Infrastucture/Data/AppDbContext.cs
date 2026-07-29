@@ -1839,11 +1839,20 @@ OPEX REQUEST
 
             modelBuilder.Entity<GRNItem>(entity =>
             {
-                entity.HasOne(x => x.GRN)
-                    .WithMany(x => x.GRNItems)
-                    .HasForeignKey(x => x.GRNId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasKey(x => x.GRNItemId);
 
+                entity.Property(x => x.Qty)
+                      .HasPrecision(18, 2);
+
+                entity.HasOne(x => x.GRN)
+                      .WithMany(x => x.GRNItems)
+                      .HasForeignKey(x => x.GRNId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.POItem)
+                      .WithMany(x => x.GRNItems)
+                      .HasForeignKey(x => x.POItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
 

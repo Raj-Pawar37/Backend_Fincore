@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260727161927_grnitemstableupdate")]
-    partial class grnitemstableupdate
+    [Migration("20260729040044_AddBaseEntityColumnsToGRNItem")]
+    partial class AddBaseEntityColumnsToGRNItem
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -159,6 +159,7 @@ namespace Backend_Fincore.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Qty")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Remarks")
@@ -168,8 +169,7 @@ namespace Backend_Fincore.Migrations
 
                     b.HasIndex("GRNId");
 
-                    b.HasIndex("POItemId")
-                        .IsUnique();
+                    b.HasIndex("POItemId");
 
                     b.ToTable("GRNItem");
                 });
@@ -1698,6 +1698,9 @@ namespace Backend_Fincore.Migrations
                     b.HasIndex("QuotationNumber")
                         .IsUnique();
 
+                    b.HasIndex("RFQId")
+                        .IsUnique();
+
                     b.HasIndex("RFQVendorId");
 
                     b.ToTable("Quotations", (string)null);
@@ -2326,9 +2329,9 @@ namespace Backend_Fincore.Migrations
                         .IsRequired();
 
                     b.HasOne("Backend_Fincore.Models.PurchaseOrderItem", "POItem")
-                        .WithOne("GRNItem")
-                        .HasForeignKey("Backend_Fincore.Domain.Models.GRNItem", "POItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany("GRNItems")
+                        .HasForeignKey("POItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("GRN");
@@ -2718,11 +2721,19 @@ namespace Backend_Fincore.Migrations
 
             modelBuilder.Entity("Backend_Fincore.Models.Quotation", b =>
                 {
+                    b.HasOne("Backend_Fincore.Models.RFQ", "RFQ")
+                        .WithOne("Quotation")
+                        .HasForeignKey("Backend_Fincore.Models.Quotation", "RFQId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Backend_Fincore.Models.RFQVendor", "RFQVendor")
                         .WithMany("Quotations")
                         .HasForeignKey("RFQVendorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("RFQ");
 
                     b.Navigation("RFQVendor");
                 });
@@ -2982,7 +2993,7 @@ namespace Backend_Fincore.Migrations
                 {
                     b.Navigation("Assets");
 
-                    b.Navigation("GRNItem");
+                    b.Navigation("GRNItems");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseRequisition", b =>
@@ -2999,6 +3010,9 @@ namespace Backend_Fincore.Migrations
 
             modelBuilder.Entity("Backend_Fincore.Models.RFQ", b =>
                 {
+                    b.Navigation("Quotation")
+                        .IsRequired();
+
                     b.Navigation("RFQItems");
 
                     b.Navigation("RFQVendors");
