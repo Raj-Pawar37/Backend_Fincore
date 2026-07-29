@@ -17,7 +17,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<AccountMasterReadDTO> AddAccountMaster(AccountMasterWriteDTO dto);
 
-        Task UpdateAccountMaster(int id, AccountMasterWriteDTO dto);
+        Task UpdateAccountMaster(int id, AccountMasterUpdateDTO dto);
 
         Task DeleteAccountMaster(int id);
     }

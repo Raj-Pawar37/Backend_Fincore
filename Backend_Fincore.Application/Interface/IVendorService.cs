@@ -1,5 +1,5 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.DTOs;
+using Backend_Fincore.Application.DTOs.Vendor;
 
 namespace Backend_Fincore.Application.Interface
 {

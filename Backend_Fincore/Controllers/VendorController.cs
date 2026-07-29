@@ -1,16 +1,16 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.DTOs;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Backend_Fincore.Application.DTOs.Vendor;
 
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/vendor")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class VendorController : ControllerBase
@@ -128,8 +128,7 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVendor(int id)
         {
-            try
-            {
+           
                 var result = await vendorService.DeleteVendor(id);
 
                 if (!result)
@@ -151,16 +150,8 @@ namespace Backend_Fincore.Controllers
                     Error = null
                 });
             }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Unable to delete vendor.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
-        }
+            
+            
+        
     }
 }

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/department")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class DepartmentController : ControllerBase
@@ -50,9 +50,7 @@ namespace Backend_Fincore.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
-                var res = await service.GetById(id);
+              var res = await service.GetById(id);
                 return Ok(
                     new ApiResponse<DepartmentReadDTO>
                     {
@@ -61,18 +59,8 @@ namespace Backend_Fincore.Controllers
                         Data = res,
                         Error = null
                     });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Department not found.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-            }
+            
+         
         }
 
 
@@ -92,10 +80,9 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDepartment(int id, DepartmentWriteDTO dto)
+        public async Task<IActionResult> UpdateDepartment(int id, DepartmentUpdateDTO dto)
         {
-            try
-            {
+          
                 await service.UpdateDepartment( id, dto);
                 return Ok(
                     new ApiResponse<object>
@@ -105,26 +92,14 @@ namespace Backend_Fincore.Controllers
                         Data = null,
                         Error = null
                     });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Department not found.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-            }
+         
         }
 
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDepartment(int id)
         {
-            try
-            {
+          
                 await service.DeleteDepartment(id);
                 return Ok(
                     new ApiResponse<object>
@@ -134,20 +109,8 @@ namespace Backend_Fincore.Controllers
                         Data = null,
                         Error = null
                     });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Department not found.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-            }
         }
-        [HttpGet("Dropdown")]
+        [HttpGet("dropdown")]
         public async Task<IActionResult> GetDepartmentDropdown(string? search)
         {
             var res = await service.GetDepartmentDropdown(search);

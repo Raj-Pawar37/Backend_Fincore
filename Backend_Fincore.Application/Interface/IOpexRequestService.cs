@@ -21,6 +21,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<int> GetOpexRequestCount( PaginationDTO pagination);
 
+        Task<List<OpexRequestDropdownDTO>> GetDropdown();
 
     }
 }

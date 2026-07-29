@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/expenseClaim")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     [Authorize]
@@ -67,13 +67,7 @@ namespace Backend_Fincore.Controllers
 
             if (data == null)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Expense claim not found.",
-                    Data = null,
-                    Error = $"No expense claim found with Id = {id}"
-                });
+                throw new Exception("Expense Claim  Data Not Found ");
             }
 
             return Ok(new ApiResponse<ExpenseClaimReadDTO>
@@ -89,6 +83,11 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> Create(ExpenseClaimWriteDTO dto)
         {
             var data = await service.Create(dto);
+
+            if (data == null)
+            {
+                throw new Exception("Expense Claim  Data Not Found ");
+            }
 
             return Ok(new ApiResponse<ExpenseClaimReadDTO>
             {
@@ -106,13 +105,7 @@ namespace Backend_Fincore.Controllers
 
             if (data == null)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Expense claim not found.",
-                    Data = null,
-                    Error = $"No expense claim found with Id = {id}"
-                });
+                throw new Exception("Expense Claim  Data Not Found Update");
             }
 
             return Ok(new ApiResponse<ExpenseClaimReadDTO>
@@ -131,13 +124,7 @@ namespace Backend_Fincore.Controllers
 
             if (!result)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Expense claim not found.",
-                    Data = null,
-                    Error = $"No expense claim found with Id = {id}"
-                });
+                throw new Exception("Expense Claim  Data Not Found To Delete");
             }
 
             return Ok(new ApiResponse<object>
@@ -156,19 +143,29 @@ namespace Backend_Fincore.Controllers
 
             if (data == null) 
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Expense claim not found.",
-                    Data = null,
-                    Error = $"No expense claim found with Id = {id}"
-                });
+               throw new Exception("Expense Claim  Data Not Found TO Verify");
             }
 
             return Ok(new ApiResponse<ExpenseClaimReadDTO>
             {
                 Success = true,
                 Message = $"Expense Claim {dto.Status} successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetDropdown()
+        {
+            var data = await service.GetDropdown();
+            if(data == null)
+            {
+                throw new Exception("");
+            }
+            return Ok(new ApiResponse<List<ExpenseClaimDropdownDTO>>
+            {
+                Success = true,
+                Message = "Expense Claim dropdown fetched successfully.",
                 Data = data,
                 Error = null
             });

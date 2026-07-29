@@ -3,13 +3,12 @@ using Backend_Fincore.Application.DTOs.WorkOrder;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/workOrder")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     [Authorize]
@@ -31,14 +30,7 @@ namespace Backend_Fincore.Controllers
 
             if (data == null)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Work Order not found.",
-                    Data = null,
-                    Error = $"No Work Order found with Id = {id}",
-
-                });
+                throw new Exception("Work Order Data Not Found ");
             }
 
             return Ok(new ApiResponse<WorkOrderReadDTO>
@@ -55,6 +47,10 @@ namespace Backend_Fincore.Controllers
         {
             var data = await service.Create(dto);
 
+            if (data == null)
+            {
+                throw new Exception("Work Order Data Not Found ");
+            }
             return Ok(new ApiResponse<WorkOrderReadDTO>
             {
                 Success = true,
@@ -64,31 +60,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        [HttpGet]
-        //public async Task<IActionResult> GetAll(int userId,[FromQuery]PaginationDTO pagination)
-        //{
-        //    var data = await service.GetAll(userId,pagination);
-        //    var totalRecords = await service.GetWorkOrderCount(userId,pagination);
-        //    var totalPages = (int)Math.Ceiling( totalRecords /(double) pagination.PageSize);
-
-        //    return Ok(
-        //        new ApiResponse<List<WorkOrderReadDTO>>
-        //        {
-        //            Success = true,
-        //            Message ="Work Orders fetched successfully.",
-        //            Data = data,
-        //            Error = null,
-        //            TotalNumberRecord = totalRecords,
-        //            Metadata = new
-        //            {
-        //                pagination.PageNumber,
-        //                pagination.PageSize,
-        //                pagination.Search,
-        //                TotalPages = totalPages,
-        //                RecordsOnCurrentPage = data.Count
-        //            }
-        //        });
-        //}
+       
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] PaginationDTO pagination)
         {
@@ -126,6 +98,10 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> Update(int id, WorkOrderWriteDTO dto)
         {
             var data = await service.Update(id, dto);
+            if (data != null)
+            {
+                throw new Exception("Work Order Data Not Found ");
+            }
 
             return Ok(new ApiResponse<WorkOrderReadDTO>
             {
@@ -139,8 +115,12 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await service.Delete(id);
+         var  dt =  await service.Delete(id);
+            if(dt == null)
+            {
+                throw new Exception("Work Order Data Not Found ");
 
+            }
             return Ok(new ApiResponse<object>
             {
                 Success = true,
@@ -154,11 +134,29 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> Verify(int id, int approvedBy, WorkOrderVerifyDTO dto)
         {
             var data = await service.Verify(id, approvedBy, dto);
+            if (data == null)
+            {
+                throw new Exception("Work Order Data Not Found ");
 
+            }
             return Ok(new ApiResponse<WorkOrderReadDTO>
             {
                 Success = true,
                 Message = $"Work Order {dto.Status} successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetDropdown()
+        {
+            var data = await service.GetDropdown();
+
+            return Ok(new ApiResponse<List<WorkOrderDropdownDTO>>
+            {
+                Success = true,
+                Message = "Work Order dropdown fetched successfully.",
                 Data = data,
                 Error = null
             });

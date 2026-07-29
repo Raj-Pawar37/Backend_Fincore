@@ -1,6 +1,7 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.DTOs;
+using Backend_Fincore.Application.DTOs.Permission;
 using Backend_Fincore.Application.Interface;
+using Backend_Fincore.DTOs;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,18 +26,16 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPermissions([FromQuery] PaginationDTO pagination)
+        public async Task<IActionResult> getAllPermissions([FromQuery] PaginationDTO pagination)
         {
-            var res = await _permissionService.GetAllPermissionsAsync(pagination);
-            var totalRecords = await _permissionService.GetPermissionCountAsync(pagination);
+            var (items, totalRecords) = await _permissionService.GetAllPermissionsAsync(pagination);
             var totalPages = (int)Math.Ceiling(totalRecords / (double)pagination.PageSize);
 
             return Ok(new ApiResponse<List<PermissionDTO>>
             {
                 Success = true,
                 Message = "Permissions fetched successfully.",
-                Data = res,
-                Error = null,
+                Data = items,
                 TotalNumberRecord = totalRecords,
                 Metadata = new
                 {
@@ -44,37 +43,74 @@ namespace Backend_Fincore.Controllers
                     pagination.PageSize,
                     pagination.Search,
                     TotalPages = totalPages,
-                    RecordsOnCurrentPage = res.Count
+                    RecordsOnCurrentPage = items.Count
                 }
             });
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetPermissionById(int id)
+        public async Task<IActionResult> getPermissionById(int id)
         {
-            var response = await _permissionService.GetPermissionByIdAsync(id);
-            return response.Success ? Ok(response) : NotFound(response);
+            var res = await _permissionService.GetPermissionByIdAsync(id);
+            return Ok(new ApiResponse<PermissionDTO>
+            {
+                Success = true,
+                Message = "Permission retrieved successfully.",
+                Data = res,
+                TotalNumberRecord = 1
+            });
+        }
+
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> getPermissionDropdown([FromQuery] string? searchText)
+        {
+            var list = await _permissionService.GetPermissionDropdown(searchText);
+            return Ok(new ApiResponse<List<PermissionDropdownDTO>>
+            {
+                Success = true,
+                Message = "Permission dropdown data fetched successfully.",
+                Data = list,
+                TotalNumberRecord = list.Count
+            });
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreatePermission([FromBody] PermissionDTO dto)
+        public async Task<IActionResult> createPermission([FromBody] PermissionDTO dto)
         {
-            var response = await _permissionService.CreatePermissionAsync(dto);
-            return response.Success ? Ok(response) : BadRequest(response);
+            var res = await _permissionService.CreatePermissionAsync(dto);
+            return Ok(new ApiResponse<PermissionDTO>
+            {
+                Success = true,
+                Message = "Permission created successfully.",
+                Data = res,
+                TotalNumberRecord = 1
+            });
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePermission(int id, [FromBody] PermissionDTO dto)
+        public async Task<IActionResult> updatePermission(int id, [FromBody] PermissionDTO dto)
         {
-            var response = await _permissionService.UpdatePermissionAsync(id, dto);
-            return response.Success ? Ok(response) : NotFound(response);
+            var res = await _permissionService.UpdatePermissionAsync(id, dto);
+            return Ok(new ApiResponse<PermissionDTO>
+            {
+                Success = true,
+                Message = "Permission updated successfully.",
+                Data = res,
+                TotalNumberRecord = 1
+            });
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePermission(int id)
+        public async Task<IActionResult> deletePermission(int id)
         {
-            var response = await _permissionService.DeletePermissionAsync(id);
-            return response.Success ? Ok(response) : NotFound(response);
+            await _permissionService.DeletePermissionAsync(id);
+            return Ok(new ApiResponse<bool>
+            {
+                Success = true,
+                Message = "Permission deleted successfully.",
+                Data = true,
+                TotalNumberRecord = 1
+            });
         }
     }
 }

@@ -32,9 +32,14 @@ namespace Backend_Fincore.Infrastucture.Service
             {
                 throw new Exception("Approval Level must be greater than zero.");
             }
+            bool roleExists = await db.Role.AnyAsync(x =>x.RoleId == dto.RoleId && x.IsActive == 1);
 
-           // Validation to prevent overlapping approval ranges.
-            bool isRangeExists = await db.Approval.AnyAsync(x =>
+            if (!roleExists)
+            {
+                throw new Exception("Invalid Role.");
+            }
+            // Validation to prevent overlapping approval ranges.
+            bool isRangeExists = await db.Approval.AnyAsync(x => x.IsActive == 1&&
                                                      dto.MinAmount <= x.MaxAmount &&
                                                      dto.MaxAmount >= x.MinAmount);
 
@@ -43,7 +48,9 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Approval amount range already exists.");
             }
             var data = mapper.Map<Approval>(dto);
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;//testing
+            data.CreatedAt = DateTime.Now;
             await db.Approval.AddAsync(data);
             await db.SaveChangesAsync();
 
@@ -55,7 +62,9 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task DeleteApproval(int id)
         {
-            var data = await db.Approval.FindAsync(id);
+            var data = await db.Approval
+                .FirstOrDefaultAsync(x => x.ApprovalId == id && x.IsActive == 1);
+
             if (data is null) {
                 throw new Exception("Approval ID is not Found");
             }
@@ -68,7 +77,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<ApprovalReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var search =  db.Approval.AsQueryable();
+            var search =  db.Approval.Where(x => x.IsActive == 1).AsQueryable();
             if (!string.IsNullOrEmpty(pagination.Search))
             {
                 search = search.Where(x =>
@@ -79,13 +88,13 @@ namespace Backend_Fincore.Infrastucture.Service
             var data = await search.Include(x => x.Role)
                                         .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                                         .Take(pagination.PageSize)
-                                        .Where(x => x.IsActive == 1).ToListAsync();
+                                       .ToListAsync();
             var res = mapper.Map<List<ApprovalReadDTO>>(data);
             return res;
         }
         public async Task<int> GetTotalApprovalRecord()
         {
-            var data = await db.Approval.CountAsync();
+            var data = await db.Approval.Where(x => x.IsActive == 1).CountAsync();
             return data;
         }
         public async Task<ApprovalReadDTO> GetById(int id)
@@ -101,10 +110,12 @@ namespace Backend_Fincore.Infrastucture.Service
 
     
 
-        public async Task UpdateApproval(int id, ApprovalWriteDTO dto)
+        public async Task UpdateApproval(int id, ApprovalUpdateDTO dto)
         {
+           
             // Validation to prevent overlapping approval ranges.
             bool isRangeExists = await db.Approval.AnyAsync(x =>
+                           x.IsActive == 1 &&
                            x.ApprovalId != id &&
                            dto.MinAmount <= x.MaxAmount &&
                            dto.MaxAmount >= x.MinAmount);
@@ -124,13 +135,18 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception(
                     "Approval Level must be greater than zero.");
             }
-            var data = await db.Approval.FindAsync(id);
+            bool roleExists = await db.Role.AnyAsync(x => x.RoleId == dto.RoleId && x.IsActive == 1);
+            if (!roleExists)
+            {
+                throw new Exception("Invalid Role.");
+            }
+            var data = await db.Approval.FirstOrDefaultAsync(x =>x.ApprovalId == id &&x.IsActive == 1);
             if (data is null) {
                 throw new Exception("Approval ID not found");
             }
          
-            mapper.Map(dto, data);
-            data.ModifiedBy = 2;//userid - empid , Admin ->who is updating 
+            mapper.Map(dto, data);  
+            data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();

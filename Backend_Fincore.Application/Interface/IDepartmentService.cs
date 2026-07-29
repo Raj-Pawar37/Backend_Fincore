@@ -16,7 +16,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<DepartmentReadDTO> AddDepartment(DepartmentWriteDTO dto);
 
-        Task UpdateDepartment( int id,DepartmentWriteDTO dto);
+        Task UpdateDepartment( int id, DepartmentUpdateDTO dto);
 
         Task DeleteDepartment(int id);
 
