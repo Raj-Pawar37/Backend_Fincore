@@ -1,6 +1,6 @@
 ﻿using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.RFQ;
-using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -197,9 +197,11 @@ namespace Backend_Fincore.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = refreshTokenExpiry,
-                Path = "/api/auth"
+                SameSite = SameSiteMode.None,
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                MaxAge = TimeSpan.FromDays(7),
+                Path = "/api/v1/auth",
+                IsEssential = true
             };
 
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
@@ -213,8 +215,8 @@ namespace Backend_Fincore.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Path = "/api/auth"
+                    SameSite = SameSiteMode.None,
+                    Path = "/api/v1/auth"
                 });
         }
 

@@ -5,7 +5,7 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface ICapexRequestService
     {
-        Task<List<BudgetLineDropdownDTO>> GetBudgetLineDropdown(string? searchText,int? departmentId);
+       // Task<List<BudgetLineDropdownDTO>> GetBudgetLineDropdown(string? searchText,int? departmentId);
 
         Task<CapexReadDTO> AddCapexRequest(CapexWriteDTO dto);
 
@@ -16,8 +16,9 @@ namespace Backend_Fincore.Application.Interface
 
         Task<bool> UpdateCapexRequest(int capexRequestId,CapexWriteDTO dto); 
 
-        Task<bool> DeleteCapexRequest(int capexRequestId,int userId);
+        Task<bool> DeleteCapexRequest(int capexRequestId);
 
-        Task<bool> VerifyCapexRequest(CapexVerifyDTO dto);
+        Task<bool> VerifyCapexRequest(int capexRequestId ,CapexVerifyDTO dto);
+        Task<List<CapexVerifyDropdownDTO>> GetCapexVerifyDropdown(string? searchText);
     }
 }

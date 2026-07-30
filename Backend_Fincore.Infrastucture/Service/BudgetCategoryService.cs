@@ -21,9 +21,28 @@ namespace Backend_Fincore.Infrastucture.Service
             this.currentUser = currentUser;
         }
 
+        public async Task<List<BudgetCategoryDropdownDTO>> GetBudgetCategoryDropdown(string? search)
+        {
+            var data = await db.BudgetCategory
+                .Where(x =>
+                    x.IsActive == 1 &&
+                    (string.IsNullOrEmpty(search) ||
+                     x.CategoryName.Contains(search)))
+                .OrderBy(x => x.CategoryName)
+                .Select(x => new BudgetCategoryDropdownDTO
+                {
+                    BudgetCategoryId = x.BudgetCategoryId,
+                    CategoryName = x.CategoryName
+                })
+                .ToListAsync();
+
+            return data;
+        }
+
         public async Task<BudgetCategoryReadDTO> AddBudgetCategory(BudgetCategoryWriteDTO dto)
         {
-            bool exists = await db.BudgetCategory.AnyAsync(x => x.CategoryCode == dto.CategoryCode);
+            bool exists = await db.BudgetCategory.AnyAsync(x => x.CategoryCode == dto.CategoryCode &&
+            x.IsActive == 1);
 
             if (exists)
             {
@@ -33,7 +52,7 @@ namespace Backend_Fincore.Infrastucture.Service
             var data = mapper.Map<BudgetCategory>(dto);
 
             //int userId = 1;
-
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;
             data.CreatedAt = DateTime.Now;
 
@@ -46,7 +65,8 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<bool> DeleteBudgetCategory(int id)
         {
             var data = await db.BudgetCategory
-                .FirstOrDefaultAsync(x => x.BudgetCategoryId == id);
+                .FirstOrDefaultAsync(x => x.BudgetCategoryId == id &&
+            x.IsActive == 1);
 
             if (data == null)
             {
@@ -54,15 +74,17 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             bool isUsed = await db.BudgetLine
-                .AnyAsync(x => x.BudgetCategoryId == id);
+                .AnyAsync(x => x.BudgetCategoryId == id &&
+            x.IsActive == 1);
 
             if (isUsed)
             {
                 throw new Exception(
                     "Budget category cannot be deleted because it is used in budget lines.");
             }
-
-            db.BudgetCategory.Remove(data);
+            data.IsActive = 0;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
@@ -72,13 +94,14 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<List<BudgetCategoryReadDTO>> GetAll(PaginationDTO pagination)
         {
 
-            var search = db.BudgetCategory.AsQueryable();
-            if (!string.IsNullOrEmpty(pagination.Search))
+            var search = db.BudgetCategory.Where(x => x.IsActive == 1).AsQueryable();
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                search = search.Where(x =>
-                    x.CategoryName.Contains(pagination.Search));
+                var keyword = pagination.Search.Trim();
 
-                  
+                search = search.Where(x =>
+                    x.CategoryName.Contains(keyword) ||
+                    x.CategoryCode.Contains(keyword));
             }
 
             var data = await search
@@ -92,7 +115,8 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<BudgetCategoryReadDTO?> GetById(int id)
         {
             var data = await db.BudgetCategory
-                .FirstOrDefaultAsync(x => x.BudgetCategoryId == id);
+                .FirstOrDefaultAsync(x => x.BudgetCategoryId == id &&
+            x.IsActive == 1);
 
             if (data == null)
             {
@@ -104,13 +128,15 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<int> GetTotalRecord()
         {
-           return await db.BudgetCategory.CountAsync();
+           return await db.BudgetCategory.CountAsync(x => x.IsActive == 1);
         }
 
         public async Task<bool> UpdateBudgetCategory(int id,BudgetCategoryWriteDTO dto)
         {
             var data = await db.BudgetCategory
-                .FirstOrDefaultAsync(x => x.BudgetCategoryId == id);
+                .FirstOrDefaultAsync(x => x.BudgetCategoryId == id &&
+            x.IsActive == 1);
+
 
             if (data == null)
             {
@@ -120,7 +146,9 @@ namespace Backend_Fincore.Infrastucture.Service
             bool duplicateCode = await db.BudgetCategory
                 .AnyAsync(x =>
                     x.CategoryCode == dto.CategoryCode &&
-                    x.BudgetCategoryId != id);
+                    x.BudgetCategoryId != id &&
+            x.IsActive == 1);
+
 
             if (duplicateCode)
             {

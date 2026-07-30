@@ -14,6 +14,6 @@ namespace Backend_Fincore.DTOs
 
         public decimal Amount { get; set; }
 
-        public int RequestedBy { get; set; }
+        //public int RequestedBy { get; set; }
     }
 }

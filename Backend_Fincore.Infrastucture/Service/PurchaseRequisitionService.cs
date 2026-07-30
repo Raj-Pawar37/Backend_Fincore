@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
-using Backend_Fincore.Application.Interfaces;
 using Backend_Fincore.Application.Interface; // ICurrentUserService
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
@@ -12,7 +11,7 @@ using System.Collections.Generic;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Backend_Fincore.Application.Services
+namespace Backend_Fincore.Infrastucture.Service
 {
     public class PurchaseRequisitionService : IPurchaseRequisitionService
     {

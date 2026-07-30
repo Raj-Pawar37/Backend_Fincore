@@ -20,11 +20,33 @@ namespace Backend_Fincore.Infrastucture.Service
             this.currentUser = currentUser;
         }
 
-       
+        public async Task<List<BudgetDropdownDTO>> GetBudgetDropdown(string? searchText)
+        {
+            var data = await db.Budget
+                .Include(x => x.Company)
+                .Where(x =>
+                    x.IsActive == 1 &&
+                     x.Company.IsActive == 1 &&
+                    x.ApprovedBy != null &&
+                    x.ApprovedDate != null && 
+                    (string.IsNullOrEmpty(searchText) ||
+                    x.Company.CompanyName.Contains(searchText))) 
+                    .OrderBy(x => x.Company.CompanyName)
+                    .Select(x => new BudgetDropdownDTO
+                    {
+                        BudgetId = x.BudgetId,
+                        CompanyName = x.Company.CompanyName
+                    })
+                    .Take(20)
+                    .ToListAsync();
+
+            return data;
+        }
         public async Task<BudgetReadDTO> AddBudget(BudgetWriteDTO dto)
         {
             bool companyExists = await db.Company
-                .AnyAsync(x => x.CompanyId == dto.CompanyId);
+                .AnyAsync(x => x.CompanyId == dto.CompanyId &&
+            x.IsActive == 1);
 
             if (!companyExists)
             {
@@ -34,7 +56,8 @@ namespace Backend_Fincore.Infrastucture.Service
             bool departmentExists = await db.Department
                 .AnyAsync(x =>
                     x.DepartmentId == dto.DepartmentId &&
-                    x.CompanyId == dto.CompanyId);
+                    x.CompanyId == dto.CompanyId &&
+            x.IsActive == 1);
 
             if (!departmentExists)
             {
@@ -46,7 +69,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 .AnyAsync(x =>
                     x.CompanyId == dto.CompanyId &&
                     x.DepartmentId == dto.DepartmentId &&
-                    x.FinancialYear == dto.FinancialYear);
+                    x.FinancialYear == dto.FinancialYear &&
+            x.IsActive == 1);
 
             if (budgetExists)
             {
@@ -56,6 +80,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             var data = mapper.Map<Budget>(dto);
             //int userId = 2;
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;
             data.CreatedAt = DateTime.Now;
 
@@ -66,14 +91,15 @@ namespace Backend_Fincore.Infrastucture.Service
                 .Include(x => x.Company)
                 .Include(x => x.Department)
                 .Include(x => x.ApprovedByUser)
-                .FirstAsync(x => x.BudgetId == data.BudgetId);
+                .FirstAsync(x => x.BudgetId == data.BudgetId &&
+            x.IsActive == 1);
 
             return mapper.Map<BudgetReadDTO>(savedBudget);
         }
         public async Task<bool> DeleteBudget(int id)
         {
             var data = await db.Budget
-                .FirstOrDefaultAsync(x => x.BudgetId == id);
+                .FirstOrDefaultAsync(x => x.BudgetId == id && x.IsActive == 1);
 
             if (data == null)
             {
@@ -81,7 +107,8 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             bool hasBudgetLines = await db.BudgetLine
-                .AnyAsync(x => x.BudgetId == id);
+                .AnyAsync(x => x.BudgetId == id &&
+            x.IsActive == 1);
 
             if (hasBudgetLines)
             {
@@ -89,8 +116,9 @@ namespace Backend_Fincore.Infrastucture.Service
                     "Budget cannot be deleted because it contains budget lines.");
             }
 
-            db.Budget.Remove(data);
-
+            data.IsActive = 0;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
 
             return true;
@@ -98,7 +126,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<BudgetReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var search = db.Budget.AsQueryable();
+            var search = db.Budget.Where(x => x.IsActive == 1).AsQueryable();
             if (!string.IsNullOrEmpty(pagination.Search))
             {
                 search = search.Where(x =>
@@ -122,7 +150,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 .Include(x => x.Company)
                 .Include(x => x.Department)
                 .Include(x => x.ApprovedByUser)
-                .FirstOrDefaultAsync(x => x.BudgetId == id);
+                .FirstOrDefaultAsync(x => x.BudgetId == id &&
+            x.IsActive == 1);
 
             if (data == null)
             {
@@ -134,13 +163,14 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<int> GetTotalRecord()
         {
-            return await db.Budget.CountAsync();
+            return await db.Budget.CountAsync(x => x.IsActive == 1);
         }
 
         public async Task<bool> UpdateBudget(int id, BudgetWriteDTO dto)
         {
             var data = await db.Budget
-                .FirstOrDefaultAsync(x => x.BudgetId == id);
+                .FirstOrDefaultAsync(x => x.BudgetId == id &&
+            x.IsActive == 1);
 
             if (data == null)
             {
@@ -148,7 +178,8 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             bool companyExists = await db.Company
-                .AnyAsync(x => x.CompanyId == dto.CompanyId);
+                .AnyAsync(x => x.CompanyId == dto.CompanyId &&
+            x.IsActive == 1);
 
             if (!companyExists)
             {
@@ -158,7 +189,8 @@ namespace Backend_Fincore.Infrastucture.Service
             bool departmentExists = await db.Department
                 .AnyAsync(x =>
                     x.DepartmentId == dto.DepartmentId &&
-                    x.CompanyId == dto.CompanyId);
+                    x.CompanyId == dto.CompanyId &&
+            x.IsActive == 1);
 
             if (!departmentExists)
             {
@@ -171,7 +203,8 @@ namespace Backend_Fincore.Infrastucture.Service
                     x.CompanyId == dto.CompanyId &&
                     x.DepartmentId == dto.DepartmentId &&
                     x.FinancialYear == dto.FinancialYear &&
-                    x.BudgetId != id);
+                    x.BudgetId != id &&
+            x.IsActive == 1);
 
             if (duplicateBudget)
             {
@@ -187,5 +220,49 @@ namespace Backend_Fincore.Infrastucture.Service
 
             return true;
         }
+
+        public async Task<bool> VerifyBudget(int budgetId)
+        {
+            var user = await db.User
+                .Include(x => x.Role)
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == currentUser.UserId);
+
+            if (user == null)
+            {
+                throw new Exception("Logged-in user not found.");
+            }
+
+            if (user.Role == null || user.Role.RoleName != "CFO")
+            {
+                throw new Exception("Only CFO can verify the budget.");
+            }
+
+            var budget = await db.Budget
+                .FirstOrDefaultAsync(x =>
+                    x.BudgetId == budgetId &&
+                    x.IsActive == 1);
+
+            if (budget == null)
+            {
+                return false;
+            }
+
+            if (budget.ApprovedBy != null)
+            {
+                throw new Exception("Budget is already verified.");
+            }
+
+            budget.ApprovedBy = currentUser.UserId;
+            budget.ApprovedDate = DateTime.Now;
+
+            budget.ModifiedBy = currentUser.UserId;
+            budget.ModifiedAt = DateTime.Now;
+
+            await db.SaveChangesAsync();
+
+            return true;
+        }
+
     }
 }
