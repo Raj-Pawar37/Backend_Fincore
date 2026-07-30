@@ -3,7 +3,7 @@ using Backend_Fincore.Application.DTOs.RFQItem;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Application.Interfaces
+namespace Backend_Fincore.Application.Interface
 {
     public interface IRFQItemService
     {
