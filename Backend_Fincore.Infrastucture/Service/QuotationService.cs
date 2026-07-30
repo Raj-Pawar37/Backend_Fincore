@@ -90,7 +90,9 @@ namespace Backend_Fincore.Infrastucture.Service
                 {
                     QuotationId = x.QuotationId,
                     RFQId = x.RFQId,
+                    RFQNumber = x.RFQ.RFQNumber,
                     RFQVendorId = x.RFQVendorId,
+                    QuotationDate = x.CreatedAt,
                     QuotationNumber = x.QuotationNumber,
                     Amount = x.Amount,
                     Status = x.Status,

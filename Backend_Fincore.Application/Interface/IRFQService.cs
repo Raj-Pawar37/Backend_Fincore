@@ -13,5 +13,6 @@ namespace Backend_Fincore.Application.Interface
         Task CreateAsync(RFQCreateDto dto);
         Task UpdateAsync(int id, RFQUpdateDto dto);
         Task DeleteAsync(int id);
+        Task<List<RFQDropdownDto>> GetDropdownAsync(string? searchText, int? vendorId, string? status);
     }
 }

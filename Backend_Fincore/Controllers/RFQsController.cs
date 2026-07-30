@@ -144,5 +144,21 @@ namespace Backend_Fincore.API.Controllers
                 TotalNumberRecord = null
             });
         }
+
+
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetDropdown([FromQuery] string? searchText, [FromQuery] int? vendorId, [FromQuery] string? status)
+        {
+            var data = await _rfqService.GetDropdownAsync(searchText, vendorId, status);
+
+            return Ok(new ApiResponse<List<RFQDropdownDto>>
+            {
+                Success = true,
+                Message = "RFQ dropdown fetched successfully.",
+                Data = data
+            });
+        }
+
+
     }
 }

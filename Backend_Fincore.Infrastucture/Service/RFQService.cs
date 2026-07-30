@@ -271,5 +271,41 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<RFQDropdownDto>> GetDropdownAsync(string? searchText, int? vendorId, string? status)
+        {
+            IQueryable<RFQ> query = _context.RFQ.AsNoTracking().Where(x => x.IsActive == 1);
+
+            // Filter RFQs by vendor when VendorId is supplied
+            if (vendorId.HasValue && vendorId.Value > 0)
+            {
+                query = query.Where(rfq => rfq.RFQVendors.Any(rfqVendor => rfqVendor.VendorId == vendorId.Value && rfqVendor.IsActive == 1));
+            }
+
+            // Filter by status when supplied
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                string normalizedStatus = status.Trim();
+                query = query.Where(x => x.Status == normalizedStatus);
+            }
+
+            // Search by RFQ number or title
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                string search = searchText.Trim();
+                query = query.Where(x => x.RFQNumber.Contains(search) || x.Title.Contains(search));
+            }
+
+            var data =  await query.OrderByDescending(x => x.CreatedAt).Take(20)
+                .Select(x => new RFQDropdownDto
+                {
+                    RFQId = x.RFQId,
+                    RFQNumber = x.RFQNumber,
+                    Title = x.Title,
+                    Status = x.Status
+                }).ToListAsync();
+
+            return data;
+        }
     }
 }
