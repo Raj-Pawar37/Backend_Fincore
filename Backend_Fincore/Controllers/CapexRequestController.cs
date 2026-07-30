@@ -9,7 +9,8 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    //[Route("api/v1/[controller]")]
+    [Route("api/v1/capex")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class CapexRequestController : ControllerBase
@@ -21,17 +22,14 @@ namespace Backend_Fincore.Controllers
             this.capexService = capexService;
         }
 
-        [HttpGet("budget-line-dropdown")]
-        public async Task<IActionResult> GetBudgetLineDropdown(
-            string? searchText,
-            int? departmentId)
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetCapexVerifyDropdown([FromQuery] string? searchText)
         {
-            var data = await capexService.GetBudgetLineDropdown(searchText, departmentId);
-
-            return Ok(new ApiResponse<List<BudgetLineDropdownDTO>>
+            var data = await capexService.GetCapexVerifyDropdown(searchText);
+            return Ok(new ApiResponse<List<CapexVerifyDropdownDTO>>
             {
                 Success = true,
-                Message = "Budget lines fetched successfully.",
+                Message = "Pending CAPEX requests fetched successfully.",
                 Data = data
             });
         }
@@ -106,10 +104,9 @@ namespace Backend_Fincore.Controllers
 
         [HttpDelete("{capexRequestId}")]
         public async Task<IActionResult> DeleteCapexRequest(
-            int capexRequestId,
-            int userId)
+            int capexRequestId)
         {
-            var data = await capexService.DeleteCapexRequest(capexRequestId, userId);
+            var data = await capexService.DeleteCapexRequest(capexRequestId);
 
             return Ok(new ApiResponse<bool>
             {
@@ -119,10 +116,10 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        [HttpPut("verify")]
-        public async Task<IActionResult> VerifyCapexRequest(CapexVerifyDTO dto)
+        [HttpPut("verify/{capexRequestId}")]
+        public async Task<IActionResult> VerifyCapexRequest(int capexRequestId ,CapexVerifyDTO dto)
         {
-            var data = await capexService.VerifyCapexRequest(dto);
+            var data = await capexService.VerifyCapexRequest(capexRequestId,dto);
 
             return Ok(new ApiResponse<bool>
             {

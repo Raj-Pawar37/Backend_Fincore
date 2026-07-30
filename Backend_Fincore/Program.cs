@@ -240,10 +240,6 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 });
 
 
-
-
-
-
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {

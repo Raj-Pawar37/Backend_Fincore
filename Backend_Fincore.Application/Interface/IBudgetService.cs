@@ -10,6 +10,7 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IBudgetService
     {
+        Task<List<BudgetDropdownDTO>> GetBudgetDropdown(string? searchText);
         Task<BudgetReadDTO> AddBudget(BudgetWriteDTO dto);
 
         Task<List<BudgetReadDTO>> GetAll(PaginationDTO pagination);
@@ -20,5 +21,7 @@ namespace Backend_Fincore.Application.Interface
         Task<bool> UpdateBudget(int id, BudgetWriteDTO dto);
 
         Task<bool> DeleteBudget(int id);
+
+        Task<bool> VerifyBudget(int budgetId);
     }
 }
