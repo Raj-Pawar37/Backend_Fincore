@@ -20,8 +20,5 @@ namespace Backend_Fincore.Application.DTOs.Approval
 
         [Required]
         public int RoleId { get; set; }
-
-        [Required]
-        public bool IsActive { get; set; }
     }
 }

@@ -26,11 +26,11 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task<int> GetTotalRecordDepartment()
         {
-            return await db.Department.CountAsync();
+            return await db.Department.Where(x => x.IsActive == 1).CountAsync();
         }
         public async Task<List<DepartmentReadDTO>>GetAll(PaginationDTO pagination)
         {
-            var search = db.Department.AsQueryable();
+            var search = db.Department.Where(x => x.IsActive == 1).AsQueryable();
             if (!string.IsNullOrEmpty(pagination.Search)) {
                 search = search.Where(x =>
                     x.DepartmentName.Contains(pagination.Search)||
@@ -39,7 +39,6 @@ namespace Backend_Fincore.Infrastucture.Service
             
             }
             var data = await search.Include(x => x.Company)
-                                          .Where(x => x.IsActive == 1)
                                           .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                                           .Take(pagination.PageSize)
                                           .ToListAsync();
@@ -48,7 +47,8 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task<DepartmentReadDTO>GetById(int id)
         {
-            var data = await db.Department.Include(x => x.Company).FirstOrDefaultAsync( x => x.DepartmentId == id );
+            var data = await db.Department.Include(x => x.Company)
+                .FirstOrDefaultAsync( x => x.IsActive==1 &&x.DepartmentId == id );
 
             if (data == null)
             {
@@ -59,6 +59,21 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task<DepartmentReadDTO>AddDepartment(DepartmentWriteDTO dto)
         {
+            bool departmentCodeExists = await db.Department
+                    .AnyAsync(x =>x.DepartmentCode == dto.DepartmentCode &&x.IsActive == 1);
+
+            if (departmentCodeExists)
+            {
+                throw new Exception("Department Code already exists.");
+            }
+            bool departmentNameExists = await db.Department.AnyAsync(x =>
+                            x.CompanyId == dto.CompanyId &&
+                            x.DepartmentName == dto.DepartmentName &&
+                            x.IsActive == 1);
+            if (departmentNameExists)
+            {
+                throw new Exception("Department Name already exists.");
+            }
             var companyExists = await db.Company.AnyAsync(x =>
                     x.CompanyId == dto.CompanyId &&
                     x.IsActive == 1);
@@ -69,7 +84,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Invalid Company Id.");
             }
             var data = mapper.Map<Department>(dto);
-
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;
 
             data.CreatedAt = DateTime.Now;
@@ -80,9 +95,34 @@ namespace Backend_Fincore.Infrastucture.Service
             data = await db.Department.Include(x => x.Company).FirstOrDefaultAsync(x => x.DepartmentId == data.DepartmentId);
             return mapper.Map<DepartmentReadDTO>(data);
         }
-        public async Task UpdateDepartment(int id,DepartmentWriteDTO dto)
+        public async Task UpdateDepartment(int id, DepartmentUpdateDTO dto)
         {
-            var data = await db.Department .FindAsync(id);
+            bool companyExists = await db.Company.AnyAsync(x => x.CompanyId == dto.CompanyId && x.IsActive == 1);
+            if (!companyExists)
+            {
+                throw new Exception("Invalid Company Id.");
+            }
+
+            bool departmentCodeExists = await db.Department.AnyAsync(x =>
+                            x.DepartmentCode == dto.DepartmentCode &&
+                            x.DepartmentId != id &&
+                            x.IsActive == 1);
+            if (departmentCodeExists)
+            {
+                throw new Exception("Department Code already exists.");
+            }
+
+            bool departmentNameExists = await db.Department.AnyAsync(x =>
+                                 x.CompanyId == dto.CompanyId &&
+                                 x.DepartmentName == dto.DepartmentName &&
+                                 x.DepartmentId != id &&
+                                 x.IsActive == 1);
+            if (departmentNameExists)
+            {
+                throw new Exception("Department Name already exists.");
+            }
+        
+            var data = await db.Department.FirstOrDefaultAsync(x => x.DepartmentId == id && x.IsActive == 1);
             if (data == null)
             {
                 throw new Exception("Department not found.");
@@ -94,7 +134,7 @@ namespace Backend_Fincore.Infrastucture.Service
         }
         public async Task DeleteDepartment( int id)
         {
-            var data = await db.Department.FindAsync(id);
+            var data = await db.Department.FirstOrDefaultAsync(x =>x.DepartmentId == id && x.IsActive == 1);
 
             if (data == null)
             {

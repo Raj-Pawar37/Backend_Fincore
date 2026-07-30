@@ -15,9 +15,9 @@ namespace Backend_Fincore.Application.Interface
         Task<int> GetTotalRecordsDocType();
         Task<DocumentTypeCUDTO> GetById(int id);
 
-        Task<DocumentTypeCUDTO> AddDocumentType(DocumentTypeCUDTO dto);
+        Task<DocumentTypeCUDTO> AddDocumentType(DocumentTypeWriteDTO dto);
 
-        Task UpdateDocumentType(int id, DocumentTypeCUDTO dto);
+        Task UpdateDocumentType(int id, DocumentTypeUpdateDTO dto);
 
         Task DeleteDocumentType(int id);
 

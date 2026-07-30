@@ -19,8 +19,5 @@ namespace Backend_Fincore.Application.DTOs.Department
         public string DepartmentCode { get; set; } = null!;
 
         public string? Description { get; set; }
-
-        [Required]
-        public bool IsActive { get; set; }
     }
 }

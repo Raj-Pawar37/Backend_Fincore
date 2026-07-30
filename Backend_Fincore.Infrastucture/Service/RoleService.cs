@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Role;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs;
-using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Models;
-using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,140 +18,172 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
-        private readonly ICurrentUserService current;
+        private readonly ICurrentUserService _current;
+        private readonly IMemoryCache _cache;
 
-        public RoleService(AppDbContext db, IMapper mapper, ICurrentUserService current)
+        private const string CacheKeyList = "Cache_Roles_List_";
+        private const string CacheKeyDropdown = "Cache_Role_Dropdown_";
+
+        public RoleService(
+            AppDbContext db,
+            IMapper mapper,
+            ICurrentUserService current,
+            IMemoryCache cache)
         {
             _db = db;
             _mapper = mapper;
-            this.current = current;
+            _current = current;
+            _cache = cache;
         }
 
-        public async Task<int> GetRoleCountAsync(PaginationDTO pagination)
+        public async Task<(List<RoleDTO> Items, int TotalRecords)> GetAllRolesAsync(PaginationDTO pagination)
         {
-            var query = _db.Role.AsQueryable();
+            string cacheKey = $"{CacheKeyList}Page_{pagination.PageNumber}_Size_{pagination.PageSize}_Search_{pagination.Search ?? "None"}";
+
+            if (_cache.TryGetValue(cacheKey, out (List<RoleDTO> Items, int TotalRecords) cachedResult))
+            {
+                return cachedResult;
+            }
+
+            var query = _db.Role.AsNoTracking().Where(x => x.IsActive == 1);
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                query = query.Where(x => x.RoleName.Contains(pagination.Search));
+                var search = pagination.Search.Trim().ToLower();
+                query = query.Where(x => x.RoleName.ToLower().Contains(search) || x.RoleCode.ToLower().Contains(search));
             }
 
-            return await query.CountAsync();
-        }
-
-        public async Task<List<RoleDTO>> GetAllRolesAsync(PaginationDTO pagination)
-        {
-            var query = _db.Role.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(pagination.Search))
-            {
-                query = query.Where(x => x.RoleName.Contains(pagination.Search));
-            }
+            int totalRecords = await query.CountAsync();
 
             var data = await query
+                .OrderByDescending(x => x.RoleId)
                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                 .Take(pagination.PageSize)
                 .ToListAsync();
 
-            return _mapper.Map<List<RoleDTO>>(data);
+            var mappedData = _mapper.Map<List<RoleDTO>>(data);
+            var result = (mappedData, totalRecords);
+
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+
+            return result;
         }
 
-        public async Task<ApiResponse<RoleDTO>> GetRoleByIdAsync(int id)
+        public async Task<RoleDTO> GetRoleByIdAsync(int id)
         {
-            var role = await _db.Role.FindAsync(id);
+            var role = await _db.Role.AsNoTracking().FirstOrDefaultAsync(x => x.RoleId == id && x.IsActive == 1);
+
             if (role == null)
+                throw new KeyNotFoundException($"Role with ID {id} was not found or is inactive.");
+
+            return _mapper.Map<RoleDTO>(role);
+        }
+
+        public async Task<List<RoleDropdownDTO>> GetRoleDropdown(string? searchText)
+        {
+            string cacheKey = $"{CacheKeyDropdown}{searchText ?? "All"}";
+
+            if (_cache.TryGetValue(cacheKey, out List<RoleDropdownDTO>? cachedDropdown) && cachedDropdown != null)
             {
-                return new ApiResponse<RoleDTO>
-                {
-                    Success = false,
-                    Message = "Role not found",
-                    Error = new { code = "NOT_FOUND", details = $"Role with ID {id} was not found." }
-                };
+                return cachedDropdown;
             }
 
-            var dto = _mapper.Map<RoleDTO>(role);
-            return new ApiResponse<RoleDTO>
+            var search = _db.Role.AsNoTracking().Where(x => x.IsActive == 1);
+
+            if (!string.IsNullOrEmpty(searchText))
             {
-                Success = true,
-                Message = "Role found successfully",
-                Data = dto,
-                TotalNumberRecord = 1
-            };
+                search = search.Where(x => x.RoleName.Contains(searchText));
+            }
+
+            var data = await search
+                            .OrderBy(x => x.RoleName)
+                            .Take(20)
+                            .Select(x => new RoleDropdownDTO
+                            {
+                                RoleId = x.RoleId,
+                                RoleName = x.RoleName
+                            })
+                            .ToListAsync();
+
+            _cache.Set(cacheKey, data, TimeSpan.FromMinutes(15));
+
+            return data;
         }
 
-        public async Task<ApiResponse<RoleDTO>> CreateRoleAsync(RoleDTO dto)
+        public async Task<RoleDTO> CreateRoleAsync(RoleDTO dto)
         {
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto), "Role payload cannot be null.");
+
             var role = _mapper.Map<Role>(dto);
-            role.CreatedBy = current.UserId;
+            role.IsActive = 1;
+            role.CreatedBy = _current.UserId;
             role.CreatedAt = DateTime.UtcNow;
 
             _db.Role.Add(role);
             await _db.SaveChangesAsync();
 
-            var createdDto = _mapper.Map<RoleDTO>(role);
-            return new ApiResponse<RoleDTO>
-            {
-                Success = true,
-                Message = "Role created successfully",
-                Data = createdDto,
-                TotalNumberRecord = 1
-            };
+            ClearRoleCache();
+
+            return _mapper.Map<RoleDTO>(role);
         }
 
-        public async Task<ApiResponse<RoleDTO>> UpdateRoleAsync(int id, RoleDTO dto)
+        public async Task<RoleDTO> UpdateRoleAsync(int id, RoleDTO dto)
         {
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto), "Role payload cannot be null.");
+
             var role = await _db.Role.FindAsync(id);
 
             if (role == null)
+                throw new KeyNotFoundException($"Role with ID {id} was not found.");
+
+            // Transition check (0 -> 1 allowed, 1 -> 0 restricted)
+            if (role.IsActive == 0 && dto.IsActive)
             {
-                return new ApiResponse<RoleDTO>
-                {
-                    Success = false,
-                    Message = "Role not found",
-                    Error = new { code = "NOT_FOUND", details = $"Role with ID {id} was not found." }
-                };
+                role.IsActive = 1;
+            }
+            else if (role.IsActive == 1 && !dto.IsActive)
+            {
+                throw new InvalidOperationException("To deactivate a role, perform a DELETE request.");
             }
 
             _mapper.Map(dto, role);
-            role.ModifiedBy = current.UserId;
+            role.RoleId = id;
+            role.ModifiedBy = _current.UserId;
             role.ModifiedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
 
-            var updatedDto = _mapper.Map<RoleDTO>(role);
-            return new ApiResponse<RoleDTO>
-            {
-                Success = true,
-                Message = "Role updated successfully",
-                Data = updatedDto,
-                TotalNumberRecord = 1
-            };
+            ClearRoleCache();
+
+            return _mapper.Map<RoleDTO>(role);
         }
 
-        public async Task<ApiResponse<bool>> DeleteRoleAsync(int id)
+        public async Task<bool> DeleteRoleAsync(int id)
         {
             var role = await _db.Role.FindAsync(id);
-            if (role == null)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Message = "Role not found",
-                    Data = false,
-                    Error = new { code = "NOT_FOUND", details = $"Role with ID {id} was not found." }
-                };
-            }
 
-            _db.Role.Remove(role);
+            if (role == null || role.IsActive == 0)
+                throw new KeyNotFoundException($"Role with ID {id} was not found or is already inactive.");
+
+            role.IsActive = 0;
+            role.ModifiedBy = _current.UserId;
+            role.ModifiedAt = DateTime.UtcNow;
+
             await _db.SaveChangesAsync();
 
-            return new ApiResponse<bool>
+            ClearRoleCache();
+
+            return true;
+        }
+
+        private void ClearRoleCache()
+        {
+            if (_cache is MemoryCache memoryCache)
             {
-                Success = true,
-                Message = "Role deleted successfully",
-                Data = true,
-                TotalNumberRecord = 1
-            };
+                memoryCache.Compact(1.0);
+            }
         }
     }
 }

@@ -26,6 +26,11 @@ using Backend_Fincore.Models.Backend_Fincore.Models;
 using Backend_Fincore.Domain.Models;
 using Backend_Fincore.Application.DTOs.DocumentNumber;
 using Backend_Fincore.Application.DTOs.Payment;
+using Backend_Fincore.Application.DTOs.Customer;
+using Backend_Fincore.Application.DTOs.Vendor;
+using Backend_Fincore.Application.DTOs.Company;
+using Backend_Fincore.Application.DTOs.Quotation;
+using Backend_Fincore.Application.DTOs.QuotationItem;
 
 
 
@@ -125,7 +130,7 @@ public class MappingData : Profile
             .ForMember(d => d.StateName, x => x.MapFrom(y => y.State.StateName))
             .ForMember(d => d.CityName, x => x.MapFrom(y => y.City.CityName));
         CreateMap<CompanyWriteDTO, Company>().ReverseMap();
-
+        CreateMap<Company, CompanyDropdownDTO>();
 
         //Vendor
 
@@ -238,10 +243,9 @@ public class MappingData : Profile
 
 
 
+        CreateMap<RolePermissionDTO, RolePermission>();
 
-        CreateMap<RolePermissionDTOs, RolePermission>();
-
-        CreateMap<RolePermission, RolePermissionResponseDto>()
+        CreateMap<RolePermission, RolePermissionResponseDTO>()
             .ForMember(dest => dest.RoleName,
                        opt => opt.MapFrom(src => src.Role != null ? src.Role.RoleName : string.Empty))
             .ForMember(dest => dest.PermissionName,
@@ -259,26 +263,35 @@ public class MappingData : Profile
 
         CreateMap<AccountMaster, AccountMasterReadDTO>();
         CreateMap<AccountMasterWriteDTO, AccountMaster>().ReverseMap();
+        CreateMap<AccountMasterUpdateDTO, AccountMaster>().ReverseMap();
 
 
         // Department
 
         CreateMap<Department, DepartmentReadDTO>().ForMember(d => d.CompanyName, x => x.MapFrom(y => y.Company.CompanyName));
         CreateMap<DepartmentWriteDTO, Department>().ReverseMap();
-        CreateMap<DocumentType, DocumentTypeCUDTO>().ReverseMap();
+        CreateMap<DepartmentUpdateDTO, Department>().ReverseMap();
+
+        // Read DTO
+        CreateMap<DocumentType, DocumentTypeCUDTO>();
+        CreateMap<DocumentTypeWriteDTO, DocumentType>();
+        CreateMap<DocumentTypeUpdateDTO, DocumentType>();
 
 
         CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName, x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
         CreateMap<DocumentWriteDTO, Document>();
+        CreateMap<DocumentUpdateDTO, Document>();
         CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
         CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
+        CreateMap<ApprovalUpdateDTO, Approval>().ReverseMap();
+
 
         CreateMap<Country, CountryReadDTO>().ReverseMap();
 
         CreateMap<State, StateReadDTO>().ReverseMap();
 
         CreateMap<City, CityReadDTO>().ReverseMap();
-
+        
 
 
         //Ajit Code 
@@ -289,6 +302,27 @@ public class MappingData : Profile
         CreateMap<RevenueEntry, RevenueEntryDto>().ReverseMap();
         CreateMap<RevenueEntryCreateDto, RevenueEntry>();
         CreateMap<RevenueEntryUpdateDto, RevenueEntry>();
+
+
+        CreateMap<Quotation, QuotationCDTO>().ReverseMap();
+        CreateMap<Quotation, QuotationUDTO>().ReverseMap();
+        CreateMap<Quotation, QuotationDTO>()
+            .ForMember(x => x.RFQNumber, y => y.MapFrom(z => z.RFQ.RFQNumber))
+            .ForMember(x => x.VendorName, y => y.MapFrom(z => z.RFQVendor.Vendor.VendorName));
+
+
+
+        CreateMap<QuotationItem, QuotationItemCDTO>().ReverseMap();
+        CreateMap<QuotationItem, QuotationItemUDTO>().ReverseMap();
+        CreateMap<QuotationItem, QuotationItemDTO>()
+            .ForMember(x => x.ItemName, y => y.MapFrom(z => z.RFQItem.Name))
+            .ForMember(x => x.SubTotal, y => y.MapFrom(z => z.Quantity * z.UnitPrice))
+            .ForMember(x => x.TotalAmount, y => y.MapFrom(z => (z.Quantity * z.UnitPrice) + z.Tax - z.Discount));
+
+
+
+
+
 
 
     }

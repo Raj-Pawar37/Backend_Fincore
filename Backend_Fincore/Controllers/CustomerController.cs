@@ -1,5 +1,6 @@
 ﻿using AutoMapper.Configuration.Annotations;
 using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Customer;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ using System.Runtime.InteropServices;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/customer")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class CustomerController : ControllerBase

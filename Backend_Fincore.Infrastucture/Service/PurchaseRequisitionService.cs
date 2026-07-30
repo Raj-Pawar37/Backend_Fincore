@@ -1,48 +1,71 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.DTOs.PurchaseRequisition;
-using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Application.Interfaces;
+using Backend_Fincore.Application.Interface; // ICurrentUserService
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
-using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
+using Microsoft.Extensions.Caching.Memory;
 
-namespace Backend_Fincore.Infrastucture.Service
+namespace Backend_Fincore.Application.Services
 {
     public class PurchaseRequisitionService : IPurchaseRequisitionService
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService _current;
+        private readonly IMemoryCache _cache;
 
-        public PurchaseRequisitionService(AppDbContext context, IMapper mapper)
+        public PurchaseRequisitionService(AppDbContext context, IMapper mapper, ICurrentUserService current, IMemoryCache cache)
         {
             _context = context;
             _mapper = mapper;
+            _current = current;
+            _cache = cache;
         }
 
-        public async Task<ApiResponse<List<PurchaseRequisitionResponseDto>>> GetAllAsync(int userId)
+        public async Task<int> GetCountAsync()
         {
-            if (userId <= 0)
+            string cacheKey = "PR_TotalCount";
+
+            if (_cache.TryGetValue(cacheKey, out int cachedCount))
             {
-                return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "User ID is missing or invalid" };
+                return cachedCount;
+            }
+
+            int count = await _context.PurchaseRequisition.CountAsync();
+
+            _cache.Set(cacheKey, count, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromSeconds(30)));
+
+            return count;
+        }
+
+        public async Task<List<PurchaseRequisitionResponseDto>> GetAllAsync(PaginationDTO pagination)
+        {
+            string cacheKey = $"PR_List_P{pagination.PageNumber}_S{pagination.PageSize}_Search{pagination.Search ?? "none"}";
+
+            if (_cache.TryGetValue(cacheKey, out List<PurchaseRequisitionResponseDto> cachedData))
+            {
+                return cachedData;
             }
 
             var user = await _context.User
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == userId);
+                .FirstOrDefaultAsync(u => u.UserId == _current.UserId);
 
-            if (user == null)
-            {
-                return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "User ID not found" };
-            }
+            if (user == null) throw new Exception("User not found.");
+            if (user.Role == null) throw new Exception("Role not Exist.");
 
             string roleName = user.Role.RoleName;
 
             if (roleName == "User")
             {
-                return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "You do not have permission to view PRs" };
+                throw new Exception("You do not have permission to view PRs.");
             }
 
             IQueryable<PurchaseRequisition> query = _context.PurchaseRequisition.AsQueryable();
@@ -53,7 +76,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
                 if (employee == null)
                 {
-                    return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "Manager employee record not found" };
+                    throw new Exception("Manager employee record not found.");
                 }
 
                 int managerDeptId = employee.DepartmentId;
@@ -67,43 +90,61 @@ namespace Backend_Fincore.Infrastucture.Service
                                                   emp.EmployeeId == u.MasterId &&
                                                   emp.DepartmentId == managerDeptId))));
             }
-            
             else if (roleName != "CFO")
             {
-                return new ApiResponse<List<PurchaseRequisitionResponseDto>> { Success = false, Message = "Invalid Role" };
+                throw new Exception("Invalid Role.");
             }
 
-            var prs = await query.ToListAsync();
-            var prDtos = _mapper.Map<List<PurchaseRequisitionResponseDto>>(prs).ToList();
-
-            return new ApiResponse<List<PurchaseRequisitionResponseDto>>
+            // Pagination Search Logic
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                Success = true,
-                Message = "Purchase Requisitions fetched successfully",
-                Data = prDtos,
-                TotalNumberRecord = prDtos.Count
-            };
-        }
-
-        public async Task<ApiResponse<PurchaseRequisitionResponseDto>> GetByIdAsync(int id)
-        {
-            var pr = await _context.PurchaseRequisition.FindAsync(id);
-            if (pr == null)
-            {
-                return new ApiResponse<PurchaseRequisitionResponseDto> { Success = false, Message = "Purchase Requisition not found" };
+                query = query.Where(pr => pr.PRNumber.Contains(pagination.Search) ||
+                                          pr.Title.Contains(pagination.Search) ||
+                                          pr.Status.Contains(pagination.Search));
             }
 
-            var prDto = _mapper.Map<PurchaseRequisitionResponseDto>(pr);
-            return new ApiResponse<PurchaseRequisitionResponseDto> { Success = true, Data = prDto, TotalNumberRecord = 1 };
+            var prs = await query.OrderByDescending(pr => pr.PRId)
+                                 .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                 .Take(pagination.PageSize)
+                                 .ToListAsync();
+
+            var responseData = _mapper.Map<List<PurchaseRequisitionResponseDto>>(prs);
+
+            _cache.Set(cacheKey, responseData, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromSeconds(30)));
+
+            return responseData;
         }
 
-        public async Task<ApiResponse<PurchaseRequisitionResponseDto>> UpdateAsync(int id, PurchaseRequisitionUpdateDto dto, int userId)
+        public async Task<PurchaseRequisitionResponseDto> GetByIdAsync(int id)
+        {
+            string cacheKey = $"PR_GetById_{id}";
+
+            if (_cache.TryGetValue(cacheKey, out PurchaseRequisitionResponseDto cachedData))
+            {
+                return cachedData;
+            }
+
+            var pr = await _context.PurchaseRequisition.FindAsync(id);
+
+            if (pr == null)
+            {
+                return null;
+            }
+
+            var responseData = _mapper.Map<PurchaseRequisitionResponseDto>(pr);
+
+            _cache.Set(cacheKey, responseData, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromSeconds(60)));
+
+            return responseData;
+        }
+
+        public async Task UpdateAsync(int id, PurchaseRequisitionUpdateDto dto)
         {
             var pr = await _context.PurchaseRequisition.FindAsync(id);
 
             if (pr == null)
             {
-                return new ApiResponse<PurchaseRequisitionResponseDto> { Success = false, Message = "PRId not found" };
+                throw new Exception("Purchase Requisition not found.");
             }
 
             if (!string.IsNullOrEmpty(dto.Title)) pr.Title = dto.Title;
@@ -111,17 +152,21 @@ namespace Backend_Fincore.Infrastucture.Service
             if (!string.IsNullOrEmpty(dto.Description)) pr.Description = dto.Description;
             if (!string.IsNullOrEmpty(dto.Status)) pr.Status = dto.Status;
 
-           
-            pr.ModifiedBy = userId;
+            pr.ModifiedBy = _current.UserId;
             pr.ModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-
-            return await GetByIdAsync(id);
         }
 
-        public async Task<ApiResponse<List<PRDropdownResponseDto>>> GetPRDropdownAsync(string? searchText, int? departmentId)
+        public async Task<List<PRDropdownResponseDto>> GetPRDropdownAsync(string? searchText, int? departmentId)
         {
+            string cacheKey = $"PR_Dropdown_{searchText ?? "none"}_{departmentId ?? 0}";
+
+            if (_cache.TryGetValue(cacheKey, out List<PRDropdownResponseDto> cachedData))
+            {
+                return cachedData;
+            }
+
             IQueryable<PurchaseRequisition> query = _context.PurchaseRequisition.AsQueryable();
 
             if (departmentId.HasValue && departmentId.Value > 0)
@@ -139,7 +184,7 @@ namespace Backend_Fincore.Infrastucture.Service
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 query = query.Where(pr => pr.PRNumber.Contains(searchText) || pr.Title.Contains(searchText))
-                             .Take(20);
+                             .Take(20); // Limit dropdown results for performance
             }
 
             var prs = await query.Select(pr => new PRDropdownResponseDto
@@ -149,13 +194,12 @@ namespace Backend_Fincore.Infrastucture.Service
                 Title = pr.Title
             }).ToListAsync();
 
-            return new ApiResponse<List<PRDropdownResponseDto>>
-            {
-                Success = true,
-                Message = "PR Dropdown fetched successfully",
-                Data = prs,
-                TotalNumberRecord = prs.Count
-            };
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromSeconds(60));
+
+            _cache.Set(cacheKey, prs, cacheOptions);
+
+            return prs;
         }
     }
 }

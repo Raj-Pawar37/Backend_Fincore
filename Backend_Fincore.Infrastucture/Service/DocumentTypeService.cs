@@ -28,10 +28,17 @@ namespace Backend_Fincore.Infrastucture.Service
             this.mapper = mapper;
             this.currentUser = currentUser;
         }
-        public async Task<DocumentTypeCUDTO> AddDocumentType(DocumentTypeCUDTO dto)
+        public async Task<DocumentTypeCUDTO> AddDocumentType(DocumentTypeWriteDTO dto)
         {
+            bool documentTypeExists = await db.DocumentType.AnyAsync(x =>
+                                    x.DocumentTypeName == dto.DocumentTypeName &&
+                                    x.IsActive == 1);
+            if (documentTypeExists)
+            {
+                throw new Exception("Document Type already exists.");
+            }
             var data = mapper.Map<DocumentType>(dto);
-
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;
 
             data.CreatedAt = DateTime.Now;
@@ -45,7 +52,8 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task DeleteDocumentType(int id)
         {
-            var data = await db.DocumentType.FindAsync(id);
+            var data = await db.DocumentType.FirstOrDefaultAsync(x =>
+                            x.DocumentTypeId == id && x.IsActive == 1);
             if (data == null)
             {
                 throw new Exception("DocumentType Master not found.");
@@ -61,12 +69,12 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<DocumentTypeCUDTO>> GetAll(PaginationDTO pagination)
         {
-            var search = db.DocumentType.AsQueryable();
+            var search = db.DocumentType.Where(x => x.IsActive == 1).AsQueryable();
             if (!string.IsNullOrEmpty(pagination.Search)) {
                 search = search.Where(x =>
                     x.DocumentTypeName.Contains(pagination.Search));
             }
-            var data = await search.Where(x=>x.IsActive==1)
+            var data = await search
                                     .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                                     .Take(pagination.PageSize)
                                     .ToListAsync();
@@ -76,7 +84,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<DocumentTypeCUDTO> GetById(int id)
         {
-            var data = await db.DocumentType.FirstOrDefaultAsync(x => x.DocumentTypeId == id);
+            var data = await db.DocumentType.FirstOrDefaultAsync(x => x.DocumentTypeId == id&& x.IsActive==1);
 
             if (data == null)
             {
@@ -92,15 +100,25 @@ namespace Backend_Fincore.Infrastucture.Service
             return await db.DocumentType.Where(x => x.IsActive == 1).CountAsync();
         }
 
-        public async Task UpdateDocumentType(int id, DocumentTypeCUDTO dto)
+        public async Task UpdateDocumentType(int id, DocumentTypeUpdateDTO dto)
         {
-            var data = await db.DocumentType.FindAsync(id);
+            bool documentTypeExists = await db.DocumentType.AnyAsync(x =>
+                                     x.DocumentTypeName == dto.DocumentTypeName &&
+                                     x.DocumentTypeId != id &&
+                                     x.IsActive == 1);
+
+            if (documentTypeExists)
+            {
+                throw new Exception("Document Type already exists.");
+            }
+            var data = await db.DocumentType.FirstOrDefaultAsync(x =>
+                                     x.DocumentTypeId == id && x.IsActive == 1);
 
             if (data == null)
             {
                 throw new Exception("DocumentType Master not found.");
             }
-            data.ModifiedBy = currentUser.UserId;//further i need to add jwt userid here
+            data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
             mapper.Map(dto, data);
             await db.SaveChangesAsync();

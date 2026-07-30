@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/country")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class CountryController : ControllerBase
@@ -22,99 +22,6 @@ namespace Backend_Fincore.Controllers
             this.service = service;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult>GetAll([FromQuery] PaginationDTO pagination)
-        //{
-        //    var res = await service.GetAll(pagination);
-
-        //    var totalRecords =await service.GetCountryCount(pagination);
-
-
-        //    var totalPages =(int)Math.Ceiling(totalRecords / (double)pagination.PageSize);
-
-
-        //    return Ok(
-        //        new ApiResponse<List<CountryReadDTO>>
-        //        {
-        //            Success = true,
-
-        //            Message = "Countries fetched successfully.",
-
-        //            Data = res,
-
-        //            Error = null,
-
-        //            TotalNumberRecord = totalRecords,
-
-        //            Metadata = new
-        //            {
-        //                pagination.PageNumber,
-        //                pagination.PageSize,
-        //                pagination.Search,
-        //                TotalPages = totalPages,
-        //                RecordsOnCurrentPage = res.Count
-        //            }
-        //        });
-
-        //}
-        //[HttpGet("States")]
-        //public async Task<IActionResult> GetAllStates([FromQuery] StateFilterDTO pagination)
-        //{
-        //    var res = await service.GetAllState(pagination);
-
-        //    var totalRecords =await service.GetStateCount(pagination);
-
-        //    var totalPages =(int)Math.Ceiling(totalRecords /(double)pagination.PageSize);
-
-        //    return Ok(new ApiResponse<List<StateReadDTO>>
-        //    {
-        //        Success = true,
-        //        Message = "States fetched successfully.",
-        //        Data = res,
-        //        Error = null,
-        //        TotalNumberRecord = totalRecords,
-        //        Metadata = new
-        //        {
-        //            pagination.CountryId,
-        //            pagination.PageNumber,
-        //            pagination.PageSize,
-        //            pagination.Search,
-        //            TotalPages = totalPages,
-        //            RecordsOnCurrentPage = res.Count
-        //        }
-        //    });
-        //}
-
-
-
-        //[HttpGet("Cities")]
-        //public async Task<IActionResult> GetAllCities( [FromQuery] CityFilterDTO pagination)
-        //{
-        //    var res = await service.GetAllCity(pagination);
-
-        //    var totalRecords =await service.GetCityCount(pagination);
-
-        //    var totalPages = (int)Math.Ceiling( totalRecords /(double)pagination.PageSize);
-
-        //    return Ok(new ApiResponse<List<CityReadDTO>>
-        //    {
-        //        Success = true,
-        //        Message = "Cities fetched successfully.",
-        //        Data = res,
-        //        Error = null,
-        //        TotalNumberRecord = totalRecords,
-
-        //        Metadata = new
-        //        {
-        //            pagination.StateId,
-        //            pagination.PageNumber,
-        //            pagination.PageSize,
-        //            pagination.Search,
-        //            TotalPages = totalPages,
-        //            RecordsOnCurrentPage = res.Count
-        //        }
-        //    });
-        //}
         [HttpGet]
         public async Task<IActionResult> GetAll(string? search)
         {
@@ -129,7 +36,7 @@ namespace Backend_Fincore.Controllers
                 TotalNumberRecord = res.Count
             });
         }
-        [HttpGet("States")]
+        [HttpGet("states")]
         public async Task<IActionResult>GetAllState(int countryId, string? search)
         {
             var res =
@@ -144,7 +51,7 @@ namespace Backend_Fincore.Controllers
                 TotalNumberRecord = res.Count
             });
         }
-        [HttpGet("Cities")]
+        [HttpGet("cities")]
         public async Task<IActionResult>GetAllCity(int stateId, string? search)
         {
             var res =
