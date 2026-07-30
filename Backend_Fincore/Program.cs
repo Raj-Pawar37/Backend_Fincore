@@ -10,8 +10,6 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
 using Microsoft.Extensions.Options;
-using Backend_Fincore.Application.Interfaces;
-using Backend_Fincore.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
