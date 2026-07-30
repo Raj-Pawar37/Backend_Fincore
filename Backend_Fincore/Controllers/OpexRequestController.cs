@@ -6,9 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
+
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/opexRequest")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     [Authorize]
@@ -64,13 +65,7 @@ namespace Backend_Fincore.Controllers
 
             if (data == null)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Opex Request not found.",
-                    Data = null,
-                    Error = $"No Opex Request found with Id = {id}"
-                });
+                throw new Exception("Opex Request Id Data Not Found ");
             }
 
             return Ok(new ApiResponse<OpexRequestReadDTO>
@@ -84,20 +79,13 @@ namespace Backend_Fincore.Controllers
 
     
         [HttpPost]
-        public async Task<IActionResult> Create(
-            OpexRequestWriteDTO dto)
+        public async Task<IActionResult> Create(OpexRequestWriteDTO dto)
         {
         
                 var data = await service.Create(dto);
             if (data == null)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Opex Request Data not found.",
-                    Data = null,
-                    Error = $"No Opex Request Data found "
-                });
+                throw new Exception("Opex Request  Data Not Found ");
             }
 
             return Ok(new ApiResponse<OpexRequestReadDTO>
@@ -112,23 +100,15 @@ namespace Backend_Fincore.Controllers
 
    
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(
-            int id,
-            OpexRequestWriteDTO dto)
+        public async Task<IActionResult> Update(int id,OpexRequestWriteDTO dto)
         {
           
                 var data = await service.Update(id, dto);
 
                 if (data == null)
                 {
-                    return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Opex Request not found.",
-                        Data = null,
-                        Error = $"No Opex Request found with Id = {id}"
-                    });
-                }
+                throw new Exception("Opex Request Id Data Not Found ");
+            }
 
                 return Ok(new ApiResponse<OpexRequestReadDTO>
                 {
@@ -149,13 +129,7 @@ namespace Backend_Fincore.Controllers
 
             if (!result)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Opex Request not found.",
-                    Data = null,
-                    Error = $"No Opex Request found with Id = {id}"
-                });
+                throw new Exception("Opex Request Id Data Not Found ");
             }
 
             return Ok(new ApiResponse<object>
@@ -172,13 +146,7 @@ namespace Backend_Fincore.Controllers
             var data = await service.Verify(id, approvedBy, dto);
             if (data == null)
             {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Verify  Request not found.",
-                    Data = null,
-                    Error = $"No Verify Request found with Id = {id}"
-                });
+                throw new Exception("Opex Request Id Data Not Found ");
             }
             return Ok(new ApiResponse<OpexRequestReadDTO>
             {
@@ -199,6 +167,22 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "OPEX Requests fetched successfully.",
+                Data = data,
+                Error = null
+            });
+        }
+
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetDropdown()
+        {
+            var data = await service.GetDropdown();
+
+
+
+            return Ok(new ApiResponse<List<OpexRequestDropdownDTO>>
+            {
+                Success = true,
+                Message = "OPEX Request dropdown fetched successfully.",
                 Data = data,
                 Error = null
             });

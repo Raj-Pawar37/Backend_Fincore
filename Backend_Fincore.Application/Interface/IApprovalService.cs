@@ -15,7 +15,7 @@ namespace Backend_Fincore.Application.Interface
         Task<int> GetTotalApprovalRecord();
         Task<ApprovalReadDTO> GetById(int id);
         Task<ApprovalReadDTO> AddApproval( ApprovalWriteDTO dto);
-        Task UpdateApproval( int id,ApprovalWriteDTO dto);
+        Task UpdateApproval( int id,ApprovalUpdateDTO dto);
         Task DeleteApproval(int id);  
     }
 }

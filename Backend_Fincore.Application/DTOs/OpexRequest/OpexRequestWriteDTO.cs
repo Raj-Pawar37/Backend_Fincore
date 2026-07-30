@@ -15,8 +15,6 @@ namespace Backend_Fincore.Application.DTOs.OpexRequest
   
         public decimal Amount { get; set; }
 
-        [Required]
-        public int RequestedBy { get; set; }
     }
 }
 

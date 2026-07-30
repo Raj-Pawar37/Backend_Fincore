@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/document")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class DocumentController : ControllerBase
@@ -53,8 +53,7 @@ namespace Backend_Fincore.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
+            
                 var res = await service.GetById(id);
 
 
@@ -67,28 +66,14 @@ namespace Backend_Fincore.Controllers
                         Data = res,
                         Error = null
                     });
-            }
-
-            catch (Exception ex)
-            {
-                return NotFound(
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message =
-                        "Document not found.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-            }
+           
         }
 
 
         [HttpPost]
         public async Task<IActionResult> AddDocument([FromForm] DocumentWriteDTO dto)
         {
-            try
-            {
+            
                 var res = await service.AddDocument(dto);
 
                 return Ok(
@@ -99,27 +84,15 @@ namespace Backend_Fincore.Controllers
                         Data = res,
                         Error = null
                     });
-            }
+           
 
-            catch (Exception ex)
-            {
-                return BadRequest(
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Validation Failed.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-            }
         }
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDocument(int id, [FromForm] DocumentWriteDTO dto)
+        public async Task<IActionResult> UpdateDocument(int id, [FromForm] DocumentUpdateDTO dto)
         {
-            try
-            {
+            
                 await service.UpdateDocument(id, dto);
 
 
@@ -131,29 +104,7 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-
-            catch (Exception ex)
-            {
-                if (ex.Message == "Document not found.")
-                {
-                    return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Document not found.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-                }
-
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Validation failed.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+           
         }
 
 
@@ -163,8 +114,7 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDocument(int id)
         {
-            try
-            {
+           
                 await service.DeleteDocument(id);
                 return Ok(new ApiResponse<object>
                 {
@@ -174,20 +124,7 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-
-            catch (Exception ex)
-            {
-                return NotFound(
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message =
-                        "Document not found.",
-                        Data = null,
-                        Error = ex.Message
-                    });
-            }
+          
         }
     }
 }

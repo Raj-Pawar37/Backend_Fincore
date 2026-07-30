@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/approval")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class ApprovalController : ControllerBase
@@ -54,8 +54,7 @@ namespace Backend_Fincore.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
+           
                 var res = await service.GetById(id);
 
                 return Ok(new ApiResponse<ApprovalReadDTO>
@@ -65,17 +64,6 @@ namespace Backend_Fincore.Controllers
                     Data = res,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Approval not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
         }
 
 
@@ -83,8 +71,7 @@ namespace Backend_Fincore.Controllers
         [HttpPost]
         public async Task<IActionResult> AddApproval(ApprovalWriteDTO dto)
         {
-            try
-            {
+            
                 var res = await service.AddApproval(dto);
 
                 return Ok(new ApiResponse<ApprovalReadDTO>
@@ -94,26 +81,14 @@ namespace Backend_Fincore.Controllers
                     Data = res,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Approval creation failed.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
         }
 
 
       
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateApproval(int id, ApprovalWriteDTO dto)
+        public async Task<IActionResult> UpdateApproval(int id, ApprovalUpdateDTO dto)
         {
-            try
-            {
+            
                 await service.UpdateApproval(id, dto);
 
                 return Ok(new ApiResponse<object>
@@ -123,17 +98,7 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Approval update failed.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+          
         }
 
 
@@ -141,8 +106,6 @@ namespace Backend_Fincore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteApproval(int id)
         {
-            try
-            {
                 await service.DeleteApproval(id);
 
                 return Ok(new ApiResponse<object>
@@ -152,17 +115,7 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Approval not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+         
         }
     }
 }
