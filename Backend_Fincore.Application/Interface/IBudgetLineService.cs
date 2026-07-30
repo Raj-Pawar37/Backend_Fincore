@@ -10,6 +10,7 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IBudgetLineService
     {
+        Task<List<BudgetLineDropdownDTO>> GetBudgetLineDropdown(string? searchText, int? departmentId,string? costCenter);
         Task<BudgetLineReadDTO> AddBudgetLine(BudgetLineWriteDTO dto);
 
         Task<List<BudgetLineReadDTO>> GetAll(PaginationDTO pagination);

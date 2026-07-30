@@ -9,7 +9,8 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    //[Route("api/v1/[controller]")]
+    [Route("api/v1/budgetLine")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class BudgetLineController : ControllerBase
@@ -19,6 +20,21 @@ namespace Backend_Fincore.Controllers
         public BudgetLineController(IBudgetLineService service)
         {
             this.service = service;
+        }
+
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetBudgetLineDropdown(
+           string? searchText,
+           int? departmentId, string? costCenter)
+        {
+            var data = await service.GetBudgetLineDropdown(searchText, departmentId,costCenter);
+
+            return Ok(new ApiResponse<List<BudgetLineDropdownDTO>>
+            {
+                Success = true,
+                Message = "Budget lines fetched successfully.",
+                Data = data
+            });
         }
 
         [HttpPost]
