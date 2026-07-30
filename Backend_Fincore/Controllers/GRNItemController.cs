@@ -13,13 +13,13 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [EnableRateLimiting("Fixed")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
-    public class GRNItemController : ControllerBase
+    public class gRNItemController : ControllerBase
     {
         private readonly IGRNItemsService gRNItemsService;
 
-        public GRNItemController(IGRNItemsService gRNItemsService)
+        public gRNItemController(IGRNItemsService gRNItemsService)
         {
             this.gRNItemsService = gRNItemsService;
         }

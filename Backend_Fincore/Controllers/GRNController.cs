@@ -15,22 +15,22 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [EnableRateLimiting("Fixed")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
-    public class GRNController : ControllerBase
+    public class gRNController : ControllerBase
     {
         private readonly IGRNService gRNService;
 
-        public GRNController(IGRNService gRNService)
+        public gRNController(IGRNService gRNService)
         {
             this.gRNService = gRNService;
         }
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllGRNs([FromBody]GrnStatusDTO dto,[FromQuery]PaginationDTO pagination)
+        public async Task<IActionResult> GetAllGRNs([FromQuery]PaginationDTO pagination)
         {
-            var data = await gRNService.GetAllGrns( dto,pagination);
+            var data = await gRNService.GetAllGrns( pagination);
 
             var totalCounts = await gRNService.GetAllGRNCount();
             var totalpages = (int)Math.Ceiling(totalCounts / (double)pagination.PageSize);

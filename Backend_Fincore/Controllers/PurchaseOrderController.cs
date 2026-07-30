@@ -16,13 +16,13 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [EnableRateLimiting("Fixed")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
-    public class PurchaseOrderController : ControllerBase
+    public class purchaseOrderController : ControllerBase
     {
         private readonly IPurchaseOrderService purchaseOrderService;
 
-        public PurchaseOrderController(IPurchaseOrderService purchaseOrderService)
+        public purchaseOrderController(IPurchaseOrderService purchaseOrderService)
         {
             this.purchaseOrderService = purchaseOrderService;
         }
