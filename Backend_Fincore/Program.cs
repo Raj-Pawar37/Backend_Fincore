@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
+using Microsoft.Extensions.Options;
 using Backend_Fincore.Application.Interfaces;
 using Backend_Fincore.Application.Services;
 
@@ -20,6 +21,18 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMemoryCache();
 
+// Cors 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FinCore", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+    });
+});
 
 
 // LOGIN SERVICE
@@ -243,7 +256,7 @@ if (app.Environment.IsDevelopment())
         c.ConfigObject.AdditionalItems["withCredentials"] = true;
     });
 }
-
+app.UseCors("FinCore");
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
