@@ -4,14 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.DTOs
+namespace Backend_Fincore.Application.DTOs.Auth
 {
-    public class CapexVerifyDTO
+    public class SetupTwoFactorRequestDto
     {
-        public int CapexRequestId { get; set; }
-
         public int UserId { get; set; }
-
-        public string Status { get; set; } = string.Empty;
     }
 }

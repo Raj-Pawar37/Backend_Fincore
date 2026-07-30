@@ -1,13 +1,17 @@
 ﻿using Backend_Fincore.Application.DTOs.QuotationItem;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Backend_Fincore.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize]
+    [Route("api/v1/quoatationItem")]
     [ApiController]
+    [EnableRateLimiting("fixed")]
     public class QuotationItemController : ControllerBase
     {
         private readonly IQuotationItemService quotationItemService;
@@ -19,7 +23,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult>AddQuotationItem([FromBody] QuotationItemCUDTO dto)
+        public async Task<ActionResult>AddQuotationItem([FromBody] QuotationItemCDTO dto)
         {
             await quotationItemService.AddQuotationItem(dto);
 
@@ -34,7 +38,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPut]
-        public async Task<ActionResult>UpdateQuotationItem([FromBody] QuotationItemCUDTO dto)
+        public async Task<ActionResult>UpdateQuotationItem([FromBody] QuotationItemUDTO dto)
         {
             await quotationItemService.UpdateQuotationItem(dto);
 

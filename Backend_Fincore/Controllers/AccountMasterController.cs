@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/accountMaster")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class AccountMasterController : ControllerBase
@@ -51,8 +51,6 @@ namespace Backend_Fincore.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
                 var res = await service.GetById(id);
 
                 return Ok(new ApiResponse<AccountMasterReadDTO>
@@ -62,17 +60,7 @@ namespace Backend_Fincore.Controllers
                     Data = res,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Account Master not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+           
         }
         [HttpPost]
         public async Task<IActionResult>AddAccountMaster(AccountMasterWriteDTO dto)
@@ -88,10 +76,9 @@ namespace Backend_Fincore.Controllers
             });
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult>UpdateAccountMaster(int id,AccountMasterWriteDTO dto)
+        public async Task<IActionResult>UpdateAccountMaster(int id,AccountMasterUpdateDTO dto)
         {
-            try
-            {
+           
                 await service.UpdateAccountMaster(id, dto);
 
                 return Ok(new ApiResponse<object>
@@ -101,23 +88,12 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Account Master not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
+        
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult>DeleteAccountMaster(int id)
         {
-            try
-            {
+           
                 await service.DeleteAccountMaster(id);
 
                 return Ok(new ApiResponse<object>
@@ -127,17 +103,6 @@ namespace Backend_Fincore.Controllers
                     Data = null,
                     Error = null
                 });
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Account Master not found.",
-                    Data = null,
-                    Error = ex.Message
-                });
-            }
         }
 
     }

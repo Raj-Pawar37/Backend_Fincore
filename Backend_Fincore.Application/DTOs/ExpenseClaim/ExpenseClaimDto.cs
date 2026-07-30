@@ -1,4 +1,4 @@
-﻿namespace Backend_Fincore.DTOs
+﻿namespace Backend_Fincore.Application.DTOs.ExpenseClaim
 {
     public class ExpenseClaimDto
     {

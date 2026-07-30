@@ -1,172 +1,305 @@
 ﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Auth;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Application.Response;
 using Backend_Fincore.Data;
 using Backend_Fincore.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using OtpNet;
 using QRCoder;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Backend_Fincore.Infrastucture.Service
 {
     public class AuthService : IAuthService
     {
+
         private readonly AppDbContext db;
-        private readonly ITokenService tokenService;
+        private readonly IConfiguration _configuration;
+        private readonly ICurrentUserService currentUser;
 
-
-        private static readonly TimeSpan RefreshTokenExpiry = TimeSpan.FromDays(1);
-
-        public object Base34Encoding { get; private set; }
-
-        public AuthService(AppDbContext db, ITokenService tokenService)
+        public AuthService(AppDbContext db, IConfiguration configuration, ICurrentUserService currentUser)
         {
             this.db = db;
-            this.tokenService = tokenService;
+            _configuration = configuration;
+            this.currentUser = currentUser;
         }
 
 
-        public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
+        public async Task<User> LoginAsync(LoginRequestDto dto)
         {
-            if (loginDto == null ||
-                string.IsNullOrWhiteSpace(loginDto.Username) ||
-                string.IsNullOrWhiteSpace(loginDto.Password))
+
+            var user = await db.User.FirstOrDefaultAsync(x => x.Username == dto.Username);
+            if (user == null) throw new UnauthorizedAccessException("userName or Password doesnt matched");
+            if (user.IsActive == 0) throw new UnauthorizedAccessException("User has been deactived due to multiple Password Try");
+
+            bool match = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+
+            if (!match)
             {
-                throw new ArgumentException("Username and Password are required.");
+                user.FailedLoginAttempts += 1;
+
+                if (user.FailedLoginAttempts >= 3)
+                {
+                    user.IsActive = 0;
+                    user.ModifiedAt = DateTime.Now;
+                    user.ModifiedBy = user.UserId;
+                    await db.SaveChangesAsync();
+                    throw new UnauthorizedAccessException($"{user.Username} has been deactived due multiple Password");
+                }
+
+                int remainingAttempts = 3 - user.FailedLoginAttempts;
+                user.ModifiedAt = DateTime.Now;
+                user.ModifiedBy = user.UserId;
+                await db.SaveChangesAsync();
+                throw new UnauthorizedAccessException($"userName or Password doesnt matched {remainingAttempts} attempts left");
+
+
             }
 
-            var username = loginDto.Username.Trim();
+            user.FailedLoginAttempts = 0;
+            user.ModifiedAt = DateTime.Now;
+            user.ModifiedBy = user.UserId;
+            await db.SaveChangesAsync();
 
 
-            var user = await db.User
-                .FirstOrDefaultAsync(x =>
-                    x.Username == username &&
-                    x.IsActive == 1);
-
-            if (user == null)
-                throw new UnauthorizedAccessException("Invalid Username.");
-
-            bool passwordMatch = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
-
-            if (!passwordMatch)
-                throw new UnauthorizedAccessException("Invalid Password.");
-
-            user.LastLoginDate = DateTime.UtcNow;
+            return user;
 
 
-            string accessToken = tokenService.GenerateAccessToken(user);
-            string refreshToken = tokenService.GenerateRefreshToken();
+        }
 
-            DateTime expiryDate = DateTime.UtcNow.Add(RefreshTokenExpiry);
+        public async Task<SetupTwoFactorResponseDto> SetupTwoFactorAsync(SetupTwoFactorRequestDto dto)
+        {
 
-            var existingToken = await db.UserToken
-                .FirstOrDefaultAsync(x =>
-                    x.UserId == user.UserId &&
-                    x.TokenType == "RefreshToken");
+            var user = await db.User.FirstOrDefaultAsync(x => x.UserId == dto.UserId);
+            if (user == null) throw new UnauthorizedAccessException("User not found");
+            if (user.IsActive == 0) throw new UnauthorizedAccessException("User has been deactived");
+            if (user.Is2FAEnabled) throw new UnauthorizedAccessException("2FA has been already done");
 
-            if (existingToken == null)
+            var key = KeyGeneration.GenerateRandomKey(20);
+            var secretKey = Base32Encoding.ToString(key);
+
+            var otpAuthUrl = $"otpauth://totp/BackendFincore:{Uri.EscapeDataString(user.Email)}" + $"?secret={secretKey}&issuer=BackendFincore";
+
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(otpAuthUrl, QRCodeGenerator.ECCLevel.Q);
+
+            var qrCode = new PngByteQRCode(qrCodeData);
+            byte[] qrCodeBytes = qrCode.GetGraphic(20);
+
+            user.TotpSecretKey = secretKey;
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = user.UserId;
+
+            await db.SaveChangesAsync();
+
+            File.WriteAllBytes(@"D:\temp\QRCode.png", qrCodeBytes);
+            return new SetupTwoFactorResponseDto
             {
-                UserToken token = new UserToken
+                UserId = user.UserId,
+                QrCodeBase64 = Convert.ToBase64String(qrCodeBytes),
+                Message = "Scan this QR code using Google Authenticator."
+            };
+
+
+        }
+
+        public async Task<AuthTokenResponseDto> VerifyTwoFactorAsync(VerifyTwoFactorRequestDto dto)
+        {
+            var user = await db.User.FirstOrDefaultAsync(x => x.UserId == dto.UserId);
+            if (user == null) throw new KeyNotFoundException("User Not Found");
+            if (user.IsActive == 0) throw new UnauthorizedAccessException("User ID has been Deactiveted");
+
+            byte[] secretKey;
+            try
+            {
+                secretKey = Base32Encoding.ToBytes(user.TotpSecretKey);
+            }
+            catch
+            {
+                throw new InvalidOperationException("Invalid two-factor authentication configuration.");
+            }
+
+            var totp = new Totp(secretKey);
+            bool isValidOtp = totp.VerifyTotp(dto.Otp, out long timeStepMatched, new VerificationWindow(previous: 1, future: 1));
+
+            if (!isValidOtp) throw new UnauthorizedAccessException("Invalid or expired authentication code.");
+
+            user.Is2FAEnabled = true;
+            user.LastLoginDate = DateTime.UtcNow;
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = user.UserId;
+
+
+
+
+            //refresh Token 
+            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(30);
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+            string accessToken = GenerateAccessToken(user, accessTokenExpiry);
+            string refreshToken = GenerateRefreshToken();
+
+            var existingToken = await db.UserToken.FirstOrDefaultAsync(x => x.UserId == user.UserId && x.TokenType == "RefreshToken");
+
+            if (existingToken != null)
+            {
+                existingToken.Token = refreshToken;
+                existingToken.ExpiryDate = refreshTokenExpiry;
+                existingToken.IsActive = 1;
+                existingToken.ModifiedAt = DateTime.UtcNow;
+                existingToken.ModifiedBy = user.UserId;
+            }
+            else
+            {
+                await db.UserToken.AddAsync(new UserToken
                 {
                     UserId = user.UserId,
                     Token = refreshToken,
                     TokenType = "RefreshToken",
-                    ExpiryDate = expiryDate,
+                    ExpiryDate = refreshTokenExpiry,
                     IsActive = 1,
-                    CreatedBy = user.UserId,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                db.UserToken.Add(token);
-            }
-            else
-            {
-                existingToken.Token = refreshToken;
-                existingToken.ExpiryDate = expiryDate;
-                existingToken.IsActive = 1;
-                existingToken.ModifiedAt = DateTime.UtcNow;
-                existingToken.ModifiedBy = user.UserId;
-
-                db.UserToken.Update(existingToken);
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = user.UserId
+                });
             }
 
             await db.SaveChangesAsync();
 
-            return new AuthResponseDto
+
+            return new AuthTokenResponseDto
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                RefreshTokenExpiry = expiryDate
+                AccessTokenExpiry = accessTokenExpiry,
+                RefreshTokenExpiry = refreshTokenExpiry
             };
+
+
         }
 
-        public async Task<AuthResponseDto> RefreshTokenAsync(TokenRequestDto tokenRequestDto)
+
+        public async Task<AuthTokenResponseDto> RefreshTokenAsync(RefreshTokenRequestDto dto)
         {
-            if (tokenRequestDto == null ||
-                string.IsNullOrWhiteSpace(tokenRequestDto.AccessToken) ||
-                string.IsNullOrWhiteSpace(tokenRequestDto.RefreshToken))
+            if (string.IsNullOrWhiteSpace(dto.RefreshToken)) throw new UnauthorizedAccessException("Refresh TOken not Provided");
+
+            var storedToken = await db.UserToken.Include(x => x.User).FirstOrDefaultAsync(x => x.Token == dto.RefreshToken && x.TokenType == "RefreshToken");
+            if (storedToken == null) throw new UnauthorizedAccessException("Refresh Token Doent found");
+            if (storedToken?.IsActive == 0) throw new UnauthorizedAccessException("Refresh Token is InActive");
+            if (storedToken?.ExpiryDate <= DateTime.UtcNow)
             {
-                throw new ArgumentException("Invalid Request.");
+                storedToken.IsActive = 0;
+                storedToken.ModifiedAt = DateTime.UtcNow;
+                storedToken.ModifiedBy = storedToken.UserId;
+                await db.SaveChangesAsync();
+
+                throw new UnauthorizedAccessException("Refresh token has expired. Please log in again.");
             }
 
-            ClaimsPrincipal principal;
+            var user = storedToken?.User;
 
-            try
-            {
-                principal = tokenService.GetPrincipalFromExpiredToken(tokenRequestDto.AccessToken);
-            }
-            catch
-            {
-                throw new ArgumentException("Invalid Access Token.");
-            }
+            if (user == null) throw new KeyNotFoundException("User not found.");
+            if (user.IsActive != 1) throw new UnauthorizedAccessException("User account is inactive.");
 
-            int userId = Convert.ToInt32(
-                principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-            var refreshToken = await db.UserToken
-                .FirstOrDefaultAsync(x =>
-                    x.UserId == userId &&
-                    x.Token == tokenRequestDto.RefreshToken &&
-                    x.TokenType == "RefreshToken" &&
-                    x.IsActive == 1);
 
-            if (refreshToken == null)
-                throw new UnauthorizedAccessException("Invalid Refresh Token.");
+            //Tokens 
 
-            if (refreshToken.ExpiryDate <= DateTime.UtcNow)
-                throw new UnauthorizedAccessException("Refresh Token Expired.");
+            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(30);
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
-            var user = await db.User.FindAsync(userId);
+            var newAccessToken = GenerateAccessToken(user, accessTokenExpiry);
+            var newRefreshToken = GenerateRefreshToken();
 
-            if (user == null || user.IsActive != 1)
-                throw new UnauthorizedAccessException("User Not Found.");
-
-            string newAccessToken = tokenService.GenerateAccessToken(user);
-            string newRefreshToken = tokenService.GenerateRefreshToken();
-
-            DateTime newExpiryDate = DateTime.UtcNow.Add(RefreshTokenExpiry);
-
-            refreshToken.Token = newRefreshToken;
-            refreshToken.ExpiryDate = newExpiryDate;
-            refreshToken.IsActive = 1;
-            refreshToken.ModifiedAt = DateTime.UtcNow;
-            refreshToken.ModifiedBy = userId;
-
-            db.UserToken.Update(refreshToken);
+            storedToken.Token = newRefreshToken;
+            storedToken.ExpiryDate = refreshTokenExpiry;
+            storedToken.IsActive = 1;
+            storedToken.ModifiedAt = DateTime.UtcNow;
+            storedToken.ModifiedBy = user.UserId;
 
             await db.SaveChangesAsync();
 
-            return new AuthResponseDto
+            return new AuthTokenResponseDto
             {
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken,
-                RefreshTokenExpiry = newExpiryDate
+                AccessTokenExpiry = accessTokenExpiry,
+                RefreshTokenExpiry = refreshTokenExpiry
             };
+
         }
 
 
+
+
+
+
+        public async Task LogoutAsync(LogoutRequestDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.RefreshToken)) return;
+
+            var storedToken = await db.UserToken.FirstOrDefaultAsync(x => x.Token == dto.RefreshToken && x.TokenType == "RefreshToken");
+            if (storedToken == null) return;
+
+
+            storedToken.IsActive = 0;
+            storedToken.ModifiedAt = DateTime.UtcNow;
+            storedToken.ModifiedBy = storedToken.UserId;
+
+            await db.SaveChangesAsync();
+
+        }
+
+        public async Task ResetTwoFactorAsync(ResetTwoFactorRequestDto dto)
+        {
+            var user = await db.User.FirstOrDefaultAsync(x => x.UserId == currentUser.UserId);
+            if (user == null) throw new KeyNotFoundException("User not found.");
+            if (user.IsActive != 1) throw new UnauthorizedAccessException("User account is inactive.");
+            if (!user.Is2FAEnabled && string.IsNullOrWhiteSpace(user.TotpSecretKey)) throw new InvalidOperationException("Two-factor authentication is not enabled.");
+
+
+            bool passwordMatched = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash);
+            if (!passwordMatched) throw new UnauthorizedAccessException("Current password is incorrect.");
+
+            // Remove the old authenticator configuration
+            user.Is2FAEnabled = false;
+            user.TotpSecretKey = null;
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = currentUser.UserId;
+
+            var userToken = await db.UserToken.FirstOrDefaultAsync(x => x.UserId == currentUser.UserId && x.TokenType == "RefreshToken");
+            if (userToken != null)
+            {
+                userToken.IsActive = 0;
+                userToken.ModifiedAt = DateTime.UtcNow;
+                userToken.ModifiedBy = currentUser.UserId;
+            }
+
+            await db.SaveChangesAsync();
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //Temp 
         public async Task<string> RegisterAsync(LoginDto registerDto)
         {
             if (registerDto == null ||
@@ -207,89 +340,114 @@ namespace Backend_Fincore.Infrastucture.Service
             return "User Registered Successfully.";
         }
 
-        public async Task LogoutAsync(int userId)
+
+        public async Task<AuthTokenResponseDto> DeveloperLoginAsync(LoginRequestDto dto)
         {
-            var existingToken = await db.UserToken
-                .FirstOrDefaultAsync(x => x.UserId == userId && x.TokenType == "RefreshToken" && x.IsActive == 1);
+            var user = await LoginAsync(dto);
+            var accessTokenExpiry = DateTime.UtcNow.AddSeconds(20);
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+            var accessToken = GenerateAccessToken(user, accessTokenExpiry);
+            var refreshToken = GenerateRefreshToken();
+
+            var existingToken = await db.UserToken.FirstOrDefaultAsync(x => x.UserId == user.UserId && x.TokenType == "RefreshToken");
 
             if (existingToken != null)
             {
-                existingToken.IsActive = 0;
+                existingToken.Token = refreshToken;
+                existingToken.ExpiryDate = refreshTokenExpiry;
+                existingToken.IsActive = 1;
                 existingToken.ModifiedAt = DateTime.UtcNow;
-                existingToken.ModifiedBy = userId;
-
-                db.UserToken.Update(existingToken);
-                await db.SaveChangesAsync();
+                existingToken.ModifiedBy = user.UserId;
             }
-        }
-
-        public async Task<string?> GenerateQRCode(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email)) return null;
-
-            var existingUser = await db.User
-                .FirstOrDefaultAsync(x => x.Email.Trim().ToLower() == email.Trim().ToLower());
-
-            if (existingUser == null)
+            else
             {
-                return null;
+                await db.UserToken.AddAsync(new UserToken
+                {
+                    UserId = user.UserId,
+                    Token = refreshToken,
+                    TokenType = "RefreshToken",
+                    ExpiryDate = refreshTokenExpiry,
+                    IsActive = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = user.UserId
+                });
             }
 
-            var result = GenerateTotpQrcode(existingUser.Email);
-
-            existingUser.TotpSecretKey = result.secret;
-            existingUser.Is2FAEnabled = false;
-
+            user.LastLoginDate = DateTime.UtcNow;
             await db.SaveChangesAsync();
 
-            return result.qrcode;
-        }
-
-        private (string secret, string qrcode) GenerateTotpQrcode(string email)
-        {
-            var key = KeyGeneration.GenerateRandomKey(20);
-            var base32Secretkey = Base32Encoding.ToString(key);
-
-            var otpAuthUrl = $"otpauth://totp/MyApp:{Uri.EscapeDataString(email)}?secret={base32Secretkey}&issuer=MyApp";
-
-            using var qrcodeGenerate = new QRCodeGenerator();
-            var qrCodeData = qrcodeGenerate.CreateQrCode(otpAuthUrl, QRCodeGenerator.ECCLevel.Q);
-            var qrcode = new PngByteQRCode(qrCodeData);
-
-            var qrcodeBytes = qrcode.GetGraphic(20);
-            var qrcodeBase64 = Convert.ToBase64String(qrcodeBytes);
-
-            return (base32Secretkey, qrcodeBase64);
-        }
-
-        public async Task<string?> VerifyOTP(string email, string otp)
-        {
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp)) return null;
-
-            var existingUser = await db.User
-                .FirstOrDefaultAsync(x => x.Email.Trim().ToLower() == email.Trim().ToLower());
-
-            if (existingUser == null || string.IsNullOrEmpty(existingUser.TotpSecretKey))
+            return new AuthTokenResponseDto
             {
-                return null;
-            }
-
-            var secretBytes = Base32Encoding.ToBytes(existingUser.TotpSecretKey);
-            var totp = new Totp(secretBytes);
-
-            bool isValid = totp.VerifyTotp(otp, out _, VerificationWindow.RfcSpecifiedNetworkDelay);
-
-            if (!isValid)
-            {
-                return "invalid otp";
-            }
-
-
-            existingUser.Is2FAEnabled = true;
-            await db.SaveChangesAsync();
-
-            return "success";
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                AccessTokenExpiry = accessTokenExpiry,
+                RefreshTokenExpiry = refreshTokenExpiry
+            };
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //Helper Functions 
+        private string GenerateAccessToken(User user, DateTime expiry)
+        {
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim("RoleId", user.RoleId.ToString()),
+                new Claim("MasterId", user.MasterId.ToString()),
+                new Claim("MasterType", user.MasterType)
+            };
+
+            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: expiry,
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+
+        private static string GenerateRefreshToken()
+        {
+            byte[] randomBytes = RandomNumberGenerator.GetBytes(64);
+
+            return Convert.ToBase64String(randomBytes);
+        }
+
+
     }
 }
 

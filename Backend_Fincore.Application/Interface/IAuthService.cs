@@ -1,19 +1,24 @@
 ﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.Auth;
 using Backend_Fincore.Application.Response;
+using Backend_Fincore.Models;
 using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.Interface
 {
     public interface IAuthService
     {
-        Task<AuthResponseDto> LoginAsync(LoginDto loginDto);
-        Task<AuthResponseDto> RefreshTokenAsync(TokenRequestDto tokenRequestDto);
+        Task<User> LoginAsync(LoginRequestDto dto);
+        Task<SetupTwoFactorResponseDto> SetupTwoFactorAsync(SetupTwoFactorRequestDto dto);
+        Task<AuthTokenResponseDto> VerifyTwoFactorAsync(VerifyTwoFactorRequestDto dto);
+        Task<AuthTokenResponseDto> RefreshTokenAsync(RefreshTokenRequestDto dto);
+        Task LogoutAsync(LogoutRequestDto dto);
+        Task ResetTwoFactorAsync(ResetTwoFactorRequestDto dto);
+
+
+        //Temp 
         Task<string> RegisterAsync(LoginDto registerDto);
-
-        Task LogoutAsync(int id);
-
-        Task<string> GenerateQRCode(string email);
-
-        Task<string> VerifyOTP(string email, string otp);
+        Task<AuthTokenResponseDto> DeveloperLoginAsync(LoginRequestDto dto);
+    
     }
 }

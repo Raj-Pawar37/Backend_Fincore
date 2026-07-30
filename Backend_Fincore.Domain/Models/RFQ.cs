@@ -24,11 +24,10 @@ namespace Backend_Fincore.Models
 
         // Navigation properties
         public PurchaseRequisition PurchaseRequisition { get; set; } = null!;
+        public Quotation Quotation { get; set; } = null!;
 
-        public ICollection<RFQVendor> RFQVendors { get; set; }
-            = new List<RFQVendor>();
+        public ICollection<RFQVendor> RFQVendors { get; set; }= new List<RFQVendor>();
 
-        public ICollection<RFQItem> RFQItems { get; set; }
-            = new List<RFQItem>();
+        public ICollection<RFQItem> RFQItems { get; set; } = new List<RFQItem>();
     }
 }

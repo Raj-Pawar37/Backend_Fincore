@@ -1,10 +1,11 @@
 ﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
-using Backend_Fincore.DTOs;
+using Backend_Fincore.DTOs; // <--- Fixes CS0246 and CS0535
 using Backend_Fincore.Models;
-using Backend_Fincore.Response;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,96 +17,108 @@ namespace Backend_Fincore.Infrastucture.Service
     {
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
-        private readonly ICurrentUserService current;
+        private readonly ICurrentUserService _current;
+        private readonly IMemoryCache _cache;
 
-        public RolePermissionService(AppDbContext db, IMapper mapper, ICurrentUserService current)
+        private const string CacheKeyList = "Cache_RolePermissions_List_";
+
+        public RolePermissionService(
+            AppDbContext db,
+            IMapper mapper,
+            ICurrentUserService current,
+            IMemoryCache cache)
         {
             _db = db;
             _mapper = mapper;
-            this.current = current;
+            _current = current;
+            _cache = cache;
         }
 
-        public async Task<ApiResponse<IEnumerable<RolePermissionResponseDto>>> GetAllAsync()
+        public async Task<(List<RolePermissionResponseDTO> Items, int TotalRecords)> GetAllAsync(PaginationDTO pagination)
         {
-            var rolePermissions = await _db.RolePermission
+            string cacheKey = $"{CacheKeyList}Page_{pagination.PageNumber}_Size_{pagination.PageSize}_Search_{pagination.Search ?? "None"}";
+
+            if (_cache.TryGetValue(cacheKey, out (List<RolePermissionResponseDTO> Items, int TotalRecords) cachedResult))
+            {
+                return cachedResult;
+            }
+
+            var query = _db.RolePermission
+                .AsNoTracking()
                 .Include(rp => rp.Role)
                 .Include(rp => rp.Permission)
+                .Where(rp => rp.IsActive == 1 && rp.Role.IsActive == 1 && rp.Permission.IsActive == 1);
+
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                var search = pagination.Search.Trim().ToLower();
+                // Fixes CS1503: Simple, safe string contains in EF Core LINQ query
+                query = query.Where(rp => rp.Role.RoleName.ToLower().Contains(search) ||
+                                          rp.Permission.PermissionName.ToLower().Contains(search));
+            }
+
+            int totalRecords = await query.CountAsync();
+
+            var data = await query
+                .OrderByDescending(rp => rp.RolePermissionId)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .ToListAsync();
 
-            var dtos = _mapper.Map<IEnumerable<RolePermissionResponseDto>>(rolePermissions);
+            var mappedData = _mapper.Map<List<RolePermissionResponseDTO>>(data);
+            var result = (mappedData, totalRecords);
 
-            return new ApiResponse<IEnumerable<RolePermissionResponseDto>>
-            {
-                Success = true,
-                Message = "Role permissions fetched successfully",
-                Data = dtos,
-                TotalNumberRecord = dtos.Count()
-            };
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+
+            return result;
         }
 
-        public async Task<ApiResponse<RolePermissionResponseDto>> GetByIdAsync(int id)
+        public async Task<RolePermissionResponseDTO> GetByIdAsync(int id)
         {
             var rolePermission = await _db.RolePermission
+                .AsNoTracking()
                 .Include(rp => rp.Role)
                 .Include(rp => rp.Permission)
-                .FirstOrDefaultAsync(rp => rp.RolePermissionId == id);
+                .FirstOrDefaultAsync(rp => rp.RolePermissionId == id && rp.IsActive == 1);
 
             if (rolePermission == null)
-            {
-                return new ApiResponse<RolePermissionResponseDto>
-                {
-                    Success = false,
-                    Message = "Role permission mapping not found",
-                    Error = new { code = "NOT_FOUND", details = $"RolePermission with ID {id} was not found." }
-                };
-            }
+                throw new KeyNotFoundException($"RolePermission mapping with ID {id} was not found or is inactive.");
 
-            var dto = _mapper.Map<RolePermissionResponseDto>(rolePermission);
-            return new ApiResponse<RolePermissionResponseDto>
-            {
-                Success = true,
-                Message = "Role permission fetched successfully",
-                Data = dto,
-                TotalNumberRecord = 1
-            };
+            return _mapper.Map<RolePermissionResponseDTO>(rolePermission);
         }
 
-        public async Task<ApiResponse<IEnumerable<RolePermissionResponseDto>>> GetByRoleIdAsync(int roleId)
+        public async Task<List<RolePermissionResponseDTO>> GetByRoleIdAsync(int roleId)
         {
+            var roleExists = await _db.Role.AnyAsync(r => r.RoleId == roleId && r.IsActive == 1);
+            if (!roleExists)
+                throw new KeyNotFoundException($"Role with ID {roleId} was not found or is inactive.");
+
             var rolePermissions = await _db.RolePermission
+                .AsNoTracking()
                 .Include(rp => rp.Role)
                 .Include(rp => rp.Permission)
-                .Where(rp => rp.RoleId == roleId)
+                .Where(rp => rp.RoleId == roleId && rp.IsActive == 1)
                 .ToListAsync();
 
-            var dtos = _mapper.Map<IEnumerable<RolePermissionResponseDto>>(rolePermissions);
-
-            return new ApiResponse<IEnumerable<RolePermissionResponseDto>>
-            {
-                Success = true,
-                Message = "Role permissions for role fetched successfully",
-                Data = dtos,
-                TotalNumberRecord = dtos.Count()
-            };
+            return _mapper.Map<List<RolePermissionResponseDTO>>(rolePermissions);
         }
 
-        public async Task<ApiResponse<RolePermissionResponseDto>> CreateAsync(RolePermissionDTOs dto)
+        public async Task<RolePermissionResponseDTO> CreateAsync(RolePermissionDTO dto)
         {
-            var roleExists = await _db.Role.AnyAsync(r => r.RoleId == dto.RoleId);
-            var permissionExists = await _db.Permission.AnyAsync(p => p.PermissionId == dto.PermissionId);
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto), "RolePermission payload cannot be null.");
 
-            if (!roleExists || !permissionExists)
-            {
-                return new ApiResponse<RolePermissionResponseDto>
-                {
-                    Success = false,
-                    Message = "Invalid Role or Permission ID",
-                    Error = new { code = "BAD_REQUEST", details = "The specified Role or Permission does not exist." }
-                };
-            }
+            var roleExists = await _db.Role.AnyAsync(r => r.RoleId == dto.RoleId && r.IsActive == 1);
+            if (!roleExists)
+                throw new KeyNotFoundException($"Role with ID {dto.RoleId} does not exist or is inactive.");
+
+            var permissionExists = await _db.Permission.AnyAsync(p => p.PermissionId == dto.PermissionId && p.IsActive == 1);
+            if (!permissionExists)
+                throw new KeyNotFoundException($"Permission with ID {dto.PermissionId} does not exist or is inactive.");
 
             var rolePermission = _mapper.Map<RolePermission>(dto);
-            rolePermission.CreatedBy = current.UserId;
+            rolePermission.IsActive = 1;
+            rolePermission.CreatedBy = _current.UserId;
             rolePermission.CreatedAt = DateTime.UtcNow;
 
             _db.RolePermission.Add(rolePermission);
@@ -114,45 +127,41 @@ namespace Backend_Fincore.Infrastucture.Service
             await _db.Entry(rolePermission).Reference(rp => rp.Role).LoadAsync();
             await _db.Entry(rolePermission).Reference(rp => rp.Permission).LoadAsync();
 
-            var createdDto = _mapper.Map<RolePermissionResponseDto>(rolePermission);
-            return new ApiResponse<RolePermissionResponseDto>
-            {
-                Success = true,
-                Message = "Role permission assigned successfully",
-                Data = createdDto,
-                TotalNumberRecord = 1
-            };
+            ClearCache();
+
+            return _mapper.Map<RolePermissionResponseDTO>(rolePermission);
         }
 
-        public async Task<ApiResponse<RolePermissionResponseDto>> UpdateAsync(int id, RolePermissionDTOs dto)
+        public async Task<RolePermissionResponseDTO> UpdateAsync(int id, RolePermissionDTO dto)
         {
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto), "RolePermission payload cannot be null.");
+
             var rolePermission = await _db.RolePermission.FindAsync(id);
 
             if (rolePermission == null)
+                throw new KeyNotFoundException($"RolePermission mapping with ID {id} was not found.");
+
+            var roleExists = await _db.Role.AnyAsync(r => r.RoleId == dto.RoleId && r.IsActive == 1);
+            if (!roleExists)
+                throw new KeyNotFoundException($"Role with ID {dto.RoleId} does not exist or is inactive.");
+
+            var permissionExists = await _db.Permission.AnyAsync(p => p.PermissionId == dto.PermissionId && p.IsActive == 1);
+            if (!permissionExists)
+                throw new KeyNotFoundException($"Permission with ID {dto.PermissionId} does not exist or is inactive.");
+
+            if (rolePermission.IsActive == 0 && dto.IsActive)
             {
-                return new ApiResponse<RolePermissionResponseDto>
-                {
-                    Success = false,
-                    Message = "Role permission mapping not found",
-                    Error = new { code = "NOT_FOUND", details = $"RolePermission with ID {id} was not found." }
-                };
+                rolePermission.IsActive = 1;
             }
-
-            var roleExists = await _db.Role.AnyAsync(r => r.RoleId == dto.RoleId);
-            var permissionExists = await _db.Permission.AnyAsync(p => p.PermissionId == dto.PermissionId);
-
-            if (!roleExists || !permissionExists)
+            else if (rolePermission.IsActive == 1 && !dto.IsActive)
             {
-                return new ApiResponse<RolePermissionResponseDto>
-                {
-                    Success = false,
-                    Message = "Invalid Role or Permission ID",
-                    Error = new { code = "BAD_REQUEST", details = "The specified Role or Permission does not exist." }
-                };
+                throw new InvalidOperationException("To deactivate a role permission mapping, perform a DELETE request.");
             }
 
             _mapper.Map(dto, rolePermission);
-            rolePermission.ModifiedBy = current.UserId;
+            rolePermission.RolePermissionId = id;
+            rolePermission.ModifiedBy = _current.UserId;
             rolePermission.ModifiedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
@@ -160,45 +169,35 @@ namespace Backend_Fincore.Infrastucture.Service
             await _db.Entry(rolePermission).Reference(rp => rp.Role).LoadAsync();
             await _db.Entry(rolePermission).Reference(rp => rp.Permission).LoadAsync();
 
-            var updatedDto = _mapper.Map<RolePermissionResponseDto>(rolePermission);
-            return new ApiResponse<RolePermissionResponseDto>
-            {
-                Success = true,
-                Message = "Role permission updated successfully",
-                Data = updatedDto,
-                TotalNumberRecord = 1
-            };
+            ClearCache();
+
+            return _mapper.Map<RolePermissionResponseDTO>(rolePermission);
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
             var rolePermission = await _db.RolePermission.FindAsync(id);
-            if (rolePermission == null)
-            {
-                return new ApiResponse<bool>
-                {
-                    Success = false,
-                    Message = "Role permission mapping not found",
-                    Data = false,
-                    Error = new { code = "NOT_FOUND", details = $"RolePermission with ID {id} was not found." }
-                };
-            }
 
-            _db.RolePermission.Remove(rolePermission);
+            if (rolePermission == null || rolePermission.IsActive == 0)
+                throw new KeyNotFoundException($"RolePermission mapping with ID {id} was not found or is already inactive.");
+
+            rolePermission.IsActive = 0;
+            rolePermission.ModifiedBy = _current.UserId;
+            rolePermission.ModifiedAt = DateTime.UtcNow;
+
             await _db.SaveChangesAsync();
 
-            return new ApiResponse<bool>
-            {
-                Success = true,
-                Message = "Role permission removed successfully",
-                Data = true,
-                TotalNumberRecord = 1
-            };
+            ClearCache();
+
+            return true;
         }
 
-        public Task<ApiResponse<bool>> DeleteRolePermissionAsync(int id)
+        private void ClearCache()
         {
-            return DeleteAsync(id);
+            if (_cache is MemoryCache memoryCache)
+            {
+                memoryCache.Compact(1.0);
+            }
         }
     }
 }
