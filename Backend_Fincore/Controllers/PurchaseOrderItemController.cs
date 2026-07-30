@@ -1,8 +1,9 @@
 ﻿using Backend_Fincore.Application.DTOs;
-
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
+using Backend_Fincore.Application.Interface;
 using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
-using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,13 +15,13 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [EnableRateLimiting("Fixed")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
-    public class PurchaseOrderItemController : ControllerBase
+    public class purchaseOrderItemController : ControllerBase
     {
         private readonly IPurchaseOrderItemService purchaseOrderItemService;
 
-        public PurchaseOrderItemController(IPurchaseOrderItemService purchaseOrderItemService)
+        public purchaseOrderItemController(IPurchaseOrderItemService purchaseOrderItemService)
         {
             this.purchaseOrderItemService = purchaseOrderItemService;
         }
@@ -36,22 +37,26 @@ namespace Backend_Fincore.Controllers
                     totalRecords /
                     (double)pagination.PageSize);
 
-            return Ok(new ApiResponse<List<PurchaseOrderItemDTO>>
-            {
-                Success = true,
-                Message = data == null ? "PO Item not found." : "PO Item fetched successfully.",
-                Data = data,
-                Error = null,
-                TotalNumberRecord = totalRecords,
-                Metadata = new
+           
+            
+                return Ok(new ApiResponse<List<PurchaseOrderItemDTO>>
                 {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalPages,
-                    RecordsOnCurrentPage = data.Count
-                }
-            });
+                    Success = true,
+                    Message = data == null ? "PO Item not found." : "PO Item fetched successfully.",
+                    Data = data,
+                    Error = null,
+                    TotalNumberRecord = totalRecords,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage = data.Count
+                    }
+                });
+            
+            
         }
 
         [HttpGet("{id}")]
@@ -64,8 +69,6 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "Purchase Order Item fetched successfully.",
                 Data = item,
-                Error = null,
-                Metadata = new { },
                 TotalNumberRecord = 1
             });
         }
@@ -74,16 +77,13 @@ namespace Backend_Fincore.Controllers
         public async Task<IActionResult> addPurchasedItem(PurchaseOrderItemCUDTO PI)
         {
 
-
             await purchaseOrderItemService.AddPurchasedItem(PI);
-
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Purchased Item add successfully.",
-                Data = null,
-                Error = null
+                Message = "Purchased Item add successfully."
+               
             });
 
         }
@@ -100,8 +100,6 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order Item updated successfully.",
-                Data = null,
-                Error = null,
                 Metadata = new
                 {
                     PurchaseOrderItemId = id,
@@ -121,12 +119,37 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order Item deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
-        
+
+
+        [HttpPost]
+        [Route("SearchPOItem")]
+        public async Task<IActionResult> SearchPOItem(SearchPoiDTO dto)
+        {
+            var result = await purchaseOrderItemService.SearchPOItem(dto);
+
+            if (result != null)
+            {
+                return Ok(new ApiResponse<List<POItemsSearchDTO>>
+                {
+                    Success = true,
+                    Message = "Purchase Order Items fetched successfully.",
+                    Data = result,
+                    TotalNumberRecord = result.Count
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Purchase Order Items not found.",
+
+                });
+            }
+        }
+
     }
 }

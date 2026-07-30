@@ -162,6 +162,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+builder.Services.AddMemoryCache();
+
 // 4. Configure Swagger (SINGLE call with Security Definition)
 builder.Services.AddSwaggerGen(options =>
 {

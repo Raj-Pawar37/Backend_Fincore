@@ -4,6 +4,7 @@ using Backend_Fincore.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend_Fincore.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260727002702_QuotationtableRFQid")]
+    partial class QuotationtableRFQid
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -129,10 +132,7 @@ namespace Backend_Fincore.Migrations
             modelBuilder.Entity("Backend_Fincore.Domain.Models.GRNItem", b =>
                 {
                     b.Property<int>("GRNItemId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GRNItemId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -156,7 +156,6 @@ namespace Backend_Fincore.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Qty")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Remarks")
@@ -164,9 +163,8 @@ namespace Backend_Fincore.Migrations
 
                     b.HasKey("GRNItemId");
 
-                    b.HasIndex("GRNId");
-
-                    b.HasIndex("POItemId");
+                    b.HasIndex("POItemId")
+                        .IsUnique();
 
                     b.ToTable("GRNItem");
                 });
@@ -1695,9 +1693,6 @@ namespace Backend_Fincore.Migrations
                     b.HasIndex("QuotationNumber")
                         .IsUnique();
 
-                    b.HasIndex("RFQId")
-                        .IsUnique();
-
                     b.HasIndex("RFQVendorId");
 
                     b.ToTable("Quotations", (string)null);
@@ -2321,14 +2316,14 @@ namespace Backend_Fincore.Migrations
                 {
                     b.HasOne("Backend_Fincore.Models.GRN", "GRN")
                         .WithMany("GRNItems")
-                        .HasForeignKey("GRNId")
+                        .HasForeignKey("GRNItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Backend_Fincore.Models.PurchaseOrderItem", "POItem")
-                        .WithMany("GRNItems")
-                        .HasForeignKey("POItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .WithOne("GRNItem")
+                        .HasForeignKey("Backend_Fincore.Domain.Models.GRNItem", "POItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("GRN");
@@ -2718,19 +2713,11 @@ namespace Backend_Fincore.Migrations
 
             modelBuilder.Entity("Backend_Fincore.Models.Quotation", b =>
                 {
-                    b.HasOne("Backend_Fincore.Models.RFQ", "RFQ")
-                        .WithOne("Quotation")
-                        .HasForeignKey("Backend_Fincore.Models.Quotation", "RFQId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Backend_Fincore.Models.RFQVendor", "RFQVendor")
                         .WithMany("Quotations")
                         .HasForeignKey("RFQVendorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("RFQ");
 
                     b.Navigation("RFQVendor");
                 });
@@ -2990,7 +2977,7 @@ namespace Backend_Fincore.Migrations
                 {
                     b.Navigation("Assets");
 
-                    b.Navigation("GRNItems");
+                    b.Navigation("GRNItem");
                 });
 
             modelBuilder.Entity("Backend_Fincore.Models.PurchaseRequisition", b =>
@@ -3007,9 +2994,6 @@ namespace Backend_Fincore.Migrations
 
             modelBuilder.Entity("Backend_Fincore.Models.RFQ", b =>
                 {
-                    b.Navigation("Quotation")
-                        .IsRequired();
-
                     b.Navigation("RFQItems");
 
                     b.Navigation("RFQVendors");
