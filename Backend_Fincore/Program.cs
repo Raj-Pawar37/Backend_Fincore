@@ -9,12 +9,27 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("dbconn")));
 builder.Services.AddAutoMapper(typeof(MappingData));
 builder.Services.AddHttpContextAccessor();
+
+
+// Cors 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FinCore", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+    });
+});
 
 
 
@@ -237,7 +252,7 @@ if (app.Environment.IsDevelopment())
         c.ConfigObject.AdditionalItems["withCredentials"] = true;
     });
 }
-
+app.UseCors("FinCore");
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();

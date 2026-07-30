@@ -140,7 +140,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
 
             //refresh Token 
-            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(15);
+            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(30);
             var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
             string accessToken = GenerateAccessToken(user, accessTokenExpiry);
@@ -211,7 +211,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             //Tokens 
 
-            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(15);
+            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(30);
             var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
             var newAccessToken = GenerateAccessToken(user, accessTokenExpiry);
@@ -344,7 +344,7 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<AuthTokenResponseDto> DeveloperLoginAsync(LoginRequestDto dto)
         {
             var user = await LoginAsync(dto);
-            var accessTokenExpiry = DateTime.UtcNow.AddHours(15);
+            var accessTokenExpiry = DateTime.UtcNow.AddSeconds(20);
             var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
             var accessToken = GenerateAccessToken(user, accessTokenExpiry);
