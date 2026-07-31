@@ -208,8 +208,8 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task DeleteAsync(int id)
         {
             var rfq = await _context.RFQ
-                .Include(r => r.RFQVendors).ThenInclude(v => v.Quotations)
-                .Include(r => r.RFQItems).ThenInclude(i => i.QuotationItems)
+                //.Include(r => r.RFQVendors).ThenInclude(v => v.Quotations)
+                //.Include(r => r.RFQItems).ThenInclude(i => i.QuotationItems)
                 .FirstOrDefaultAsync(r => r.RFQId == id && r.IsActive == 1);
 
             if (rfq == null)
