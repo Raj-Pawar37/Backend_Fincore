@@ -134,5 +134,23 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await db.SaveChangesAsync();
         }
+
+        public async Task<List<RFQItemResponseDto>> ReadbyRFQId(RFQItemReadbyRfqDTO data)
+        {
+            var query = db.RFQItem.AsNoTracking().Where(x => x.RFQId == data.RFQId && x.IsActive == 1);
+
+            if (data.RFQId.HasValue && data.RFQId.Value > 0)
+            {
+                query = query.Where(x => x.RFQId == data.RFQId);
+            }
+            if (!string.IsNullOrWhiteSpace(data.searchText))
+            {
+                query = query.Where(x => x.Name.Contains(data.searchText));
+            }
+            
+            var rfqItems = await query.ToListAsync();
+
+            return mapper.Map<List<RFQItemResponseDto>>(rfqItems);
+        }
     }
 }

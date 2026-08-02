@@ -10,6 +10,9 @@ namespace Backend_Fincore.Application.DTOs.RFQ
     {
         public int RFQId { get; set; }
 
+        public int RFQVendorId { get; set; }
+        public int VendorId { get; set; }
+
         public string RFQNumber { get; set; } = null!;
 
         public string Title { get; set; } = null!;

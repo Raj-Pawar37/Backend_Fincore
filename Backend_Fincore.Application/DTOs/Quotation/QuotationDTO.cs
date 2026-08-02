@@ -13,6 +13,7 @@ namespace Backend_Fincore.Application.DTOs.Quotation
         public int RFQId { get; set; }
 
         public int RFQVendorId { get; set; }
+        public int VendorId { get; set; }
 
         public string QuotationNumber { get; set; } = string.Empty;
 

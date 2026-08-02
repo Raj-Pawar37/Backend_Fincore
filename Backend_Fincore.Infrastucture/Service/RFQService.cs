@@ -279,7 +279,21 @@ namespace Backend_Fincore.Infrastucture.Service
             // Filter RFQs by vendor when VendorId is supplied
             if (vendorId.HasValue && vendorId.Value > 0)
             {
-                query = query.Where(rfq => rfq.RFQVendors.Any(rfqVendor => rfqVendor.VendorId == vendorId.Value && rfqVendor.IsActive == 1));
+                int selectedVendorId = vendorId.Value;
+
+                query = query.Where(rfq =>
+                // Vendor must be invited for this RFQ
+                rfq.RFQVendors.Any(rfqVendor =>
+                    rfqVendor.VendorId == selectedVendorId &&
+                    rfqVendor.IsActive == 1)
+
+                // Same RFQ + Vendor quotation must not already exist
+                && !_context.Quotation.Any(quotation =>
+                    quotation.RFQId == rfq.RFQId &&
+                    quotation.RFQVendor.VendorId == selectedVendorId &&
+                    quotation.IsActive == 1));
+
+
             }
 
             // Filter by status when supplied
@@ -296,14 +310,26 @@ namespace Backend_Fincore.Infrastucture.Service
                 query = query.Where(x => x.RFQNumber.Contains(search) || x.Title.Contains(search));
             }
 
-            var data =  await query.OrderByDescending(x => x.CreatedAt).Take(20)
+            var data = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(20)
+                .Select(x => new
+                {
+                    RFQ = x,
+                    Vendor = x.RFQVendors
+                        .Where(v => !vendorId.HasValue || v.VendorId == vendorId)
+                        .FirstOrDefault()
+                })
                 .Select(x => new RFQDropdownDto
                 {
-                    RFQId = x.RFQId,
-                    RFQNumber = x.RFQNumber,
-                    Title = x.Title,
-                    Status = x.Status
-                }).ToListAsync();
+                    RFQId = x.RFQ.RFQId,
+                    RFQNumber = x.RFQ.RFQNumber,
+                    Title = x.RFQ.Title,
+                    Status = x.RFQ.Status,
+                    RFQVendorId = x.Vendor != null ? x.Vendor.RFQVendorId : 0,
+                    VendorId = x.Vendor != null ? x.Vendor.VendorId : 0
+                })
+                .ToListAsync();
 
             return data;
         }

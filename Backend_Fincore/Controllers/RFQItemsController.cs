@@ -111,5 +111,22 @@ namespace Backend_Fincore.API.Controllers
                 TotalNumberRecord = null
             });
         }
+
+
+        [HttpGet("ReadByRFQId/")]
+        public async Task<IActionResult> Get([FromQuery] RFQItemReadbyRfqDTO data)
+        {
+            var items = await rfqItemService.ReadbyRFQId(data);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "RFQ Item Fetched successfully.",
+                Data = items,
+                Error = null,
+                Metadata = new { },
+                TotalNumberRecord = null
+            });
+        }
     }
 }

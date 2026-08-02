@@ -24,6 +24,14 @@ namespace Backend_Fincore.Infrastucture.Service
         }
 
 
+        public async Task<int> GetQuotationCount(QuotationPaginationDTO pagination)
+        {
+            IQueryable<Quotation> query = GetQuotationQuery(pagination);
+
+            return await query.CountAsync();
+        }
+
+
         public async Task AddQuotation(QuotationCDTO dto)
         {
             var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == dto.RFQId && x.IsActive == 1);
@@ -38,7 +46,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("The selected vendor does not belong to this RFQ.");
             }
 
-            var duplicateQuotationNo = await db.Quotation.AnyAsync(x =>x.QuotationNumber == dto.QuotationNumber);
+            var duplicateQuotationNo = await db.Quotation.AnyAsync(x =>x.QuotationNumber == dto.QuotationNumber && x.IsActive == 1);
             if (duplicateQuotationNo)
             {
                 throw new Exception("Quotation number already exists.");
@@ -81,24 +89,41 @@ namespace Backend_Fincore.Infrastucture.Service
 
         }
 
-        public async Task<List<QuotationDTO>> GetAllQuotation()
+        public async Task<List<QuotationDTO>> GetAllQuotation(QuotationPaginationDTO pagination)
         {
-            var data = await db.Quotation
-                .AsNoTracking()
-                .Where(x=> x.IsActive == 1)
+            if (pagination.PageNumber <= 0)
+            {
+                pagination.PageNumber = 1;
+            }
+
+            if (pagination.PageSize <= 0)
+            {
+                pagination.PageSize = 10;
+            }
+
+
+            IQueryable<Quotation> query = GetQuotationQuery(pagination);
+
+            var data = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .Select(x => new QuotationDTO
                 {
                     QuotationId = x.QuotationId,
+
                     RFQId = x.RFQId,
                     RFQNumber = x.RFQ.RFQNumber,
+
                     RFQVendorId = x.RFQVendorId,
+                    VendorId = x.RFQVendor.VendorId,
+                    VendorName = x.RFQVendor.Vendor.VendorName,
+
                     QuotationDate = x.CreatedAt,
                     QuotationNumber = x.QuotationNumber,
                     Amount = x.Amount,
                     Status = x.Status,
-                    Desc = x.Description,
-                    // Change navigation properties as per your model.
-                    VendorName = x.RFQVendor.Vendor.VendorName
+                    Desc = x.Description
                 })
                 .ToListAsync();
 
@@ -165,7 +190,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("The selected vendor does not belong to this RFQ.");
             }
 
-            var duplicateQuotationNo = await db.Quotation.AnyAsync(x => x.QuotationNumber == dto.QuotationNumber && x.QuotationId != dto.QuotationId);
+            var duplicateQuotationNo = await db.Quotation.AnyAsync(x => x.QuotationNumber == dto.QuotationNumber && x.QuotationId != dto.QuotationId && x.IsActive == 1);
             if (duplicateQuotationNo)
             {
                 throw new Exception("Another quotation already exists with this quotation number.");
@@ -194,5 +219,51 @@ namespace Backend_Fincore.Infrastucture.Service
 
 
         }
+
+
+
+
+
+
+
+        //Helper Functions 
+
+
+        private IQueryable<Quotation> GetQuotationQuery(QuotationPaginationDTO pagination)
+        {
+            IQueryable<Quotation> query = db.Quotation.AsNoTracking().Where(x => x.IsActive == 1);
+
+            // Vendor filter
+            if (pagination.VendorId.HasValue && pagination.VendorId.Value > 0)
+            {
+                int vendorId = pagination.VendorId.Value;
+                query = query.Where(x =>x.RFQVendor.VendorId == vendorId);
+            }
+
+            // Status filter
+            if (!string.IsNullOrWhiteSpace(pagination.Status))
+            {
+                string status = pagination.Status.Trim();
+                query = query.Where(x => x.Status == status);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                string search = pagination.Search.Trim();
+
+                query = query.Where(x =>
+                    x.QuotationNumber.Contains(search) ||
+                    x.RFQ.RFQNumber.Contains(search) ||
+                    x.RFQ.Title.Contains(search) ||
+                    x.RFQVendor.Vendor.VendorName.Contains(search) ||
+                    x.Status.Contains(search));
+            }
+
+            return query;
+        }
+
+
+
     }
 }

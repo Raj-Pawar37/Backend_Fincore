@@ -344,7 +344,7 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<AuthTokenResponseDto> DeveloperLoginAsync(LoginRequestDto dto)
         {
             var user = await LoginAsync(dto);
-            var accessTokenExpiry = DateTime.UtcNow.AddSeconds(20);
+            var accessTokenExpiry = DateTime.UtcNow.AddHours(2);
             var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
             var accessToken = GenerateAccessToken(user, accessTokenExpiry);

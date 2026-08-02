@@ -15,7 +15,9 @@ namespace Backend_Fincore.Application.Interface
 
         Task DeleteQuotation(int quotationId);
 
-        Task<List<QuotationDTO>> GetAllQuotation();
+        Task<List<QuotationDTO>> GetAllQuotation(QuotationPaginationDTO pagination);
+
+        Task<int> GetQuotationCount(QuotationPaginationDTO pagination);
 
         Task<QuotationDTO> GetQuotationById(int quotationId);
 

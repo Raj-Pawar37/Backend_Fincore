@@ -317,7 +317,7 @@ public class MappingData : Profile
         CreateMap<QuotationItem, QuotationItemDTO>()
             .ForMember(x => x.ItemName, y => y.MapFrom(z => z.RFQItem.Name))
             .ForMember(x => x.SubTotal, y => y.MapFrom(z => z.Quantity * z.UnitPrice))
-            .ForMember(x => x.TotalAmount, y => y.MapFrom(z => (z.Quantity * z.UnitPrice) + z.Tax - z.Discount));
+            .ForMember(x => x.TotalAmount, y => y.MapFrom(z => (z.UnitPrice + z.Tax - z.Discount) * z.Quantity));
 
 
 
