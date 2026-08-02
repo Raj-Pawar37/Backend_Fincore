@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.Application.DTOs
+namespace Backend_Fincore.Application.DTOs.GRNItems
 {
     public class GRNItemsCUDTO
     {
@@ -18,8 +18,6 @@ namespace Backend_Fincore.Application.DTOs
 
         public decimal Qty { get; set; }
 
-        public int CreatedBy { get; set; }
-
-        public int? ModifiedBy { get; set; }
+       
     }
 }

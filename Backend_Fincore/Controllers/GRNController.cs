@@ -35,22 +35,35 @@ namespace Backend_Fincore.Controllers
             var totalCounts = await gRNService.GetAllGRNCount();
             var totalpages = (int)Math.Ceiling(totalCounts / (double)pagination.PageSize);
 
-            return Ok(new ApiResponse<List<GRNDTO>>
+            if (data != null)
             {
-                Success = true,
-                Message = "GRN list fetched successfully.",
-                Data = data,
-                Error = null,
-                TotalNumberRecord = totalCounts,
-                Metadata = new
+                return Ok(new ApiResponse<List<GRNDTO>>
                 {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalpages,
-                    RecordsOnCurrentPage = data.Count
-                }
-            });
+                    Success = true,
+                    Message = "GRN list fetched successfully.",
+                    Data = data,
+                    Error = null,
+                    TotalNumberRecord = totalCounts,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalpages,
+                        RecordsOnCurrentPage = data.Count
+                    }
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "GRN items not found.",
+                   
+                });
+
+            }
 
         }
 
@@ -65,10 +78,7 @@ namespace Backend_Fincore.Controllers
                 {
                     Success = false,
                     Message = "GRN not found.",
-                    Data = null,
-                    Error = $"No GRN found with Id {id}.",
-                     Metadata = null,
-                    TotalNumberRecord = 0
+                    
                 });
             }
 
@@ -77,8 +87,6 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "GRN fetched successfully.",
                 Data = grn,
-                Error = null,
-                 Metadata = null,
                 TotalNumberRecord = 1
             });
         }
@@ -92,9 +100,7 @@ namespace Backend_Fincore.Controllers
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "GRN created successfully.",
-                Data = null,
-                Error = null,
+                Message = "GRN created successfully",
                 Metadata = new
                 {
                     GRNNumber = grn.GRNNumber,
@@ -115,8 +121,6 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "GRN updated successfully.",
-                Data = null,
-                Error = null,
                 Metadata = new
                 {   
                     GRNId = id,
@@ -137,10 +141,7 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "GRN deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+                
             });
         }
 
@@ -149,17 +150,13 @@ namespace Backend_Fincore.Controllers
         [Route("Status/{id}")]
        
         public async Task<IActionResult> UpdateGRNStatus(int id, GrnStatusDTO dto)
-        {
-            
-
+        { 
             await gRNService.UpdateGRNStatus(id, dto);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "GRN status updated successfully.",
-                Data = null,
-                Error = null,
                 Metadata = new
                 {
                     GRNId = id,

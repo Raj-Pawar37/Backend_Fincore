@@ -38,22 +38,36 @@ namespace Backend_Fincore.Controllers
                     totalRecords /
                     (double)pagination.PageSize);
 
-            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            if (data != null)
             {
-                Success = true,
-                Message = "Purchase Orders fetched successfully.",
-                Data = data,
-                Error = null,
-                TotalNumberRecord = totalRecords,
-                Metadata = new
+
+                return Ok(new ApiResponse<List<PurchaseOrderDTO>>
                 {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalPages,
-                    RecordsOnCurrentPage = data.Count
-                }
-            });
+                    Success = true,
+                    Message = "Purchase Orders fetched successfully.",
+                    Data = data,
+                    Error = null,
+                    TotalNumberRecord = totalRecords,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage = data.Count
+                    }
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "No data found.",
+                   
+                });
+
+            }
         }
 
         // Get Purchase Order By Id
@@ -105,16 +119,13 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order updated successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 
         // Update Purchase Order Status
-        [HttpPut("Status/{id}")]
-        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderStatusDTO dto)
+        [HttpPut("{id}/Status")]
+        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderFilterDTO dto)
         {
             await purchaseOrderService.UpdatePOStatus(id, dto);
 
@@ -122,10 +133,7 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order status updated successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
-
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
@@ -47,7 +47,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<int> GetPurchasedItemCount()
         {
-            return await db.PurchaseOrderItem.CountAsync();
+            return await db.PurchaseOrderItem.CountAsync( x => x.IsActive == 1);
         }
 
         public async Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination)
@@ -65,7 +65,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Role not exists");
             }
 
-            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Include(x => x.PurchaseOrder);
+            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Include(x => x.PurchaseOrder).Where(x => x.IsActive == 1);
 
 
 
@@ -137,6 +137,18 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<PurchaseOrderItemDTO> getItemById(int id)
         {
+            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            if (user.Role == null)
+            {
+                throw new Exception("Role not found.");
+            }
+
             var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder)
                             .FirstOrDefaultAsync(x => x.PurchaseOrderId == id && x.IsActive == 1);
 
@@ -174,7 +186,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task AddPurchasedItem(PurchaseOrderItemCUDTO POI)
         {
-            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == POI.PurchaseOrderId);
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == POI.PurchaseOrderId && x.IsActive == 1);
 
 
             if (purchaseOrder == null)
@@ -183,7 +195,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
 
-            var purchaseOrderItemExist = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.QuotationItemId == POI.QuotationItemId);
+            var purchaseOrderItemExist = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.QuotationItemId == POI.QuotationItemId && x.IsActive == 1);
 
             if(purchaseOrderItemExist != null)
             {
@@ -205,16 +217,23 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO POI, int id)
         {
-            var item = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == id);
+            var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder)
+                             .FirstOrDefaultAsync(x => x.POItemId == id && x.IsActive == 1);
 
             if( item == null)
             {
                 throw new Exception("Purchase Order Item not found.");
             }
 
+            if (item.PurchaseOrder == null || item.PurchaseOrder.IsActive != 1)
+            {
+                throw new Exception("Purchase Order not found.");
+            }
+
+
             bool itemExists = await db.PurchaseOrderItem.AnyAsync(x => x.PurchaseOrderId == item.PurchaseOrderId &&
                                                                        x.ItemName == POI.ItemName &&
-                                                                       x.POItemId != id);
+                                                                       x.POItemId != id && x.IsActive == 1);
 
             if (item.PurchaseOrder.Status != "Draft")
             {
@@ -245,7 +264,8 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task DeleteItem(int id)
         {
-            var data = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == id);
+            var data = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder)
+                         .FirstOrDefaultAsync(x => x.POItemId == id && x.IsActive == 1);
 
 
             if (data == null)
@@ -253,9 +273,28 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Purchase Order Item not found.");
             }
 
-            int purchaseOrderId = data.PurchaseOrderId;
+            if (data.PurchaseOrder == null || data.PurchaseOrder.IsActive != 1)
+            {
+                throw new Exception("Purchase Order not found.");
+            }
 
-            db.PurchaseOrderItem.Remove(data);
+            
+            if (data.PurchaseOrder.Status != "Draft")
+            {
+                throw new Exception("Only Draft Purchase Orders can be modified.");
+            }
+
+            
+            if (data.Status == "Received")
+            {
+                throw new Exception("Received Purchase Order Item cannot be deleted.");
+            }
+
+            data.IsActive = 0;
+            data.ModifiedAt = DateTime.Now;
+            data.ModifiedBy = current.UserId;
+
+            int purchaseOrderId = data.PurchaseOrderId;
 
             await db.SaveChangesAsync();
 

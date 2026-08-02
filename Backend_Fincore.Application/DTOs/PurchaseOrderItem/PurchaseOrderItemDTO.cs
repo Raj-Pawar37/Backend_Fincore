@@ -8,8 +8,6 @@
 
         public string ItemName { get; set; }
 
-        
-
         public decimal UnitPrice { get; set; }
 
         public decimal Tax { get; set; }

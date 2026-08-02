@@ -1,5 +1,5 @@
 ﻿using Backend_Fincore.Application.DTOs;
-
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 
 namespace Backend_Fincore.Application.Interface
@@ -19,5 +19,7 @@ namespace Backend_Fincore.Application.Interface
         Task DeleteItem(int id);
 
         Task<List<POItemsSearchDTO>> FetchPOIBygrnId(int grnId);
+
+        Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto);
     }
 }

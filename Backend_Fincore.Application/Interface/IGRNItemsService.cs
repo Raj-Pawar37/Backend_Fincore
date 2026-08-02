@@ -1,4 +1,5 @@
 ﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.GRNItems;
 using Backend_Fincore.DTOs.GRN;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using System;
@@ -21,6 +22,6 @@ namespace Backend_Fincore.Application.Interface
 
         Task AddGRNItem(GRNItemsCUDTO dto);
 
-        Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto);
+        
     }
 }

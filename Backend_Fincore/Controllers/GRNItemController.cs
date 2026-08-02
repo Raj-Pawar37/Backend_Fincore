@@ -1,4 +1,5 @@
 ﻿using Backend_Fincore.Application.DTOs;
+using Backend_Fincore.Application.DTOs.GRNItems;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Infrastucture.Service;
@@ -32,22 +33,35 @@ namespace Backend_Fincore.Controllers
             var totalCount = await gRNItemsService.GetAllGrnItemsCount();
             var totalPages = (int)Math.Ceiling(totalCount / (double)pagination.PageSize);
 
-            return Ok(new ApiResponse<List<GRNItemsDTO>>
+            if (data != null)
             {
-                Success = true,
-                Message = "GRN Items fetched successfully.",
-                Data = data,
-                Error = null,
-                TotalNumberRecord = totalCount,
-                Metadata = new
+                return Ok(new ApiResponse<List<GRNItemsDTO>>
                 {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalPages,
-                    RecordsOnCurrentPage = data.Count
-                }
-            });
+                    Success = true,
+                    Message = "GRN Items fetched successfully.",
+                    Data = data,
+                    Error = null,
+                    TotalNumberRecord = totalCount,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage = data.Count
+                    }
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "GRN Items not found.",
+                  
+                });
+
+            }
         }
 
         [HttpGet("{id}")]
@@ -60,8 +74,6 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "GRN Item fetched successfully.",
                 Data = data,
-                Error = null,
-                Metadata = new { },
                 TotalNumberRecord = 1
             });
         }
@@ -75,10 +87,7 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "GRN Item deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 
@@ -95,26 +104,10 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "GRN Item added successfully.",
-                Data = null
+               
             });
         }
 
 
-        [HttpPost]
-        [Route("SearchPOItem")]
-        public async Task<IActionResult> SearchPOItem(SearchPoiDTO dto)
-        {
-            var result = await gRNItemsService.SearchPOItem(dto);
-
-            return Ok(new ApiResponse<List<POItemsSearchDTO>>
-            {
-                Success = true,
-                Message = "Purchase Order Items fetched successfully.",
-                Data = result,
-                Error = null,
-                Metadata = null,
-                TotalNumberRecord = result.Count
-            });
-        }
     }
 }

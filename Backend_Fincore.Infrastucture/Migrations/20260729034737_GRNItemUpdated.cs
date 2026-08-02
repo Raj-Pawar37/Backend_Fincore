@@ -21,8 +21,8 @@ namespace Backend_Fincore.Migrations
              * recreate the table.
              */
 
-            //migrationBuilder.DropTable(
-            //    name: "GRNItem");
+            migrationBuilder.DropTable(
+                name: "GRNItem");
 
             migrationBuilder.CreateTable(
                 name: "GRNItem",
