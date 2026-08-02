@@ -27,7 +27,7 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        [HttpGet]
+        [HttpGet("GetAllByStatus")]
         public async Task<IActionResult> GetAllGRNs([FromQuery]PaginationDTO pagination)
         {
             var data = await gRNService.GetAllGrns( pagination);
@@ -167,6 +167,22 @@ namespace Backend_Fincore.Controllers
                 },
                 TotalNumberRecord = 1
             });
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> FetchDraftGRN()
+        {
+            var data = await gRNService.FetchDraftGRN();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Draft GRN Fetch Successfully",
+                Data = data,
+                Error = null
+            });
+
         }
 
 

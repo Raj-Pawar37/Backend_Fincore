@@ -16,8 +16,8 @@
 
         public string Status { get; set; }
 
-        //public string VendorName { get; set; }
+        public string VendorName { get; set; }
 
-        //public string QuotationNumber { get; set; }
+        public string QuotationNumber { get; set; }
     }
 }

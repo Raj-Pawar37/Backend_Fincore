@@ -29,21 +29,16 @@ namespace Backend_Fincore.Infrastucture.Service
 
         private async Task UpdatePurchaseOrderTotal(int purchaseOrderId)
         {
-            var total = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchaseOrderId)
-                       .SumAsync(x => (x.UnitPrice * x.Qty)
-                       + ((x.UnitPrice * x.Qty) * (x.Tax ?? 0) / 100)
-                       - ((x.UnitPrice * x.Qty) * (x.Discount ?? 0) / 100));
+            var total = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchaseOrderId && x.IsActive == 1)
+                              .SumAsync(x => (x.UnitPrice * x.Qty) + (x.Tax ?? 0) - (x.Discount ?? 0));
 
 
-            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
-
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId && x.IsActive == 1);
 
             if (purchaseOrder != null)
             {
                 purchaseOrder.TotalAmount = total;
-
                 purchaseOrder.ModifiedBy = current.UserId;
-                
                 purchaseOrder.ModifiedAt = DateTime.Now;
 
                 await db.SaveChangesAsync();
@@ -74,27 +69,29 @@ namespace Backend_Fincore.Infrastucture.Service
 
 
 
-            if(user.Role.RoleName == "User")
+            switch (user.Role.RoleName)
             {
                 throw new Exception("You are not authorized.");
             }
 
             //Manager 
-            else if(user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
+            else if(user.Role.RoleName == "Manager" ||  user.Role.RoleName == "Senior Manager")
             {
 
-                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
+                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
 
                 if (employee == null)
                 {
                     throw new Exception("Employee not found");
                 }
 
-                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
+                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
                                    .Select(x => x.EmployeeId).ToListAsync();
 
-                var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
-                                    .Contains(x.MasterId)).Select(x => x.UserId).ToListAsync();
+                var userIds = await db.User.Include(x => x.Role).Where(x => x.MasterType == "Employee" && empIds
+                                    .Contains(x.MasterId)
+                                    && ( x.Role.RoleName == "Manager" || x.Role.RoleName == "Senior Manager" ) && x.IsActive == 1 )
+                                   .Select(x => x.UserId).ToListAsync();
 
                 query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
 
@@ -102,18 +99,21 @@ namespace Backend_Fincore.Infrastucture.Service
 
             else if (user.Role.RoleName == "Vendor")
             {
-               
+                var vendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.VendorId == user.MasterId && x.IsActive == 1);
+
+
+                if (vendor == null)
+                {
+                    throw new Exception("Vendor not found.");
+                }
+
                 query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
             }
 
-          
-            else if (user.Role.RoleName == "CFO")
-            {
-           
-            }
-            else
-            {
-                throw new Exception("Invalid role.");
+                    break;
+
+                default:
+                    throw new Exception("You are not authorized.");
             }
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
@@ -123,13 +123,13 @@ namespace Backend_Fincore.Infrastucture.Service
                     x.Status.Contains(pagination.Search));
             }
 
-            // Pagination
+          
 
-            var result = await query
-                .OrderByDescending(x => x.CreatedAt)
-                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                .Take(pagination.PageSize)
-                .ToListAsync();
+            var result = await query.OrderByDescending(x => x.CreatedAt)
+                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                   .Take(pagination.PageSize)
+                                   .ToListAsync();
+
 
             return mapper.Map<List<PurchaseOrderItemDTO>>(result);
 
@@ -138,12 +138,36 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<PurchaseOrderItemDTO> getItemById(int id)
         {
             var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder)
-                            .FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
+                            .FirstOrDefaultAsync(x => x.PurchaseOrderId == id && x.IsActive == 1);
 
             if (item == null)
             {
                 throw new Exception("Purchase Order Item not found.");
             }
+
+            switch (user.Role.RoleName)
+            {
+                case "Administrator":
+                case "Procurement Manager":
+                case "Warehouse Manager":
+                case "CFO":
+                case "Auditor":
+                    
+                    break;
+
+                case "Vendor":
+
+                    if (item.PurchaseOrder.VendorId != user.MasterId)
+                    {
+                        throw new Exception("You are not authorized to view this Purchase Order Item.");
+                    }
+
+                    break;
+
+                default:
+                    throw new Exception("You are not authorized.");
+            }
+
 
             return mapper.Map<PurchaseOrderItemDTO>(item);
         }
@@ -175,7 +199,6 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await db.SaveChangesAsync();
 
-            // Update Purchase Order Total
 
             await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
         }
@@ -216,7 +239,7 @@ namespace Backend_Fincore.Infrastucture.Service
             
             await db.SaveChangesAsync();
 
-            // Update Purchase Order Total
+          
             await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
         }
 
@@ -237,6 +260,57 @@ namespace Backend_Fincore.Infrastucture.Service
             await db.SaveChangesAsync();
 
             await UpdatePurchaseOrderTotal(purchaseOrderId);
+
+        }
+
+        public async Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto)
+        {
+
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == dto.PurchaseOrderId && x.IsActive == 1);
+
+           
+
+            if (purchaseOrder == null)
+            {
+                throw new Exception("Purchase Order not found.");
+            }
+
+
+            if (purchaseOrder.Status != "Issued")
+            {
+                throw new Exception("GRN can only be created for Issued Purchase Orders.");
+            }
+
+            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem
+                .Where(x => x.PurchaseOrderId == dto.PurchaseOrderId
+                         && x.IsActive == 1
+                         );
+
+
+
+            if (!string.IsNullOrWhiteSpace(dto.Status))
+            {
+                query = query.Where(x => x.Status == dto.Status);
+            }
+
+
+            if (!string.IsNullOrWhiteSpace(dto.SearchText))
+            {
+                query = query.Where(x => x.ItemName.Contains(dto.SearchText));
+            }
+
+
+            var result = await query.OrderBy(x => x.ItemName).Take(20).Select(x => new POItemsSearchDTO{
+                                                                                POItemId = x.POItemId,
+                                                                                ItemName = x.ItemName,
+                                                                                Qty = x.Qty,
+                                                                                UnitPrice = x.UnitPrice,
+                                                                                Status = x.Status
+                                                                                  })
+                                                                                  .ToListAsync();
+
+            return result;
+
 
         }
     }

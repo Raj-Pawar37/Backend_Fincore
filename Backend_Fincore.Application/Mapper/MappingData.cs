@@ -43,7 +43,8 @@ public class MappingData : Profile
     public MappingData()
     {
         //PurchaseOrder
-        CreateMap<PurchaseOrder, PurchaseOrderDTO>();
+        CreateMap<PurchaseOrder, PurchaseOrderDTO>().ForMember(x => x.VendorName, x => x.MapFrom(x => x.Vendor.VendorName))
+                                                    .ForMember(x => x.QuotationNumber, x => x.MapFrom(x => x.Quotation.QuotationNumber));
         CreateMap<PurchaseOrderCUDTO, PurchaseOrder>();
 
         //PurchaseOrderItem

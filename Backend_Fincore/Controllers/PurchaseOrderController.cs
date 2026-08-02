@@ -29,9 +29,9 @@ namespace Backend_Fincore.Controllers
 
         // Get All Purchase Orders
         [HttpGet("GetAllPurchaseOrders")]
-        public async Task<IActionResult> GetAllPurchaseOrders([FromBody]PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
+        public async Task<IActionResult> GetAllPurchaseOrders([FromQuery] PaginationDTO pagination)
         {
-            var data = await purchaseOrderService.GetAllPurchasedOrder(pof,pagination);
+            var data = await purchaseOrderService.GetAllPurchasedOrder(pagination);
 
             var totalRecords = await purchaseOrderService.GetPurchasedOrderCount();
             var totalPages = (int)Math.Ceiling(
@@ -113,8 +113,8 @@ namespace Backend_Fincore.Controllers
         }
 
         // Update Purchase Order Status
-        [HttpPut("{id}/Status")]
-        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderFilterDTO dto)
+        [HttpPut("Status/{id}")]
+        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderStatusDTO dto)
         {
             await purchaseOrderService.UpdatePOStatus(id, dto);
 
@@ -139,10 +139,7 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 

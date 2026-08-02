@@ -36,28 +36,97 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<GRNItemsDTO>> getAllGrnItems(PaginationDTO pagination)
         {
-            var data = db.GRNItem.Include(x => x.POItem).AsQueryable();
+            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            if (user.Role == null)
+            {
+                throw new Exception("Role not found.");
+            }
+
+            IQueryable<GRNItem> query = db.GRNItem
+                                          .Include(x => x.POItem)
+                                          .Include(x => x.GRN)
+                                          .ThenInclude(x => x.PurchaseOrder)
+                                          .Where(x => x.IsActive == 1);
+
+
+            switch (user.Role.RoleName)
+            {
+                case "Administrator":
+                case "Procurement Manager":
+                case "Warehouse Manager":
+                case "Asset Manager":
+                case "CFO":
+                    break;
+
+                case "Vendor":
+                    query = query.Where(x => x.GRN.PurchaseOrder.VendorId == user.MasterId);
+                    break;
+
+                default:
+                    throw new Exception("You are not authorized.");
+            }
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                data = data.Where(x =>
-                    x.POItem.ItemName.Contains(pagination.Search) ||
-                    x.GRN.Status.Contains(pagination.Search));
+                query = query.Where(x => x.POItem.ItemName.Contains(pagination.Search) ||
+                                         x.GRN.GRNNumber.Contains(pagination.Search));
+
             }
 
-            var result = await data.OrderByDescending(x => x.CreatedAt)
-                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                                   .Take(pagination.PageSize)
-                                   .ToListAsync();
+            var result = await query.OrderByDescending(x => x.CreatedAt)
+                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                    .Take(pagination.PageSize)
+                                    .ToListAsync();
 
 
-            return mapper.Map<List<GRNItemsDTO>>(result); 
+            return mapper.Map<List<GRNItemsDTO>>(result);
         }
 
         public async Task<GRNItemsDTO> GetGRNItemById(int id)
         {
-            var data = await db.GRNItem.Include(x => x.GRN).Include(x => x.POItem)
-                             .FirstOrDefaultAsync(x => x.GRNItemId == id);
+            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            if (user.Role == null)
+            {
+                throw new Exception("Role not found.");
+            }
+
+            IQueryable<GRNItem> query = db.GRNItem.Include(x => x.GRN).ThenInclude(x => x.PurchaseOrder).Include(x => x.POItem)
+                                          .Where(x => x.GRNItemId == id && x.IsActive == 1);
+
+
+            switch (user.Role.RoleName)
+            {
+                query = query.Where(x =>x.POItem.ItemName.Contains(pagination.Search) ||
+                                    x.GRN.Status.Contains(pagination.Search));
+            }
+
+
+            var result = await query.OrderByDescending(x => x.CreatedAt)
+                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                    .Take(pagination.PageSize)
+                                    .ToListAsync();
+
+            return mapper.Map<List<GRNItemsDTO>>(result);
+        }
+
+        public async Task<GRNItemsDTO> GetGRNItemById(int id)
+        {
+            var data = await db.GRNItem
+                            .Include(x => x.GRN)
+                            .Include(x => x.POItem)
+                            .FirstOrDefaultAsync(x => x.GRNItemId == id && x.IsActive == 1);
 
             if (data == null)
             {
@@ -117,7 +186,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (poItem.Status == "Received")
             {
-                throw new Exception("This Purchase Order Item is already Received.");
+                //throw new Exception("Purchase Order Item already exists in this GRN.");
             }
 
          
@@ -125,7 +194,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             if (exists)
             {
-                throw new Exception("This Purchase Order Item already exists in a GRN Items.");
+                //throw new Exception($"Maximum receivable quantity is {poItem.Qty - alreadyReceived}.");
             }
 
             var item = mapper.Map<GRNItem>(dto);

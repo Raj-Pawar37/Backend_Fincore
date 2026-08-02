@@ -19,5 +19,7 @@ namespace Backend_Fincore.Application.Interface
         Task DeletegrnById(int id);
 
         Task UpdateGRNStatus(int id, GrnStatusDTO dto);
+
+        Task<List<GRNDTO>> FetchDraftGRN();
     }
 }

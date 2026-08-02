@@ -8,7 +8,7 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IPurchaseOrderService
     {
-        Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof, PaginationDTO pagination);
+        Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder( PaginationDTO pagination);
 
         Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId);
 
@@ -20,7 +20,9 @@ namespace Backend_Fincore.Application.Interface
 
         Task UpdatePurchaseOrder(PurchaseOrderCUDTO Po, int id);
 
-        Task UpdatePOStatus(int purchaseOrderId, PurchasedOrderFilterDTO dto);
+        Task UpdatePOStatus(int purchaseOrderId, PurchasedOrderStatusDTO dto);
+
+        Task<List<PurchaseOrderDTO>> FetchIssuedPO();
 
         Task<List<PurchaseOrderDTO>> FetchIssuedPO();
 

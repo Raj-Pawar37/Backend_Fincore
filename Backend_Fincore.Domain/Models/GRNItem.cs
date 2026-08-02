@@ -9,7 +9,8 @@ namespace Backend_Fincore.Domain.Models
 {
     public class GRNItem : BaseEntity
     {
-        public int GRNItemId { get; set; }
+            [Key]
+            public int GRNItemId { get; set; }
 
         public int GRNId { get; set; }
 
@@ -20,8 +21,8 @@ namespace Backend_Fincore.Domain.Models
         public decimal Qty { get; set; }
 
 
-        // Navigation properties
-        public GRN GRN { get; set; } = null!;
+  
+            public GRN GRN { get; set; } = null!;
 
         public PurchaseOrderItem POItem { get; set; } = null!;
     }

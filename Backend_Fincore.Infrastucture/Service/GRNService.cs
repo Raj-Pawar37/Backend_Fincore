@@ -156,7 +156,7 @@ namespace Backend_Fincore.Infrastucture.Service
             return await db.GRN.CountAsync(x => x.IsActive == 1);
         }
 
-        public async Task<List<GRNDTO>> GetAllGrns(PaginationDTO pagination)
+        public async Task<List<GRNDTO>> GetAllGrns( PaginationDTO pagination)
         {
 
             var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
@@ -171,33 +171,31 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Role not exists");
             }
 
-            IQueryable<GRN> query = db.GRN.Include(x => x.ReceivedByUser).Include(x => x.PurchaseOrder)
-                                     .ThenInclude(x => x.Vendor).Where(x => x.IsActive == 1);
+            IQueryable<GRN> query = db.GRN.Include(x => x.PurchaseOrder).AsQueryable();
 
-            switch (user.Role.RoleName)
+            if (user.Role.RoleName == "User")
             {
-                case "Administrator":
-                case "Procurement Manager":
-                case "Warehouse Manager":
-                case "CFO":
-                case "Asset Manager":
-                    
-                             break;
-
-                case "Vendor":
-                              query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
-                              break;
-
-                default:
-                             throw new Exception("You are not authorized.");
+                throw new Exception("You are not authorized.");
             }
 
-
-            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            //Manager 
+            else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
             {
-                query = query.Where(x => x.GRNNumber.Contains(pagination.Search) ||
-                                         x.Status.Contains(pagination.Search) ||
-                                         x.PurchaseOrder.PONumber.Contains(pagination.Search));
+
+                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
+
+                if (employee == null)
+                {
+                    throw new Exception("Employee not found");
+                }
+
+                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
+                                   .Select(x => x.EmployeeId).ToListAsync();
+
+                var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
+                                    .Contains(x.MasterId)).Select(x => x.UserId).ToListAsync();
+
+                query = query.Where(x => userIds.Contains(x.CreatedBy));
 
             }
 
@@ -206,47 +204,49 @@ namespace Backend_Fincore.Infrastucture.Service
                                     .Take(pagination.PageSize)
                                     .ToListAsync();
 
+            // Vendor
+            else if (user.Role.RoleName == "Vendor")
+            {
+                query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
+            }
+
+            else if (user.Role.RoleName == "CFO")
+            {
+
+            if (user == null)
+            {
+                throw new Exception("Invalid role.");
+            }
+
+            if (user.Role == null)
+            {
+                query = query.Where(x => x.Status == dto.Status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                query = query.Where(x =>
+                    x.GRNNumber.Contains(pagination.Search) ||
+                    x.Status.Contains(pagination.Search));
+            }
+
+            // Pagination
+
+            var result = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
+                .ToListAsync();
+
 
             return mapper.Map<List<GRNDTO>>(result);
         }
 
         public async Task<GRNDTO> GetGrnById(int id)
         {
-            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
-
-            if (user == null)
-            {
-                throw new Exception("User not found.");
-            }
-
-            if (user.Role == null)
-            {
-                throw new Exception("Role not found.");
-            }
-
-            IQueryable<GRN> query = db.GRN.Include(x => x.PurchaseOrder).ThenInclude(x => x.Vendor)
-                                       .Include(x => x.ReceivedByUser).Where(x => x.GRNId == id && x.IsActive == 1);
-
-
-            switch (user.Role.RoleName)
-            {
-                case "Administrator":
-                case "Procurement Manager":
-                case "Warehouse Manager":
-                case "CFO":
-                case "Asset Manager":
-                    
-                    break;
-
-                case "Vendor":
-                    query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
-                    break;
-
-                default:
-                    throw new Exception("You are not authorized.");
-            }
-
-            var grn = await query.FirstOrDefaultAsync();
+            var grn = await db.GRN.Include(x => x.PurchaseOrder)
+                           .Include(x => x.ReceivedByUser)
+                          .FirstOrDefaultAsync(x => x.GRNId == id);
 
             if (grn == null)
             {
@@ -349,81 +349,41 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("GRN status can only be changed to Received.");
             }
 
-            if (!grn.GRNItems.Any())
+            if (grn.Status == dto.Status)
             {
-                throw new Exception("Please add at least one GRN Item.");
+                throw new Exception($"GRN is already {dto.Status}.");
             }
 
-            // Validate quantity
-            foreach (var grnItem in grn.GRNItems)
+        
+            if (dto.Status != "Draft" &&
+                dto.Status != "Pending" &&
+                dto.Status != "Received" &&
+                dto.Status != "Rejected")
             {
-                var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId);
-
-
-                decimal alreadyReceived = await db.GRNItem.Where(x => x.POItemId == grnItem.POItemId
-                                                                 && x.IsActive == 1
-                                                                 && x.GRNId != grn.GRNId
-                                                                 && x.GRN.Status == "Received")
-                                                                .SumAsync(x => x.Qty);
-
-
-                decimal totalReceived = alreadyReceived + grnItem.Qty;
-
-                if (totalReceived > poItem.Qty)
-                {
-                    throw new Exception($"Received quantity exceeds ordered quantity for {poItem.ItemName}");
-                }
+                throw new Exception("Invalid GRN status.");
             }
 
-          
-            foreach (var grnItem in grn.GRNItems)
-            {
-                var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId);
-
-
-                decimal alreadyReceived = await db.GRNItem
-                                                          .Where(x => x.POItemId == grnItem.POItemId
-                                                              && x.IsActive == 1
-                                                              && x.GRNId != grn.GRNId
-                                                              && x.GRN.Status == "Received")
-                                                          .SumAsync(x => x.Qty);
-
-                decimal totalReceived = alreadyReceived + grnItem.Qty;
-
-                if (totalReceived == 0)
-                {
-                    poItem.Status = "Pending";
-                }
-                else if (totalReceived < poItem.Qty)
-                {
-                    poItem.Status = "Partially Received";
-                }
-                else
-                {
-                    poItem.Status = "Received";
-                }
-
-                poItem.ModifiedAt = DateTime.Now;
-                poItem.ModifiedBy = current.UserId;
-            }
-
-            var purchaseOrder = await db.PurchaseOrder.Include(x => x.PurchaseOrderItems).FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId);
-
-            bool completed = purchaseOrder.PurchaseOrderItems
-                                          .Where(x => x.IsActive == 1)
-                                          .All(x => x.Status == "Received");
-
-            purchaseOrder.Status = completed ? "Completed" : "Issued";
-
-            purchaseOrder.ModifiedAt = DateTime.Now;
-            purchaseOrder.ModifiedBy = current.UserId;
-
-            grn.Status = "Received";
-
-            grn.ModifiedAt = DateTime.Now;
+            grn.Status = dto.Status;
             grn.ModifiedBy = current.UserId;
+            grn.ModifiedAt = DateTime.Now;
+
+            if (dto.Status == "Received")
+            {
+                foreach (var item in grn.GRNItems)
+                {
+                    var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == item.POItemId);
+
+                    if (poItem != null)
+                    {
+                        poItem.Status = "Received";
+                    }
+                }
+            }
+
 
             await db.SaveChangesAsync();
+
+
         }
     }
 }

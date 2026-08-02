@@ -26,7 +26,7 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        [HttpPost("GetAll")]
+        [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllPurchasedItemByRole([FromQuery]PaginationDTO pagination)
         {
             var data = await purchaseOrderItemService.getAllPurchasedItem(pagination);
@@ -121,12 +121,37 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order Item deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
-        
+
+
+        [HttpGet]
+        [Route("SearchPOItem/{grnId}")]
+        public async Task<IActionResult> SearchPOItem(int grnId)
+        {
+            var result = await purchaseOrderItemService.FetchPOIBygrnId(grnId);
+
+            if (result != null)
+            {
+                return Ok(new ApiResponse<List<POItemsSearchDTO>>
+                {
+                    Success = true,
+                    Message = "Purchase Order Items fetched successfully.",
+                    Data = result,
+                    TotalNumberRecord = result.Count
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Purchase Order Items not found.",
+
+                });
+            }
+        }
+
     }
 }

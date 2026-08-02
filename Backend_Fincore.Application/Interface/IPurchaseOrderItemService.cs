@@ -17,5 +17,7 @@ namespace Backend_Fincore.Application.Interface
         Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO dto, int id);
 
         Task DeleteItem(int id);
+
+        Task<List<POItemsSearchDTO>> FetchPOIBygrnId(int grnId);
     }
 }
