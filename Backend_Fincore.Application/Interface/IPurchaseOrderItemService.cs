@@ -6,7 +6,7 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IPurchaseOrderItemService
     {
-        Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination);
+        //Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination);
 
         Task<int> GetPurchasedItemCount();
 
@@ -18,7 +18,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task DeleteItem(int id);
 
-        Task<List<POItemsSearchDTO>> FetchPOIBygrnId(int grnId);
+        //Task<List<POItemsSearchDTO>> FetchPOIBygrnId(int grnId);
 
         Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto);
     }

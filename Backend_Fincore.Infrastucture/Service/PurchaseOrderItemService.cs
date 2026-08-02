@@ -50,90 +50,90 @@ namespace Backend_Fincore.Infrastucture.Service
             return await db.PurchaseOrderItem.CountAsync( x => x.IsActive == 1);
         }
 
-        public async Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination)
-        {
+        //public async Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination)
+        //{
 
-            var user = await db.User.Include(x=>x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
+        //    var user = await db.User.Include(x=>x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
 
-            if(user == null)
-            {
-                throw new Exception("user not found");
-            }
+        //    if(user == null)
+        //    {
+        //        throw new Exception("user not found");
+        //    }
 
-            if(user.Role == null)
-            {
-                throw new Exception("Role not exists");
-            }
+        //    if(user.Role == null)
+        //    {
+        //        throw new Exception("Role not exists");
+        //    }
 
-            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Include(x => x.PurchaseOrder).Where(x => x.IsActive == 1);
-
-
-
-            switch (user.Role.RoleName)
-            {
-                throw new Exception("You are not authorized.");
-            }
-
-            //Manager 
-            else if(user.Role.RoleName == "Manager" ||  user.Role.RoleName == "Senior Manager")
-            {
-
-                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
-
-                if (employee == null)
-                {
-                    throw new Exception("Employee not found");
-                }
-
-                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
-                                   .Select(x => x.EmployeeId).ToListAsync();
-
-                var userIds = await db.User.Include(x => x.Role).Where(x => x.MasterType == "Employee" && empIds
-                                    .Contains(x.MasterId)
-                                    && ( x.Role.RoleName == "Manager" || x.Role.RoleName == "Senior Manager" ) && x.IsActive == 1 )
-                                   .Select(x => x.UserId).ToListAsync();
-
-                query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
-
-            }
-
-            else if (user.Role.RoleName == "Vendor")
-            {
-                var vendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.VendorId == user.MasterId && x.IsActive == 1);
+        //    IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Include(x => x.PurchaseOrder).Where(x => x.IsActive == 1);
 
 
-                if (vendor == null)
-                {
-                    throw new Exception("Vendor not found.");
-                }
 
-                query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
-            }
+        //    if (user.Role.RoleName == "User")
+        //    {
+        //        throw new Exception("You are not authorized.");
+        //    }
 
-                    break;
+        //    //Manager 
+        //    else if(user.Role.RoleName == "Manager" ||  user.Role.RoleName == "Senior Manager")
+        //    {
 
-                default:
-                    throw new Exception("You are not authorized.");
-            }
+        //        var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
 
-            if (!string.IsNullOrWhiteSpace(pagination.Search))
-            {
-                query = query.Where(x =>
-                    x.ItemName.Contains(pagination.Search) ||
-                    x.Status.Contains(pagination.Search));
-            }
+        //        if (employee == null)
+        //        {
+        //            throw new Exception("Employee not found");
+        //        }
+
+        //        var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
+        //                           .Select(x => x.EmployeeId).ToListAsync();
+
+        //        var userIds = await db.User.Include(x => x.Role).Where(x => x.MasterType == "Employee" && empIds
+        //                            .Contains(x.MasterId)
+        //                            && ( x.Role.RoleName == "Manager" || x.Role.RoleName == "Senior Manager" ) && x.IsActive == 1 )
+        //                           .Select(x => x.UserId).ToListAsync();
+
+        //        query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
+
+        //    }
+
+        //    else if (user.Role.RoleName == "Vendor")
+        //    {
+        //        var vendor = await db.RFQVendor.FirstOrDefaultAsync(x => x.VendorId == user.MasterId && x.IsActive == 1);
+
+
+        //        if (vendor == null)
+        //        {
+        //            throw new Exception("Vendor not found.");
+        //        }
+
+        //        query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
+        //    }
+
+        //        //    break;
+
+        //        //default:
+        //        //    throw new Exception("You are not authorized.");
+        //    }
+
+        //    //if (!string.IsNullOrWhiteSpace(pagination.Search))
+        //    //{
+        //    //    query = query.Where(x =>
+        //    //        x.ItemName.Contains(pagination.Search) ||
+        //    //        x.Status.Contains(pagination.Search));
+        //    //}
 
           
 
-            var result = await query.OrderByDescending(x => x.CreatedAt)
-                                   .Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                                   .Take(pagination.PageSize)
-                                   .ToListAsync();
+        //    var result = await query.OrderByDescending(x => x.CreatedAt)
+        //                           .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+        //                           .Take(pagination.PageSize)
+        //                           .ToListAsync();
 
 
-            return mapper.Map<List<PurchaseOrderItemDTO>>(result);
+        //    return mapper.Map<List<PurchaseOrderItemDTO>>(result);
 
-        }
+        //}
 
         public async Task<PurchaseOrderItemDTO> getItemById(int id)
         {

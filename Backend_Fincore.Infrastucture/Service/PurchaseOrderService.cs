@@ -171,7 +171,7 @@ namespace Backend_Fincore.Infrastucture.Service
             return await db.PurchaseOrder.CountAsync(x=> x.IsActive == 1);
         }
 
-        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder(PurchasedOrderFilterDTO pof, PaginationDTO pagination)
+        public async Task<List<PurchaseOrderDTO>> GetAllPurchasedOrder( PaginationDTO pagination)
         {
       
             var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
@@ -240,16 +240,14 @@ namespace Backend_Fincore.Infrastucture.Service
                     throw new Exception("Invalid Role.");
                 }
 
-                if (!string.IsNullOrWhiteSpace(pof.Status))
-                {
-                    query = query.Where(x => x.Status == pof.Status);
-                }
+               
 
 
                 if (!string.IsNullOrWhiteSpace(pagination.Search))
                 {
                     query = query.Where(x =>
                         x.PONumber.Contains(pagination.Search) ||
+                        x.Status.Contains(pagination.Search) ||
                         x.Status.Contains(pagination.Search));
                 }
 
@@ -274,11 +272,11 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<PurchaseOrderDTO> GetPurchaseOrderById(int purchasedId)
         {
-            string cacheKey = $"PO_{purchasedId}";
+            //string cacheKey = $"PO_{purchasedId}";
 
 
-            if (!cache.TryGetValue(cacheKey, out PurchaseOrderDTO data))
-            {
+            //if (!cache.TryGetValue(cacheKey, out PurchaseOrderDTO data))
+            //{
 
                 var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
 
@@ -307,7 +305,7 @@ namespace Backend_Fincore.Infrastucture.Service
         }
 
 
-        }
+        
 
         public async Task UpdatePurchaseOrder(PurchaseOrderCUDTO Po, int id)
         {
@@ -411,8 +409,14 @@ namespace Backend_Fincore.Infrastucture.Service
 
         }
 
-       
+        public async Task<List<PurchaseOrderDTO>> FetchIssuedPO()
+        {
+            var data = await db.PurchaseOrder.Where(x => x.Status == "Issued" && x.IsActive == 1).ToListAsync();
 
-       
+            var res = mapper.Map<List<PurchaseOrderDTO>>(data);
+
+            return res;
+
+        }
     }
 }

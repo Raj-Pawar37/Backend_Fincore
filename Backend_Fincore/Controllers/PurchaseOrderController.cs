@@ -125,7 +125,7 @@ namespace Backend_Fincore.Controllers
 
         // Update Purchase Order Status
         [HttpPut("{id}/Status")]
-        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderFilterDTO dto)
+        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderStatusDTO dto)
         {
             await purchaseOrderService.UpdatePOStatus(id, dto);
 

@@ -24,7 +24,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<List<PurchaseOrderDTO>> FetchIssuedPO();
 
-        Task<List<PurchaseOrderDTO>> FetchIssuedPO();
+    
 
       
 

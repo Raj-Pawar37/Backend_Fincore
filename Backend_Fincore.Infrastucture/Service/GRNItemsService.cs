@@ -73,76 +73,11 @@ namespace Backend_Fincore.Infrastucture.Service
                     throw new Exception("You are not authorized.");
             }
 
-            if (user == null)
-            {
-                throw new Exception("User not found.");
-            }
-
-            if (user.Role == null)
-            {
-                throw new Exception("Role not found.");
-            }
-
-            IQueryable<GRNItem> query = db.GRNItem
-                                          .Include(x => x.POItem)
-                                          .Include(x => x.GRN)
-                                          .ThenInclude(x => x.PurchaseOrder)
-                                          .Where(x => x.IsActive == 1);
-
-
-            if (user.Role.RoleName == "User" || user.Role.RoleName == "Employee")
-            {
-                throw new Exception("You are not authorized.");
-            }
-
-            // Manager / Senior Manager
-            else if (user.Role.RoleName == "Manager" || user.Role.RoleName == "Senior Manager")
-
-            {
-                var employee = await db.Employee
-                                      .FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId && x.IsActive == 1);
-
-                if (employee == null)
-                {
-                    throw new Exception("Employee not found.");
-                }
-
-                var empIds = await db.Employee
-                                     .Where(x => x.DepartmentId == employee.DepartmentId && x.IsActive == 1)
-                                     .Select(x => x.EmployeeId)
-                                     .ToListAsync();
-
-                var userIds = await db.User.Where(x => x.MasterType == "Employee"
-                                            && x.IsActive == 1
-                                            && empIds.Contains(x.MasterId)
-                                            && (x.Role.RoleName == "Manager"
-                                             || x.Role.RoleName == "Senior Manager"))
-                                             .Select(x => x.UserId)
-                                             .ToListAsync();
-
-                query = query.Where(x => userIds.Contains(x.GRN.CreatedBy));
-            }
-
-
-            else if (user.Role.RoleName == "Vendor")
-            {
-                query = query.Where(x => x.GRN.PurchaseOrder.VendorId == user.MasterId);
-            }
-
-
-            else if (user.Role.RoleName == "CFO")
-            {
-
-            }
-            else
-            {
-                throw new Exception("Invalid role.");
-            }
-
+    
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                data = data.Where(x =>
+                query = query.Where(x =>
                     x.POItem.ItemName.Contains(pagination.Search) ||
                     x.GRN.Status.Contains(pagination.Search));
             }
