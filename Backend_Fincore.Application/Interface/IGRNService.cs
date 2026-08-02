@@ -12,7 +12,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<GRNDTO> GetGrnById(int id);
 
-        Task AddGrn(GRNCUDTO grn);
+        Task AddGrn(GRNCreate grn);
 
         Task UpdateGRN(GRNCUDTO grn, int id);
 

@@ -329,8 +329,13 @@ namespace Backend_Fincore.Infrastucture.Service
 
         }
 
-       
+        public async Task<List<PurchaseOrderDTO>> FetchIssuedPO()
+        {
+            var data = await db.PurchaseOrder.Where(x => x.Status == "Issued" && x.IsActive == 1).ToListAsync();
 
-       
+            var res = mapper.Map<List<PurchaseOrderDTO>>(data);
+
+            return res;
+        }
     }
 }

@@ -28,7 +28,7 @@ namespace Backend_Fincore.Controllers
         }
 
         // Get All Purchase Orders
-        [HttpPost("GetAllPurchaseOrders")]
+        [HttpGet("GetAllPurchaseOrders")]
         public async Task<IActionResult> GetAllPurchaseOrders([FromBody]PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
         {
             var data = await purchaseOrderService.GetAllPurchasedOrder(pof,pagination);
@@ -146,5 +146,20 @@ namespace Backend_Fincore.Controllers
             });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> FetchIssued()
+        {
+            var data = await purchaseOrderService.FetchIssuedPO();
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Purchase Orders fetched successfully.",
+                Data = data,
+                Error = null
+
+            });
+
+        }
     }
 }

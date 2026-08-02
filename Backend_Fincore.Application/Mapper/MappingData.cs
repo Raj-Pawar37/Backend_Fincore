@@ -31,6 +31,7 @@ using Backend_Fincore.Application.DTOs.Vendor;
 using Backend_Fincore.Application.DTOs.Company;
 using Backend_Fincore.Application.DTOs.Quotation;
 using Backend_Fincore.Application.DTOs.QuotationItem;
+using Backend_Fincore.Application.DTOs.GRN;
 
 
 
@@ -55,6 +56,7 @@ public class MappingData : Profile
 
 
         CreateMap<GRNCUDTO, GRN>();
+        CreateMap<GRNCreate, GRN>();
 
         CreateMap<GRNItem, GRNItemsDTO>().ForMember(d => d.ItemName, o => o.MapFrom(s => s.POItem.ItemName))
                                           

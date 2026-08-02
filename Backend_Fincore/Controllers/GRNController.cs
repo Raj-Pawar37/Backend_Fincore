@@ -85,7 +85,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> addGrn(GRNCUDTO grn)
+        public async Task<IActionResult> addGrn(GRNCreate grn)
         {
             await gRNService.AddGrn(grn);
 

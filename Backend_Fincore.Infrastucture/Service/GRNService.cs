@@ -25,7 +25,7 @@ namespace Backend_Fincore.Infrastucture.Service
             this.current = current;
         }
 
-        public async Task AddGrn(GRNCUDTO grn)
+        public async Task AddGrn(GRNCreate grn)
         {
             var purchsedOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId && x.IsActive == 1);
 
@@ -201,7 +201,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             }
 
-            var result = await query.OrderByDescending(x => x.CreatedAt)
+            var result = await query.OrderBy(x => x.GRNId)
                                     .Skip((pagination.PageNumber - 1) * pagination.PageSize)
                                     .Take(pagination.PageSize)
                                     .ToListAsync();
@@ -357,15 +357,15 @@ namespace Backend_Fincore.Infrastucture.Service
             // Validate quantity
             foreach (var grnItem in grn.GRNItems)
             {
-                var poItem = await db.PurchaseOrderItem
-                .FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId);
+                var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId);
 
-                decimal alreadyReceived = await db.GRNItem
-                .Where(x => x.POItemId == grnItem.POItemId
-                    && x.IsActive == 1
-                    && x.GRNId != grn.GRNId
-                    && x.GRN.Status == "Received")
-                .SumAsync(x => x.Qty);
+
+                decimal alreadyReceived = await db.GRNItem.Where(x => x.POItemId == grnItem.POItemId
+                                                                 && x.IsActive == 1
+                                                                 && x.GRNId != grn.GRNId
+                                                                 && x.GRN.Status == "Received")
+                                                                .SumAsync(x => x.Qty);
+
 
                 decimal totalReceived = alreadyReceived + grnItem.Qty;
 
@@ -378,8 +378,8 @@ namespace Backend_Fincore.Infrastucture.Service
           
             foreach (var grnItem in grn.GRNItems)
             {
-                var poItem = await db.PurchaseOrderItem
-                .FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId);
+                var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId);
+
 
                 decimal alreadyReceived = await db.GRNItem
                                                           .Where(x => x.POItemId == grnItem.POItemId

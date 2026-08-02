@@ -22,6 +22,8 @@ namespace Backend_Fincore.Application.Interface
 
         Task UpdatePOStatus(int purchaseOrderId, PurchasedOrderFilterDTO dto);
 
+        Task<List<PurchaseOrderDTO>> FetchIssuedPO();
+
       
 
 
