@@ -6,13 +6,13 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IPurchaseOrderItemService
     {
-        //Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination);
+        Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination);
 
         Task<int> GetPurchasedItemCount();
 
         Task<PurchaseOrderItemDTO> getItemById(int id);
 
-        Task AddPurchasedItem(PurchaseOrderItemCUDTO PT);
+        //Task AddPurchasedItem(PurchaseOrderItemCUDTO PT);
 
         Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO dto, int id);
 

@@ -20,6 +20,6 @@ namespace Backend_Fincore.Application.Interface
 
         Task UpdateGRNStatus(int id, GrnStatusDTO dto);
 
-        //Task<List<GRNDTO>> FetchDraftGRN();
+        Task<List<GRNDTO>> FetchDraftGRN();
     }
 }

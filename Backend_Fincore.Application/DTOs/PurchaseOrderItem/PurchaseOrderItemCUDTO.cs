@@ -3,11 +3,7 @@
     public class PurchaseOrderItemCUDTO
     {
 
-        public int POItemId { get; set; }
-
-        public int PurchaseOrderId { get; set; }
-
-        public int QuotationItemId { get; set; }
+       
 
         public string ItemName { get; set; }
 

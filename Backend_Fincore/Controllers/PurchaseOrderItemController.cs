@@ -27,37 +27,37 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        //[HttpGet("GetAll")]
-        //public async Task<IActionResult> GetAllPurchasedItemByRole([FromQuery]PaginationDTO pagination)
-        //{
-        //    var data = await purchaseOrderItemService.getAllPurchasedItem(pagination);
+        [HttpGet("GetAll")]
+        public async Task<IActionResult> GetAllPurchasedItemByRole([FromQuery] PaginationDTO pagination)
+        {
+            var data = await purchaseOrderItemService.getAllPurchasedItem(pagination);
 
-        //    var totalRecords = await purchaseOrderItemService.GetPurchasedItemCount();
-        //    var totalPages = (int)Math.Ceiling(
-        //            totalRecords /
-        //            (double)pagination.PageSize);
+            var totalRecords = await purchaseOrderItemService.GetPurchasedItemCount();
+            var totalPages = (int)Math.Ceiling(
+                    totalRecords /
+                    (double)pagination.PageSize);
 
-           
-            
-        //        return Ok(new ApiResponse<List<PurchaseOrderItemDTO>>
-        //        {
-        //            Success = true,
-        //            Message = data == null ? "PO Item not found." : "PO Item fetched successfully.",
-        //            Data = data,
-        //            Error = null,
-        //            TotalNumberRecord = totalRecords,
-        //            Metadata = new
-        //            {
-        //                pagination.PageNumber,
-        //                pagination.PageSize,
-        //                pagination.Search,
-        //                TotalPages = totalPages,
-        //                RecordsOnCurrentPage = data.Count
-        //            }
-        //        });
-            
-            
-        //}
+
+
+            return Ok(new ApiResponse<List<PurchaseOrderItemDTO>>
+            {
+                Success = true,
+                Message = data == null ? "PO Item not found." : "PO Item fetched successfully.",
+                Data = data,
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
+            });
+
+
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> getItemByid(int id)
@@ -73,20 +73,6 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        [HttpPost]
-        public async Task<IActionResult> addPurchasedItem(PurchaseOrderItemCUDTO PI)
-        {
-
-            await purchaseOrderItemService.AddPurchasedItem(PI);
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Purchased Item add successfully."
-               
-            });
-
-        }
 
 
         [HttpPut("{id}")]
@@ -151,36 +137,10 @@ namespace Backend_Fincore.Controllers
             }
         }
 
-               
-       
 
 
-        //[HttpGet]
-        //[Route("SearchPOItem/{grnId}")]
-        //public async Task<IActionResult> SearchPOItem(int grnId)
-        //{
-        //    var result = await purchaseOrderItemService.FetchPOIBygrnId(grnId);
 
-        //    if (result != null)
-        //    {
-        //        return Ok(new ApiResponse<List<POItemsSearchDTO>>
-        //        {
-        //            Success = true,
-        //            Message = "Purchase Order Items fetched successfully.",
-        //            Data = result,
-        //            TotalNumberRecord = result.Count
-        //        });
-        //    }
-        //    else
-        //    {
-        //        return Ok(new ApiResponse<object>
-        //        {
-        //            Success = true,
-        //            Message = "Purchase Order Items not found.",
 
-        //        });
-        //    }
-        //}
 
     }
 }

@@ -27,7 +27,7 @@ namespace Backend_Fincore.Controllers
             this.purchaseOrderService = purchaseOrderService;
         }
 
-        // Get All Purchase Orders
+      
         [HttpGet("GetAllPurchaseOrders")]
         public async Task<IActionResult> GetAllPurchaseOrders([FromQuery] PaginationDTO pagination)
         {
@@ -35,10 +35,10 @@ namespace Backend_Fincore.Controllers
 
             var totalRecords = await purchaseOrderService.GetPurchasedOrderCount();
             var totalPages = (int)Math.Ceiling(
-                    totalRecords /
-                    (double)pagination.PageSize);
+                                                totalRecords /
+                                                (double)pagination.PageSize);
 
-            if (data != null)
+            if (data.Any())
             {
 
                 return Ok(new ApiResponse<List<PurchaseOrderDTO>>
@@ -70,7 +70,7 @@ namespace Backend_Fincore.Controllers
             }
         }
 
-        // Get Purchase Order By Id
+       
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPurchaseOrderById(int id)
         {
@@ -87,7 +87,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Create Purchase Order
+       
         [HttpPost]
         public async Task<IActionResult> AddPurchaseOrder(PurchaseOrderCUDTO dto)
         {
@@ -109,7 +109,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Update Purchase Order
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePurchaseOrder(int id, PurchaseOrderCUDTO dto)
         {
@@ -123,8 +123,8 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Update Purchase Order Status
-        [HttpPut("{id}/Status")]
+      
+        [HttpPut("Status/{id}")]
         public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderStatusDTO dto)
         {
             await purchaseOrderService.UpdatePOStatus(id, dto);
@@ -137,7 +137,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Delete Purchase Order
+        
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePurchaseOrder(int id)
         {

@@ -87,13 +87,13 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("GRN not found.");
             }
 
-           
+
             if (grn.Status == "Received")
             {
                 throw new Exception("Received GRN cannot be deleted.");
             }
 
-           
+
             foreach (var item in grn.GRNItems)
             {
                 item.IsActive = 0;
@@ -101,7 +101,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 item.ModifiedAt = DateTime.Now;
             }
 
-           
+
             grn.IsActive = 0;
             grn.ModifiedBy = current.UserId;
             grn.ModifiedAt = DateTime.Now;
@@ -129,7 +129,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Role not found.");
             }
 
-            IQueryable<GRN> query = db.GRN.Include(x => x.PurchaseOrder).ThenInclude(x => x.Vendor).Where(x => x.IsActive == 1);
+            IQueryable<GRN> query = db.GRN.Include(x => x.ReceivedByUser).Include(x => x.PurchaseOrder).ThenInclude(x => x.Vendor).Where(x => x.IsActive == 1);
 
             switch (user.Role.RoleName)
             {
@@ -142,8 +142,8 @@ namespace Backend_Fincore.Infrastucture.Service
                     break;
 
                 case "Vendor":
-                                  query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
-                                  break;
+                    query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
+                    break;
 
                 case "User":
                     throw new Exception("You are not authorized.");
@@ -152,7 +152,7 @@ namespace Backend_Fincore.Infrastucture.Service
                     throw new Exception("Invalid role.");
             }
 
-          
+
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
@@ -196,14 +196,14 @@ namespace Backend_Fincore.Infrastucture.Service
                 case "Warehouse Manager":
                 case "Asset Manager":
                 case "CFO":
-                    
+
                     break;
 
                 case "Vendor":
                     query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
                     break;
 
-               
+
                 case "User":
                     throw new Exception("You are not authorized.");
 
@@ -235,7 +235,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Received GRN cannot be edited.");
             }
 
-           
+
             var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == grn.PurchaseOrderId && x.IsActive == 1);
 
 
@@ -249,7 +249,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Only Issued Purchase Orders can be linked to GRN.");
             }
 
-          
+
             bool exists = await db.GRN.AnyAsync(x => x.GRNNumber == grn.GRNNumber && x.GRNId != id && x.IsActive == 1);
 
             if (exists)
@@ -269,7 +269,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Received By user not found.");
             }
 
-           
+
             if (data.GRNItems.Any() && data.PurchaseOrderId != grn.PurchaseOrderId)
             {
                 throw new Exception("Purchase Order cannot be changed because GRN Items already exist.");
@@ -311,7 +311,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Please add at least one GRN Item.");
             }
 
-           
+
             foreach (var grnItem in grn.GRNItems)
             {
                 var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId && x.IsActive == 1);
@@ -339,7 +339,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 }
             }
 
-            
+
             foreach (var grnItem in grn.GRNItems)
             {
                 var poItem = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == grnItem.POItemId && x.IsActive == 1);
@@ -388,12 +388,28 @@ namespace Backend_Fincore.Infrastucture.Service
             purchaseOrder.ModifiedBy = current.UserId;
             purchaseOrder.ModifiedAt = DateTime.Now;
 
-        
+
             grn.Status = dto.Status;
             grn.ModifiedBy = current.UserId;
             grn.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
         }
+
+        public async Task<List<GRNDTO>> FetchDraftGRN()
+        {
+            return await db.GRN.Where(x => x.IsActive == 1 && x.Status == "Draft").Select(x => new GRNDTO
+                                                                                  {
+                                                                                      GRNId = x.GRNId,
+                                                                                      GRNNumber = x.GRNNumber,
+                                                                                      PurchaseOrderId = x.PurchaseOrderId,
+                                                                                      PONumber = x.PurchaseOrder.PONumber
+                                                                                  }).ToListAsync();
+
+
+
+
+        }
     }
+    
 }
