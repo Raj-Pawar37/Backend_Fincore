@@ -27,8 +27,8 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        [HttpPost("GetAll")]
-        public async Task<IActionResult> GetAllPurchasedItemByRole([FromQuery]PaginationDTO pagination)
+        [HttpGet("GetAll")]
+        public async Task<IActionResult> GetAllPurchasedItemByRole([FromQuery] PaginationDTO pagination)
         {
             var data = await purchaseOrderItemService.getAllPurchasedItem(pagination);
 
@@ -37,26 +37,26 @@ namespace Backend_Fincore.Controllers
                     totalRecords /
                     (double)pagination.PageSize);
 
-           
-            
-                return Ok(new ApiResponse<List<PurchaseOrderItemDTO>>
+
+
+            return Ok(new ApiResponse<List<PurchaseOrderItemDTO>>
+            {
+                Success = true,
+                Message = data == null ? "PO Item not found." : "PO Item fetched successfully.",
+                Data = data,
+                Error = null,
+                TotalNumberRecord = totalRecords,
+                Metadata = new
                 {
-                    Success = true,
-                    Message = data == null ? "PO Item not found." : "PO Item fetched successfully.",
-                    Data = data,
-                    Error = null,
-                    TotalNumberRecord = totalRecords,
-                    Metadata = new
-                    {
-                        pagination.PageNumber,
-                        pagination.PageSize,
-                        pagination.Search,
-                        TotalPages = totalPages,
-                        RecordsOnCurrentPage = data.Count
-                    }
-                });
-            
-            
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
+            });
+
+
         }
 
         [HttpGet("{id}")]
@@ -73,20 +73,6 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        [HttpPost]
-        public async Task<IActionResult> addPurchasedItem(PurchaseOrderItemCUDTO PI)
-        {
-
-            await purchaseOrderItemService.AddPurchasedItem(PI);
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Purchased Item add successfully."
-               
-            });
-
-        }
 
 
         [HttpPut("{id}")]
@@ -150,6 +136,11 @@ namespace Backend_Fincore.Controllers
                 });
             }
         }
+
+
+
+
+
 
     }
 }

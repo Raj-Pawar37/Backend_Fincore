@@ -31,6 +31,15 @@ using Backend_Fincore.DTOs.PurchaseOrder;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Models;
 using Backend_Fincore.Models.Backend_Fincore.Models;
+using Backend_Fincore.Domain.Models;
+using Backend_Fincore.Application.DTOs.DocumentNumber;
+using Backend_Fincore.Application.DTOs.Payment;
+using Backend_Fincore.Application.DTOs.Customer;
+using Backend_Fincore.Application.DTOs.Vendor;
+using Backend_Fincore.Application.DTOs.Company;
+using Backend_Fincore.Application.DTOs.Quotation;
+using Backend_Fincore.Application.DTOs.QuotationItem;
+using Backend_Fincore.Application.DTOs.GRN;
 
 
 
@@ -42,7 +51,8 @@ public class MappingData : Profile
     public MappingData()
     {
         //PurchaseOrder
-        CreateMap<PurchaseOrder, PurchaseOrderDTO>();
+        CreateMap<PurchaseOrder, PurchaseOrderDTO>().ForMember(x => x.VendorName, x => x.MapFrom(x => x.Vendor.VendorName))
+                                                    .ForMember(x => x.QuotationNumber, x => x.MapFrom(x => x.Quotation.QuotationNumber));
         CreateMap<PurchaseOrderCUDTO, PurchaseOrder>();
 
         //PurchaseOrderItem
@@ -55,6 +65,7 @@ public class MappingData : Profile
 
 
         CreateMap<GRNCUDTO, GRN>();
+        CreateMap<GRNCreate, GRN>();
 
         CreateMap<GRNItem, GRNItemsDTO>().ForMember(d => d.ItemName, o => o.MapFrom(s => s.POItem.ItemName))
                                           

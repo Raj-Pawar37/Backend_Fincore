@@ -27,10 +27,10 @@ namespace Backend_Fincore.Controllers
         }
 
 
-        [HttpPost("GetAllByStatus")]
-        public async Task<IActionResult> GetAllGRNs([FromBody]GrnStatusDTO dto,[FromQuery]PaginationDTO pagination)
+        [HttpGet("GetAllGRN")]
+        public async Task<IActionResult> GetAllGRNs([FromQuery]PaginationDTO pagination)
         {
-            var data = await gRNService.GetAllGrns( dto,pagination);
+            var data = await gRNService.GetAllGrns( pagination);
 
             var totalCounts = await gRNService.GetAllGRNCount();
             var totalpages = (int)Math.Ceiling(totalCounts / (double)pagination.PageSize);
@@ -93,7 +93,7 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> addGrn(GRNCUDTO grn)
+        public async Task<IActionResult> addGrn(GRNCreate grn)
         {
             await gRNService.AddGrn(grn);
 
@@ -164,6 +164,22 @@ namespace Backend_Fincore.Controllers
                 },
                 TotalNumberRecord = 1
             });
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> FetchDraftGRN()
+        {
+            var data = await gRNService.FetchDraftGRN();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Draft GRN Fetch Successfully",
+                Data = data,
+                Error = null
+            });
+
         }
 
 

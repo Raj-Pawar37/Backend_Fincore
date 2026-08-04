@@ -27,18 +27,18 @@ namespace Backend_Fincore.Controllers
             this.purchaseOrderService = purchaseOrderService;
         }
 
-        // Get All Purchase Orders
-        [HttpPost("GetAllPurchaseOrders")]
-        public async Task<IActionResult> GetAllPurchaseOrders([FromBody]PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
+      
+        [HttpGet("GetAllPurchaseOrders")]
+        public async Task<IActionResult> GetAllPurchaseOrders([FromQuery] PaginationDTO pagination)
         {
-            var data = await purchaseOrderService.GetAllPurchasedOrder(pof,pagination);
+            var data = await purchaseOrderService.GetAllPurchasedOrder(pagination);
 
             var totalRecords = await purchaseOrderService.GetPurchasedOrderCount();
             var totalPages = (int)Math.Ceiling(
-                    totalRecords /
-                    (double)pagination.PageSize);
+                                                totalRecords /
+                                                (double)pagination.PageSize);
 
-            if (data != null)
+            if (data.Any())
             {
 
                 return Ok(new ApiResponse<List<PurchaseOrderDTO>>
@@ -70,7 +70,7 @@ namespace Backend_Fincore.Controllers
             }
         }
 
-        // Get Purchase Order By Id
+       
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPurchaseOrderById(int id)
         {
@@ -87,7 +87,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Create Purchase Order
+       
         [HttpPost]
         public async Task<IActionResult> AddPurchaseOrder(PurchaseOrderCUDTO dto)
         {
@@ -109,7 +109,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Update Purchase Order
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePurchaseOrder(int id, PurchaseOrderCUDTO dto)
         {
@@ -123,9 +123,9 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Update Purchase Order Status
+      
         [HttpPut("Status/{id}")]
-        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderFilterDTO dto)
+        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderStatusDTO dto)
         {
             await purchaseOrderService.UpdatePOStatus(id, dto);
 
@@ -137,7 +137,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Delete Purchase Order
+        
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePurchaseOrder(int id)
         {
@@ -151,5 +151,20 @@ namespace Backend_Fincore.Controllers
             });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> FetchIssued()
+        {
+            var data = await purchaseOrderService.FetchIssuedPO();
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Purchase Orders fetched successfully.",
+                Data = data,
+                Error = null
+
+            });
+
+        }
     }
 }

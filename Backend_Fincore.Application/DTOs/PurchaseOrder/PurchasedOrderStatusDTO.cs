@@ -6,12 +6,8 @@ using System.Threading.Tasks;
 
 namespace Backend_Fincore.Application.DTOs.PurchaseOrder
 {
-    public class PurchasedOrderFilterDTO
+    public class PurchasedOrderStatusDTO
     {
-       
-
         public string Status { get; set; }
-
-
     }
 }
