@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Backend_Fincore.Application.DTOs;
-
+using Backend_Fincore.Application.DTOs.PurchaseOrderItem;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.DTOs.PurchaseOrderItem;
@@ -29,128 +29,241 @@ namespace Backend_Fincore.Infrastucture.Service
 
         private async Task UpdatePurchaseOrderTotal(int purchaseOrderId)
         {
-            var total = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchaseOrderId)
-                       .SumAsync(x => (x.UnitPrice * x.Qty)
-                       + ((x.UnitPrice * x.Qty) * (x.Tax ?? 0) / 100)
-                       - ((x.UnitPrice * x.Qty) * (x.Discount ?? 0) / 100));
+            var total = await db.PurchaseOrderItem.Where(x => x.PurchaseOrderId == purchaseOrderId && x.IsActive == 1)
+                              .SumAsync(x => (x.UnitPrice * x.Qty) + (x.Tax ?? 0) - (x.Discount ?? 0));
 
 
-            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId && x.IsActive == 1);
 
-
-            if (purchaseOrder != null)
+            if (purchaseOrder == null)
             {
-                purchaseOrder.TotalAmount = total;
-
-                purchaseOrder.ModifiedBy = current.UserId;
-                
-                purchaseOrder.ModifiedAt = DateTime.Now;
-
-                await db.SaveChangesAsync();
+                throw new Exception("Purchase Order not found.");
             }
+
+            purchaseOrder.TotalAmount = total;
+            purchaseOrder.ModifiedBy = current.UserId;
+            purchaseOrder.ModifiedAt = DateTime.Now;
+
+            await db.SaveChangesAsync();
+            
         }
 
         public async Task<int> GetPurchasedItemCount()
         {
-            return await db.PurchaseOrderItem.CountAsync();
+            return await db.PurchaseOrderItem.CountAsync( x => x.IsActive == 1);
         }
-
         public async Task<List<PurchaseOrderItemDTO>> getAllPurchasedItem(PaginationDTO pagination)
         {
+            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
 
-            var user = await db.User.Include(x=>x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId);
-
-            if(user == null)
+            if (user == null)
             {
-                throw new Exception("user not found");
+                throw new Exception("User not found.");
             }
 
-            if(user.Role == null)
+            if (user.Role == null)
             {
-                throw new Exception("Role not exists");
+                throw new Exception("Role not found.");
             }
 
-            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Include(x => x.PurchaseOrder);
+            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Include(x => x.PurchaseOrder).Where(x => x.IsActive == 1);
 
 
-
-            if(user.Role.RoleName == "User")
+            switch (user.Role.RoleName)
             {
-                throw new Exception("You are not authorized.");
-            }
+                case "Administrator":
+                case "Procurement Manager":
+                case "Warehouse Manager":
+                case "Asset Manager":
+                case "CFO":
+                   
+                    break;
 
-            //Manager 
-            else if(user.Role.RoleName == "Manager" || user.Role.RoleName == "HOD" || user.Role.RoleName == "Senior Manager")
-            {
+                case "Vendor":
+                                   query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
+                                   break;
 
-                var employee = await db.Employee.FirstOrDefaultAsync(x => x.EmployeeId == user.MasterId);
+                case "User":
+                                   throw new Exception("You are not authorized.");
 
-                if (employee == null)
-                {
-                    throw new Exception("Employee not found");
-                }
-
-                var empIds = await db.Employee.Where(x => x.DepartmentId == employee.DepartmentId)
-                                   .Select(x => x.EmployeeId).ToListAsync();
-
-                var userIds = await db.User.Where(x => x.MasterType == "Employee" && empIds
-                                    .Contains(x.MasterId)).Select(x => x.UserId).ToListAsync();
-
-                query = query.Where(x => userIds.Contains(x.PurchaseOrder.CreatedBy));
-
-            }
-
-            else if (user.Role.RoleName == "Vendor")
-            {
-               
-                query = query.Where(x => x.PurchaseOrder.VendorId == user.MasterId);
-            }
-
-          
-            else if (user.Role.RoleName == "CFO")
-            {
-           
-            }
-            else
-            {
-                throw new Exception("Invalid role.");
+                default:
+                                    throw new Exception("Invalid role.");
             }
 
             if (!string.IsNullOrWhiteSpace(pagination.Search))
             {
-                query = query.Where(x =>
-                    x.ItemName.Contains(pagination.Search) ||
-                    x.Status.Contains(pagination.Search));
+                query = query.Where(x => x.ItemName.Contains(pagination.Search) ||
+                                         x.Status.Contains(pagination.Search) ||
+                                         x.PurchaseOrder.PONumber.Contains(pagination.Search));
+
             }
 
-            // Pagination
+            var result = await query.OrderByDescending(x => x.CreatedAt)
+                                    .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                                    .Take(pagination.PageSize)
+                                    .ToListAsync();
 
-            var result = await query
-                .OrderByDescending(x => x.CreatedAt)
-                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
-                .Take(pagination.PageSize)
-                .ToListAsync();
 
             return mapper.Map<List<PurchaseOrderItemDTO>>(result);
-
         }
 
         public async Task<PurchaseOrderItemDTO> getItemById(int id)
         {
-            var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder)
-                            .FirstOrDefaultAsync(x => x.PurchaseOrderId == id);
+            var user = await db.User.Include(x => x.Role).FirstOrDefaultAsync(x => x.UserId == current.UserId && x.IsActive == 1);
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            if (user.Role == null)
+            {
+                throw new Exception("Role not found.");
+            }
+
+            var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder).FirstOrDefaultAsync(x => x.POItemId == id && x.IsActive == 1);
 
             if (item == null)
             {
                 throw new Exception("Purchase Order Item not found.");
             }
 
+            switch (user.Role.RoleName)
+            {
+                case "Administrator":
+                case "Procurement Manager":
+                case "Warehouse Manager":
+                case "Asset Manager":
+                case "CFO":
+                    
+                    break;
+
+                case "Vendor":
+
+                    if (item.PurchaseOrder.VendorId != user.MasterId)
+                    {
+                        throw new Exception("You are not authorized to view this Purchase Order Item.");
+                    }
+
+                    break;
+
+                case "User":
+                    throw new Exception("You are not authorized.");
+
+                default:
+                    throw new Exception("Invalid role.");
+            }
+
             return mapper.Map<PurchaseOrderItemDTO>(item);
         }
 
-        public async Task AddPurchasedItem(PurchaseOrderItemCUDTO POI)
+     
+
+        public async Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO POI, int id)
         {
-            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == POI.PurchaseOrderId);
+
+            var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder).FirstOrDefaultAsync(x => x.POItemId == id && x.IsActive == 1);
+
+            if (item == null)
+            {
+                throw new Exception("Purchase Order Item not found.");
+            }
+
+            if (item.PurchaseOrder == null || item.PurchaseOrder.IsActive != 1)
+            {
+                throw new Exception("Purchase Order not found.");
+            }
+
+            
+            if (item.PurchaseOrder.Status != "Draft")
+            {
+                throw new Exception("Only Draft Purchase Orders can be edited.");
+            }
+
+            if (item.Status != "Pending")
+            {
+                throw new Exception("Only Pending Purchase Order Items can be edited.");
+            }
+
+
+            if (item.Status == "Received" )
+            {
+                throw new Exception("Received Purchase Order Item cannot be edited.");
+            }
+
+
+          
+            bool itemExists = await db.PurchaseOrderItem.AnyAsync(x => x.PurchaseOrderId == item.PurchaseOrderId &&
+                                                                       x.ItemName == POI.ItemName &&
+                                                                       x.POItemId != id &&
+                                                                       x.IsActive == 1);
+
+
+            if (itemExists)
+            {
+                throw new Exception("Purchase Order Item already exists.");
+            }
+
+            
+            item.ItemName = POI.ItemName;
+            item.UnitPrice = POI.UnitPrice;
+            item.Qty = POI.Qty;
+            item.Tax = POI.Tax;
+            item.Discount = POI.Discount;
+
+            item.ModifiedBy = current.UserId;
+            item.ModifiedAt = DateTime.Now;
+
+            await db.SaveChangesAsync();
+
+           
+            await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
+        }
+
+        public async Task DeleteItem(int id)
+        {
+            var item = await db.PurchaseOrderItem.Include(x => x.PurchaseOrder).FirstOrDefaultAsync(x => x.POItemId == id && x.IsActive == 1);
+
+            if (item == null)
+            {
+                throw new Exception("Purchase Order Item not found.");
+            }
+
+            if (item.PurchaseOrder == null || item.PurchaseOrder.IsActive != 1)
+            {
+                throw new Exception("Purchase Order not found.");
+            }
+
+          
+            if (item.PurchaseOrder.Status != "Draft")
+            {
+                throw new Exception("Only Draft Purchase Orders can be modified.");
+            }
+
+            if (item.Status != "Pending")
+            {
+                throw new Exception("Only Pending Purchase Order Items can be deleted.");
+            }
+
+            if (item.Status == "Received")
+            {
+                throw new Exception("Received Purchase Order Item cannot be deleted.");
+            }
+
+            item.IsActive = 0;
+            item.ModifiedBy = current.UserId;
+            item.ModifiedAt = DateTime.Now;
+
+            await db.SaveChangesAsync();
+
+            
+            await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
+        }
+
+        public async Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto)
+        {
+
+            var purchaseOrder = await db.PurchaseOrder.FirstOrDefaultAsync(x => x.PurchaseOrderId == dto.PurchaseOrderId && x.IsActive == 1);
 
 
             if (purchaseOrder == null)
@@ -158,85 +271,39 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Purchase Order not found.");
             }
 
-
-            var purchaseOrderItemExist = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.QuotationItemId == POI.QuotationItemId);
-
-            if(purchaseOrderItemExist != null)
+            if (purchaseOrder.Status != "Issued")
             {
-                throw new Exception("Purchase order item for this quotation item already exist");
+                throw new Exception("GRN can only be created for Issued Purchase Orders.");
             }
 
-            
-            var item = mapper.Map<PurchaseOrderItem>(POI);
+            IQueryable<PurchaseOrderItem> query = db.PurchaseOrderItem.Where(x =>
+                                                    x.PurchaseOrderId == dto.PurchaseOrderId &&
+                                                    x.IsActive == 1 &&
+                                                    (x.Status == "Pending" || x.Status == "Partially Received"));
 
-            item.CreatedBy = current.UserId;
 
-            await db.PurchaseOrderItem.AddAsync(item);
-
-            await db.SaveChangesAsync();
-
-            // Update Purchase Order Total
-
-            await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
-        }
-
-        public async Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO POI, int id)
-        {
-            var item = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == id);
-
-            if( item == null)
+           
+            if (!string.IsNullOrWhiteSpace(dto.Status))
             {
-                throw new Exception("Purchase Order Item not found.");
+                query = query.Where(x => x.Status == dto.Status);
             }
 
-            bool itemExists = await db.PurchaseOrderItem.AnyAsync(x => x.PurchaseOrderId == item.PurchaseOrderId &&
-                                                                       x.ItemName == POI.ItemName &&
-                                                                       x.POItemId != id);
-
-            if (item.PurchaseOrder.Status != "Draft")
+           
+            if (!string.IsNullOrWhiteSpace(dto.SearchText))
             {
-                throw new Exception("Only Draft Purchase Orders can be edited.");
+                query = query.Where(x => x.ItemName.Contains(dto.SearchText));
             }
 
-            if (itemExists)
-            {
-                throw new Exception("Purchase Order Item already exists.");
-            }
+            var result = await query.OrderBy(x => x.ItemName).Take(20).Select(x => new POItemsSearchDTO
+                                                                              {
+                                                                                  POItemId = x.POItemId,
+                                                                                  ItemName = x.ItemName,
+                                                                                  Qty = x.Qty,
+                                                                                  UnitPrice = x.UnitPrice,
+                                                                                  Status = x.Status
+                                                                              }).ToListAsync();
 
-            if (item.Status == "Received")
-            {
-                throw new Exception("Received Purchase Order Item cannot be edited.");
-            }
-
-            mapper.Map(POI, item);
-
-
-            item.ModifiedAt = DateTime.Now;
-            item.ModifiedBy = current.UserId;
-            
-            await db.SaveChangesAsync();
-
-            // Update Purchase Order Total
-            await UpdatePurchaseOrderTotal(item.PurchaseOrderId);
-        }
-
-        public async Task DeleteItem(int id)
-        {
-            var data = await db.PurchaseOrderItem.FirstOrDefaultAsync(x => x.POItemId == id);
-
-
-            if (data == null)
-            {
-                throw new Exception("Purchase Order Item not found.");
-            }
-
-            int purchaseOrderId = data.PurchaseOrderId;
-
-            db.PurchaseOrderItem.Remove(data);
-
-            await db.SaveChangesAsync();
-
-            await UpdatePurchaseOrderTotal(purchaseOrderId);
+            return result;
 
         }
     }

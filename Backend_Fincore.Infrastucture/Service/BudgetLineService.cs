@@ -19,21 +19,200 @@ namespace Backend_Fincore.Infrastucture.Service
             this.mapper = mapper;
             this.currentUser = currentUser;
         }
+        //public async Task<List<BudgetLineDropdownDTO>> GetBudgetLineDropdown(string? searchText,int? departmentId, string? costCenter)
+        //{
+        //    var query = db.BudgetLine
+        //        .Include(x => x.Budget)
+        //            .ThenInclude(x => x.Department)
+        //        .Include(x => x.BudgetCategory)
+        //        .Where(x =>
+        //            x.IsActive == 1 &&
+        //            x.Budget.IsActive == 1 &&
+        //             x.BudgetCategory.IsActive == 1 &&
+        //            x.Budget.ApprovedBy != null &&
+        //            x.Budget.ApprovedDate != null)
+        //        .AsQueryable();
+
+        //    if (departmentId.HasValue)
+        //    {
+        //        query = query.Where(x =>x.Budget.DepartmentId == departmentId.Value);
+        //    }
+        //    if (!string.IsNullOrWhiteSpace(costCenter))
+        //    {
+        //        costCenter = costCenter.Trim().ToUpper();
+
+        //        query = query.Where(x =>
+        //            x.CostCenter.ToUpper() == costCenter);
+        //    }
+        //    if (!string.IsNullOrWhiteSpace(searchText))
+        //    {
+        //        searchText = searchText.Trim().ToLower();
+
+        //        query = query.Where(x =>
+        //            x.CostCenter.ToLower().Contains(searchText) ||
+        //            x.BudgetCategory.CategoryName.ToLower().Contains(searchText) ||
+        //            x.BudgetCategory.CategoryCode.ToLower().Contains(searchText));
+        //    }
+
+        //    var budgetLines = await query
+        //        .OrderBy(x => x.CostCenter)
+        //        .Take(20)
+        //        .ToListAsync();
+
+        //    List<BudgetLineDropdownDTO> data = new();
+
+        //    foreach (var item in budgetLines)
+        //    {
+        //        decimal approvedAmount = await db.CapexRequest
+        //            .Where(x =>
+        //                x.BudgetLineId == item.BudgetLineId &&
+        //                x.Status == "Approved" &&
+        //                x.IsActive == 1)
+        //            .SumAsync(x => (decimal?)x.Amount) ?? 0;
+
+        //        var dto = new BudgetLineDropdownDTO
+        //        {
+        //            BudgetLineId = item.BudgetLineId,
+
+        //            DisplayName =
+        //                item.CostCenter + " - " +
+        //                item.BudgetCategory.CategoryName,
+
+        //            AllocatedAmount = item.AllocatedAmount,
+
+        //            AvailableAmount =item.AllocatedAmount - approvedAmount
+        //        };
+        //        data.Add(dto);
+        //    }
+        //    return data;
+        //}//modify
+
+        public async Task<List<BudgetLineDropdownDTO>> GetBudgetLineDropdown(
+    string? searchText,
+    int? departmentId,
+    string? costCenter)
+        {
+            var query = db.BudgetLine
+                .Include(x => x.Budget)
+                    .ThenInclude(x => x.Department)
+                .Include(x => x.BudgetCategory)
+                .Where(x =>
+                    x.IsActive == 1 &&
+                    x.Budget.IsActive == 1 &&
+                    x.BudgetCategory.IsActive == 1 &&
+                    x.Budget.ApprovedBy != null &&
+                    x.Budget.ApprovedDate != null)
+                .AsQueryable();
+
+            if (departmentId.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Budget.DepartmentId == departmentId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(costCenter))
+            {
+                costCenter = costCenter.Trim().ToUpper();
+
+                if (costCenter != "CAPEX" &&
+                    costCenter != "OPEX")
+                {
+                    throw new Exception(
+                        "Cost center must be CAPEX or OPEX.");
+                }
+
+                query = query.Where(x =>
+                    x.CostCenter.ToUpper() == costCenter);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                searchText = searchText.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.CostCenter.ToLower().Contains(searchText) ||
+                    x.BudgetCategory.CategoryName
+                        .ToLower()
+                        .Contains(searchText) ||
+                    x.BudgetCategory.CategoryCode
+                        .ToLower()
+                        .Contains(searchText));
+            }
+
+            var budgetLines = await query
+                .OrderBy(x => x.CostCenter)
+                .ThenBy(x => x.BudgetCategory.CategoryName)
+                .Take(20)
+                .ToListAsync();
+
+            List<BudgetLineDropdownDTO> data = new();
+
+            foreach (var item in budgetLines)
+            {
+                decimal usedAmount = 0;
+
+                if (item.CostCenter.Equals(
+                    "CAPEX",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    usedAmount = await db.CapexRequest
+                        .Where(x =>
+                            x.BudgetLineId == item.BudgetLineId &&
+                            x.Status == "Approved" &&
+                            x.IsActive == 1)
+                        .SumAsync(x => (decimal?)x.Amount) ?? 0;
+                }
+                else if (item.CostCenter.Equals(
+                    "OPEX",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    usedAmount = await db.OpexRequest
+                        .Where(x =>
+                            x.BudgetLineId == item.BudgetLineId &&
+                            x.Status == "Approved" &&
+                            x.IsActive == 1)
+                        .SumAsync(x => (decimal?)x.Amount) ?? 0;
+                }
+
+                data.Add(new BudgetLineDropdownDTO
+                {
+                    BudgetLineId = item.BudgetLineId,
+
+                    DisplayName =
+                        item.CostCenter + " - " +
+                        item.BudgetCategory.CategoryName,
+
+                    AllocatedAmount = item.AllocatedAmount,
+
+                    AvailableAmount =
+                        item.AllocatedAmount - usedAmount
+                });
+            }
+
+            return data;
+        }
 
         public async Task<BudgetLineReadDTO> AddBudgetLine(
             BudgetLineWriteDTO dto)
         {
-            var budget = await db.Budget
-                .FirstOrDefaultAsync(x => x.BudgetId == dto.BudgetId);
+            var budget = await db.Budget.FirstOrDefaultAsync(x =>
+                            x.BudgetId == dto.BudgetId &&
+                            x.IsActive == 1);
 
             if (budget == null)
             {
                 throw new Exception("Budget not found.");
             }
 
-            bool categoryExists = await db.BudgetCategory
-                .AnyAsync(x =>
-                    x.BudgetCategoryId == dto.BudgetCategoryId);
+            if (budget.ApprovedBy == null || budget.ApprovedDate == null)
+            {
+                throw new Exception(
+                    "Budget must be verified before creating budget lines.");
+            }
+
+            bool categoryExists = await db.BudgetCategory.AnyAsync(x =>
+                     x.BudgetCategoryId == dto.BudgetCategoryId &&
+                     x.IsActive == 1);
 
             if (!categoryExists)
             {
@@ -48,9 +227,10 @@ namespace Backend_Fincore.Infrastucture.Service
 
             bool duplicateLine = await db.BudgetLine
                 .AnyAsync(x =>
-                    x.BudgetId == dto.BudgetId &&
-                    x.BudgetCategoryId == dto.BudgetCategoryId &&
-                    x.CostCenter == dto.CostCenter);
+                x.BudgetId == dto.BudgetId &&
+                x.BudgetCategoryId == dto.BudgetCategoryId &&
+                x.CostCenter == dto.CostCenter &&
+                x.IsActive == 1);
 
             if (duplicateLine)
             {
@@ -59,21 +239,21 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             decimal alreadyAllocated = await db.BudgetLine
-                .Where(x => x.BudgetId == dto.BudgetId)
+                .Where(x =>
+                x.BudgetId == dto.BudgetId &&
+                x.IsActive == 1)
                 .SumAsync(x => x.AllocatedAmount);
 
-            decimal newTotalAllocation =
-                alreadyAllocated + dto.AllocatedAmount;
+            decimal newTotalAllocation = alreadyAllocated + dto.AllocatedAmount;
 
             if (newTotalAllocation > budget.TotalBudget)
             {
-                throw new Exception(
-                    "Allocated amount exceeds the total budget.");
+                throw new Exception("Allocated amount exceeds the total budget.");
             }
 
             var data = mapper.Map<BudgetLine>(dto);
-           // int userId = 1;
-
+            // int userId = 1;
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;
             data.CreatedAt = DateTime.Now;
 
@@ -94,27 +274,25 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<bool> DeleteBudgetLine(int id)
         {
-            var data = await db.BudgetLine
-                .FirstOrDefaultAsync(x => x.BudgetLineId == id);
+            var data = await db.BudgetLine.FirstOrDefaultAsync(x => x.BudgetLineId == id &&x.IsActive == 1);
 
             if (data == null)
             {
                 return false;
             }
 
-            bool usedInCapex = await db.CapexRequest
-                .AnyAsync(x => x.BudgetLineId == id);
+            bool usedInCapex = await db.CapexRequest.AnyAsync(x => x.BudgetLineId == id && x.IsActive == 1);
 
-            bool usedInOpex = await db.OpexRequest
-                .AnyAsync(x => x.BudgetLineId == id);
+            bool usedInOpex = await db.OpexRequest.AnyAsync(x => x.BudgetLineId == id && x.IsActive == 1);
 
             if (usedInCapex || usedInOpex)
             {
                 throw new Exception(
                     "Budget line cannot be deleted because it is used in a CAPEX or OPEX request.");
             }
-
-            db.BudgetLine.Remove(data);
+            data.IsActive = 0;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
@@ -123,7 +301,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<BudgetLineReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var search = db.BudgetLine.AsQueryable();
+            var search = db.BudgetLine.Where(x => x.IsActive == 1).AsQueryable();
 
             if (!string.IsNullOrEmpty(pagination.Search))
             {
@@ -156,7 +334,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 .Include(x => x.Budget)
                     .ThenInclude(x => x.Department)
                 .Include(x => x.BudgetCategory)
-                .FirstOrDefaultAsync(x => x.BudgetLineId == id);
+                .FirstOrDefaultAsync(x => x.BudgetLineId == id && x.IsActive == 1);
 
             if (data == null)
             {
@@ -168,32 +346,31 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<int> GetTotalRecord()
         {
-            return await db.BudgetLine.CountAsync();
+            return await db.BudgetLine.CountAsync(x => x.IsActive == 1);
         }
 
-        public async Task<bool> UpdateBudgetLine(
-    int id,
-    BudgetLineWriteDTO dto)
+        public async Task<bool> UpdateBudgetLine(int id,BudgetLineWriteDTO dto)
         {
-            var data = await db.BudgetLine
-                .FirstOrDefaultAsync(x => x.BudgetLineId == id);
+            var data = await db.BudgetLine.FirstOrDefaultAsync(x => x.BudgetLineId == id && x.IsActive == 1);
 
             if (data == null)
             {
                 return false;
             }
-
-            var budget = await db.Budget
-                .FirstOrDefaultAsync(x => x.BudgetId == dto.BudgetId);
+            var budget = await db.Budget.FirstOrDefaultAsync(x => x.BudgetId == dto.BudgetId && x.IsActive == 1);
 
             if (budget == null)
             {
                 throw new Exception("Budget not found.");
             }
+            if (budget.ApprovedBy == null || budget.ApprovedDate == null)
+            {
+                throw new Exception(
+                    "Budget must be verified before updating budget lines.");
+            }
 
-            bool categoryExists = await db.BudgetCategory
-                .AnyAsync(x =>
-                    x.BudgetCategoryId == dto.BudgetCategoryId);
+            bool categoryExists = await db.BudgetCategory.AnyAsync(x =>
+                    x.BudgetCategoryId == dto.BudgetCategoryId && x.IsActive == 1);
 
             if (!categoryExists)
             {
@@ -211,7 +388,7 @@ namespace Backend_Fincore.Infrastucture.Service
                     x.BudgetId == dto.BudgetId &&
                     x.BudgetCategoryId == dto.BudgetCategoryId &&
                     x.CostCenter == dto.CostCenter &&
-                    x.BudgetLineId != id);
+                    x.BudgetLineId != id && x.IsActive == 1);
 
             if (duplicateLine)
             {
@@ -222,7 +399,7 @@ namespace Backend_Fincore.Infrastucture.Service
             decimal otherAllocatedAmount = await db.BudgetLine
                 .Where(x =>
                     x.BudgetId == dto.BudgetId &&
-                    x.BudgetLineId != id)
+                    x.BudgetLineId != id && x.IsActive == 1)
                 .SumAsync(x => x.AllocatedAmount);
 
             decimal newTotalAllocation =

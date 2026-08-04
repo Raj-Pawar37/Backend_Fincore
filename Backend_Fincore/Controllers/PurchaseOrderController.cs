@@ -16,47 +16,61 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [EnableRateLimiting("Fixed")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
-    public class PurchaseOrderController : ControllerBase
+    public class purchaseOrderController : ControllerBase
     {
         private readonly IPurchaseOrderService purchaseOrderService;
 
-        public PurchaseOrderController(IPurchaseOrderService purchaseOrderService)
+        public purchaseOrderController(IPurchaseOrderService purchaseOrderService)
         {
             this.purchaseOrderService = purchaseOrderService;
         }
 
-        // Get All Purchase Orders
-        [HttpPost("GetAllPurchaseOrders")]
-        public async Task<IActionResult> GetAllPurchaseOrders([FromBody]PurchasedOrderFilterDTO pof, [FromQuery] PaginationDTO pagination)
+      
+        [HttpGet("GetAllPurchaseOrders")]
+        public async Task<IActionResult> GetAllPurchaseOrders([FromQuery] PaginationDTO pagination)
         {
-            var data = await purchaseOrderService.GetAllPurchasedOrder(pof,pagination);
+            var data = await purchaseOrderService.GetAllPurchasedOrder(pagination);
 
             var totalRecords = await purchaseOrderService.GetPurchasedOrderCount();
             var totalPages = (int)Math.Ceiling(
-                    totalRecords /
-                    (double)pagination.PageSize);
+                                                totalRecords /
+                                                (double)pagination.PageSize);
 
-            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            if (data.Any())
             {
-                Success = true,
-                Message = "Purchase Orders fetched successfully.",
-                Data = data,
-                Error = null,
-                TotalNumberRecord = totalRecords,
-                Metadata = new
+
+                return Ok(new ApiResponse<List<PurchaseOrderDTO>>
                 {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalPages,
-                    RecordsOnCurrentPage = data.Count
-                }
-            });
+                    Success = true,
+                    Message = "Purchase Orders fetched successfully.",
+                    Data = data,
+                    Error = null,
+                    TotalNumberRecord = totalRecords,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalPages,
+                        RecordsOnCurrentPage = data.Count
+                    }
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "No data found.",
+                   
+                });
+
+            }
         }
 
-        // Get Purchase Order By Id
+       
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPurchaseOrderById(int id)
         {
@@ -73,7 +87,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Create Purchase Order
+       
         [HttpPost]
         public async Task<IActionResult> AddPurchaseOrder(PurchaseOrderCUDTO dto)
         {
@@ -95,7 +109,7 @@ namespace Backend_Fincore.Controllers
             });
         }
 
-        // Update Purchase Order
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePurchaseOrder(int id, PurchaseOrderCUDTO dto)
         {
@@ -105,16 +119,13 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order updated successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 
-        // Update Purchase Order Status
-        [HttpPut("{id}/Status")]
-        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderFilterDTO dto)
+      
+        [HttpPut("Status/{id}")]
+        public async Task<IActionResult> UpdatePurchaseOrderStatus(int id, PurchasedOrderStatusDTO dto)
         {
             await purchaseOrderService.UpdatePOStatus(id, dto);
 
@@ -122,14 +133,11 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order status updated successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 
-        // Delete Purchase Order
+        
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePurchaseOrder(int id)
         {
@@ -139,12 +147,24 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "Purchase Order deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+               
             });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> FetchIssued()
+        {
+            var data = await purchaseOrderService.FetchIssuedPO();
+
+            return Ok(new ApiResponse<List<PurchaseOrderDTO>>
+            {
+                Success = true,
+                Message = "Purchase Orders fetched successfully.",
+                Data = data,
+                Error = null
+
+            });
+
+        }
     }
 }

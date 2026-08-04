@@ -10,8 +10,6 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Backend_Fincore.Mapper;
 using Microsoft.Extensions.Options;
-using Backend_Fincore.Application.Interfaces;
-using Backend_Fincore.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -164,6 +162,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+builder.Services.AddMemoryCache();
+
 // 4. Configure Swagger (SINGLE call with Security Definition)
 builder.Services.AddSwaggerGen(options =>
 {
@@ -239,9 +239,15 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 
 });
 
-
-
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
+});
 
 
 var app = builder.Build();
@@ -262,9 +268,13 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseRateLimiter();
 
+app.UseCors("AngularApp");
+
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+
 
 app.MapControllers();
 

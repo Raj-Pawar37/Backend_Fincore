@@ -25,61 +25,70 @@ namespace Backend_Fincore.Infrastucture.Service
             this.mapper = mapper;
             this.currentUser = currentUser;
         }
-        public async Task<List<BudgetLineDropdownDTO>> GetBudgetLineDropdown(string? searchText,int? departmentId)
+        public async Task<List<CapexVerifyDropdownDTO>>
+    GetCapexVerifyDropdown(string? searchText)
         {
-            var budgetLines = await db.BudgetLine
-                .Include(x => x.Budget)
-                    .ThenInclude(x => x.Department)
-                .Include(x => x.BudgetCategory)
-                .ToListAsync();
+            var approver = await db.User
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == currentUser.UserId &&
+                    x.IsActive == 1);
 
-            if (departmentId != null)
+            if (approver == null)
             {
-                budgetLines = budgetLines
-                    .Where(x => x.Budget.DepartmentId == departmentId)
-                    .ToList();
+                throw new Exception("Approver not found.");
             }
 
-            if (!string.IsNullOrEmpty(searchText))
+            var query =
+                from capex in db.CapexRequest
+                join approval in db.Approval
+                    on approver.RoleId equals approval.RoleId
+                where
+                    capex.IsActive == 1 &&
+                    capex.Status == "Pending" &&
+                    approval.IsActive == 1 &&
+                    capex.Amount >= approval.MinAmount &&
+                    capex.Amount <= approval.MaxAmount &&
+                    capex.BudgetLine.IsActive == 1 &&
+                    capex.BudgetLine.Budget.IsActive == 1 &&
+                    capex.BudgetLine.Budget.ApprovedBy != null &&
+                    capex.BudgetLine.Budget.ApprovedDate != null
+                select capex;
+
+            if (!string.IsNullOrWhiteSpace(searchText))
             {
-                budgetLines = budgetLines
-                    .Where(x =>
-                        x.CostCenter.Contains(searchText) ||
-                        x.BudgetCategory.CategoryName.Contains(searchText) ||
-                        x.Budget.Department.DepartmentName.Contains(searchText))
-                    .Take(20)
-                    .ToList();
+                string keyword = searchText.Trim();
+
+                query = query.Where(x =>
+                    x.Title.Contains(keyword) ||
+                    x.CapexRequestId.ToString().Contains(keyword) ||
+                    x.RequestedByUser.Username.Contains(keyword));
             }
 
-            List<BudgetLineDropdownDTO> data = new();
-
-            foreach (var item in budgetLines)
-            {
-                decimal approvedAmount = await db.CapexRequest
-                    .Where(x =>
-                        x.BudgetLineId == item.BudgetLineId &&
-                        x.Status == "Approved")
-                    .SumAsync(x => (decimal?)x.Amount) ?? 0;
-
-                var dto = new BudgetLineDropdownDTO
+            return await query
+                .OrderByDescending(x => x.CapexRequestId)
+                .Take(20)
+                .Select(x => new CapexVerifyDropdownDTO
                 {
-                    BudgetLineId = item.BudgetLineId,
-                    DisplayName = item.CostCenter + " - " + item.BudgetCategory.CategoryName,
-                    AllocatedAmount = item.AllocatedAmount,
-                    AvailableAmount = item.AllocatedAmount - approvedAmount
-                };
+                    CapexRequestId = x.CapexRequestId,
 
-                data.Add(dto);
-            }
+                    DisplayName =
+                        "CAPEX-" + x.CapexRequestId +
+                        " - " + x.Title,
 
-            return data;
+                    Amount = x.Amount,
+
+                    RequestedByName =
+                        x.RequestedByUser.Username
+                })
+                .ToListAsync();
         }
 
         public async Task<CapexReadDTO> AddCapexRequest(CapexWriteDTO dto)
         {
             var budgetLine = await db.BudgetLine
                 .FirstOrDefaultAsync(x =>
-                    x.BudgetLineId == dto.BudgetLineId);
+                    x.BudgetLineId == dto.BudgetLineId &&
+    x.IsActive == 1);
 
             if (budgetLine == null)
             {
@@ -88,7 +97,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             var user = await db.User
                 .FirstOrDefaultAsync(x =>
-                    x.UserId == dto.RequestedBy);
+                    x.UserId == currentUser.UserId && x.IsActive == 1);
 
             if (user == null)
             {
@@ -102,9 +111,7 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             decimal approvedAmount = await db.CapexRequest
-                .Where(x =>
-                    x.BudgetLineId == dto.BudgetLineId &&
-                    x.Status == "Approved")
+                .Where(x => x.BudgetLineId == dto.BudgetLineId && x.Status == "Approved" && x.IsActive == 1)
                 .SumAsync(x => (decimal?)x.Amount) ?? 0;
 
             decimal availableAmount =
@@ -117,7 +124,8 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             CapexRequest data =mapper.Map<CapexRequest>(dto);
-
+            data.RequestedBy = currentUser.UserId;
+            data.IsActive = 1;
             data.Status = "Pending";
             data.ApprovedBy = null;
             data.ApprovedDate = null;
@@ -144,7 +152,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<List<CapexReadDTO>> GetAll(PaginationDTO pagination)
         {
-            var search = db.CapexRequest.AsQueryable();
+            var search = db.CapexRequest.Where(x => x.IsActive == 1).AsQueryable();
 
             if (!string.IsNullOrEmpty(pagination.Search))
             {
@@ -194,7 +202,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 .Include(x => x.RequestedByUser)
                 .Include(x => x.ApprovedByUser)
                 .FirstOrDefaultAsync(x =>
-                    x.CapexRequestId == capexRequestId);
+                    x.CapexRequestId == capexRequestId &&
+    x.IsActive == 1);
 
             if (data == null)
             {
@@ -207,7 +216,8 @@ namespace Backend_Fincore.Infrastucture.Service
         public async Task<bool> UpdateCapexRequest(int capexRequestId,CapexWriteDTO dto)
         {
             var capex = await db.CapexRequest
-                .FirstOrDefaultAsync(x => x.CapexRequestId == capexRequestId);
+                .FirstOrDefaultAsync(x => x.CapexRequestId == capexRequestId &&
+    x.IsActive == 1);
 
             if (capex == null)
             {
@@ -225,7 +235,8 @@ namespace Backend_Fincore.Infrastucture.Service
             }
 
             var budgetLine = await db.BudgetLine
-                .FirstOrDefaultAsync(x => x.BudgetLineId == dto.BudgetLineId);
+                .FirstOrDefaultAsync(x => x.BudgetLineId == dto.BudgetLineId &&
+    x.IsActive == 1);
 
             if (budgetLine == null)
             {
@@ -235,7 +246,7 @@ namespace Backend_Fincore.Infrastucture.Service
             decimal approvedAmount = await db.CapexRequest
                 .Where(x =>
                     x.BudgetLineId == dto.BudgetLineId &&
-                    x.Status == "Approved")
+                    x.Status == "Approved" && x.IsActive == 1)
                 .SumAsync(x => (decimal?)x.Amount) ?? 0;
 
             decimal availableAmount = budgetLine.AllocatedAmount - approvedAmount;
@@ -255,17 +266,18 @@ namespace Backend_Fincore.Infrastucture.Service
             return true;
         }
 
-        public async Task<bool> DeleteCapexRequest(int capexRequestId,int userId)
+        public async Task<bool> DeleteCapexRequest(int capexRequestId)
         {
             var capex = await db.CapexRequest
-                .FirstOrDefaultAsync(x => x.CapexRequestId == capexRequestId);
+                .FirstOrDefaultAsync(x => x.CapexRequestId == capexRequestId &&
+    x.IsActive == 1);
 
             if (capex == null)
             {
                 throw new Exception("CAPEX request not found.");
             }
 
-            if (capex.RequestedBy != userId)
+            if (capex.RequestedBy != currentUser.UserId)
             {
                 throw new Exception("You can delete only your own CAPEX request.");
             }
@@ -274,35 +286,36 @@ namespace Backend_Fincore.Infrastucture.Service
             {
                 throw new Exception("Only pending CAPEX requests can be deleted.");
             }
-
-            db.CapexRequest.Remove(capex);
+            capex.IsActive = 0;
+            capex.ModifiedBy = currentUser.UserId;
+            capex.ModifiedAt = DateTime.Now;
             await db.SaveChangesAsync();
 
             return true;
         }
 
-        public async Task<bool> VerifyCapexRequest(CapexVerifyDTO dto)
+        public async Task<bool> VerifyCapexRequest(int capexRequestId,CapexVerifyDTO dto)
         {
             var capex = await db.CapexRequest
                 .Include(x => x.BudgetLine)
                     .ThenInclude(x => x.Budget)
                 .FirstOrDefaultAsync(x =>
-                    x.CapexRequestId == dto.CapexRequestId);
+                    x.CapexRequestId == capexRequestId &&
+                    x.IsActive == 1);
 
             if (capex == null)
             {
-                throw new Exception(
-                    "CAPEX request not found.");
+                throw new Exception("CAPEX request not found.");
             }
 
             var approver = await db.User
                 .FirstOrDefaultAsync(x =>
-                    x.UserId == currentUser.UserId);
+                    x.UserId == currentUser.UserId &&
+                    x.IsActive == 1);
 
             if (approver == null)
             {
-                throw new Exception(
-                    "Approver not found.");
+                throw new Exception("Approver not found.");
             }
 
             if (capex.Status != "Pending")
@@ -311,19 +324,26 @@ namespace Backend_Fincore.Infrastucture.Service
                     "CAPEX request is already verified.");
             }
 
-            if (dto.Status != "Approved" &&
-                dto.Status != "Rejected")
+            //if (dto.Status != "Approved" &&
+            //    dto.Status != "Rejected")
+            //{
+            //    throw new Exception(
+            //        "Status must be Approved or Rejected.");
+            //}
+            var status = dto.Status.Trim();
+
+            if (!status.Equals("Approved", StringComparison.OrdinalIgnoreCase) &&
+                !status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
             {
-                throw new Exception(
-                    "Status must be Approved or Rejected.");
+                throw new Exception("Status must be Approved or Rejected.");
             }
 
-            // Find approval rule according to CAPEX amount
             var approval = await db.Approval
                 .Include(x => x.Role)
                 .FirstOrDefaultAsync(x =>
+                    x.IsActive == 1 &&
                     capex.Amount >= x.MinAmount &&
-                    capex.Amount <= x.MaxAmount);                       
+                    capex.Amount <= x.MaxAmount);
 
             if (approval == null)
             {
@@ -334,8 +354,8 @@ namespace Backend_Fincore.Infrastucture.Service
             if (approver.RoleId != approval.RoleId)
             {
                 throw new Exception(
-                    "You cannot approve this CAPEX request. " +
-                    "It must be approved by the " +
+                    "You cannot verify this CAPEX request. " +
+                    "It must be verified by the " +
                     approval.Role.RoleName + ".");
             }
 
@@ -344,7 +364,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 decimal approvedAmount = await db.CapexRequest
                     .Where(x =>
                         x.BudgetLineId == capex.BudgetLineId &&
-                        x.Status == "Approved")
+                        x.Status == "Approved" &&
+                        x.IsActive == 1)
                     .SumAsync(x => (decimal?)x.Amount) ?? 0;
 
                 decimal availableAmount =
@@ -359,8 +380,8 @@ namespace Backend_Fincore.Infrastucture.Service
 
                 bool prExists = await db.PurchaseRequisition
                     .AnyAsync(x =>
-                        x.CapexRequestId ==
-                        capex.CapexRequestId);
+                        x.CapexRequestId == capex.CapexRequestId &&
+                        x.IsActive == 1);
 
                 if (prExists)
                 {
@@ -371,49 +392,47 @@ namespace Backend_Fincore.Infrastucture.Service
 
                 var pr = new PurchaseRequisition
                 {
-                    CapexRequestId =
-                        capex.CapexRequestId,
+                    CapexRequestId = capex.CapexRequestId,
 
                     PRNumber =
                         "PR-" +
                         DateTime.Now.ToString("yyyyMMddHHmmssfff"),
 
-                    Title =
-                        capex.Title,
+                    Title = capex.Title,
 
                     Description =
                         "Created automatically from CAPEX request.",
 
-                    Status =
-                        "Pending"
+                    Status = "Pending",
+
+                    IsActive = 1,
+                    CreatedBy = currentUser.UserId,
+                    CreatedAt = DateTime.Now
                 };
 
-                await db.PurchaseRequisition
-                    .AddAsync(pr);
+                await db.PurchaseRequisition.AddAsync(pr);
 
                 capex.Status = "Approved";
                 capex.ApprovedBy = currentUser.UserId;
                 capex.ApprovedDate = DateTime.Now;
-                capex.ModifiedBy = currentUser.UserId;
-                capex.ModifiedAt = DateTime.Now;
             }
             else
             {
                 capex.Status = "Rejected";
                 capex.ApprovedBy = null;
                 capex.ApprovedDate = null;
-                capex.ModifiedBy = currentUser.UserId;
-                capex.ModifiedAt = DateTime.Now;
             }
+
+            capex.ModifiedBy = currentUser.UserId;
+            capex.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
             return true;
         }
-
         public async Task<int> GetTotalRecord()
         {
-            return await db.CapexRequest.CountAsync();
+            return await db.CapexRequest.CountAsync(x => x.IsActive == 1);
             //return await db.CapexRequest.CountAsync(x => x.RequestedBy == currentUser.UserId);
         }
     }

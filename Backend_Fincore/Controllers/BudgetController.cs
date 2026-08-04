@@ -1,6 +1,7 @@
 ﻿using Backend_Fincore.Application.DTOs;
-using Backend_Fincore.DTOs;
 using Backend_Fincore.Application.Interface;
+using Backend_Fincore.DTOs;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,8 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/[controller]")]
+    //[Route("api/v1/[controller]")]
+    [Route("api/v1/budget")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class BudgetController : ControllerBase
@@ -19,6 +21,19 @@ namespace Backend_Fincore.Controllers
         public BudgetController(IBudgetService service)
         {
             this.service = service;
+        }
+
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetBudgetDropdown([FromQuery] string? searchText)
+        {
+            var data = await service.GetBudgetDropdown(searchText);
+
+            return Ok(new ApiResponse<List<BudgetDropdownDTO>>
+            {
+                Success = true,
+                Message = "Budget dropdown fetched successfully.",
+                Data = data
+            });
         }
 
         [HttpPost]
@@ -124,5 +139,29 @@ namespace Backend_Fincore.Controllers
                 Message = "Budget deleted successfully."
             });
         }
+
+        [HttpPut("verifyBudget/{budgetId}")]
+        public async Task<IActionResult> VerifyBudget(int budgetId)
+        {
+            var result = await service.VerifyBudget(budgetId);
+
+            if (!result)
+            {
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Budget not found.",
+                    Data = false
+                });
+            }
+
+            return Ok(new ApiResponse<bool>
+            {
+                Success = true,
+                Message = "Budget verified successfully.",
+                Data = true
+            });
+        }
+
     }
 }

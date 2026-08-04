@@ -5,6 +5,7 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IBudgetCategoryService
     {
+        Task<List<BudgetCategoryDropdownDTO>>GetBudgetCategoryDropdown(string? search);
         Task<BudgetCategoryReadDTO> AddBudgetCategory(BudgetCategoryWriteDTO dto);
 
         Task<List<BudgetCategoryReadDTO>> GetAll(PaginationDTO pagination);

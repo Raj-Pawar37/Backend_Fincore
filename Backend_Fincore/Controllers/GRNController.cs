@@ -15,42 +15,55 @@ namespace Backend_Fincore.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [EnableRateLimiting("Fixed")]
+    [EnableRateLimiting("fixed")]
     [Authorize]
-    public class GRNController : ControllerBase
+    public class gRNController : ControllerBase
     {
         private readonly IGRNService gRNService;
 
-        public GRNController(IGRNService gRNService)
+        public gRNController(IGRNService gRNService)
         {
             this.gRNService = gRNService;
         }
 
 
-        [HttpGet]
-        public async Task<IActionResult> GetAllGRNs([FromBody]GrnStatusDTO dto,[FromQuery]PaginationDTO pagination)
+        [HttpGet("GetAllGRN")]
+        public async Task<IActionResult> GetAllGRNs([FromQuery]PaginationDTO pagination)
         {
-            var data = await gRNService.GetAllGrns( dto,pagination);
+            var data = await gRNService.GetAllGrns( pagination);
 
             var totalCounts = await gRNService.GetAllGRNCount();
             var totalpages = (int)Math.Ceiling(totalCounts / (double)pagination.PageSize);
 
-            return Ok(new ApiResponse<List<GRNDTO>>
+            if (data != null)
             {
-                Success = true,
-                Message = "GRN list fetched successfully.",
-                Data = data,
-                Error = null,
-                TotalNumberRecord = totalCounts,
-                Metadata = new
+                return Ok(new ApiResponse<List<GRNDTO>>
                 {
-                    pagination.PageNumber,
-                    pagination.PageSize,
-                    pagination.Search,
-                    TotalPages = totalpages,
-                    RecordsOnCurrentPage = data.Count
-                }
-            });
+                    Success = true,
+                    Message = "GRN list fetched successfully.",
+                    Data = data,
+                    Error = null,
+                    TotalNumberRecord = totalCounts,
+                    Metadata = new
+                    {
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        pagination.Search,
+                        TotalPages = totalpages,
+                        RecordsOnCurrentPage = data.Count
+                    }
+                });
+            }
+            else
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "GRN items not found.",
+                   
+                });
+
+            }
 
         }
 
@@ -65,10 +78,7 @@ namespace Backend_Fincore.Controllers
                 {
                     Success = false,
                     Message = "GRN not found.",
-                    Data = null,
-                    Error = $"No GRN found with Id {id}.",
-                     Metadata = null,
-                    TotalNumberRecord = 0
+                    
                 });
             }
 
@@ -77,24 +87,20 @@ namespace Backend_Fincore.Controllers
                 Success = true,
                 Message = "GRN fetched successfully.",
                 Data = grn,
-                Error = null,
-                 Metadata = null,
                 TotalNumberRecord = 1
             });
         }
 
 
         [HttpPost]
-        public async Task<IActionResult> addGrn(GRNCUDTO grn)
+        public async Task<IActionResult> addGrn(GRNCreate grn)
         {
             await gRNService.AddGrn(grn);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "GRN created successfully.",
-                Data = null,
-                Error = null,
+                Message = "GRN created successfully",
                 Metadata = new
                 {
                     GRNNumber = grn.GRNNumber,
@@ -115,8 +121,6 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "GRN updated successfully.",
-                Data = null,
-                Error = null,
                 Metadata = new
                 {   
                     GRNId = id,
@@ -137,10 +141,7 @@ namespace Backend_Fincore.Controllers
             {
                 Success = true,
                 Message = "GRN deleted successfully.",
-                Data = null,
-                Error = null,
-                Metadata = new { },
-                TotalNumberRecord = null
+                
             });
         }
 
@@ -149,17 +150,13 @@ namespace Backend_Fincore.Controllers
         [Route("Status/{id}")]
        
         public async Task<IActionResult> UpdateGRNStatus(int id, GrnStatusDTO dto)
-        {
-            
-
+        { 
             await gRNService.UpdateGRNStatus(id, dto);
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "GRN status updated successfully.",
-                Data = null,
-                Error = null,
                 Metadata = new
                 {
                     GRNId = id,
@@ -167,6 +164,22 @@ namespace Backend_Fincore.Controllers
                 },
                 TotalNumberRecord = 1
             });
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> FetchDraftGRN()
+        {
+            var data = await gRNService.FetchDraftGRN();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Draft GRN Fetch Successfully",
+                Data = data,
+                Error = null
+            });
+
         }
 
 
