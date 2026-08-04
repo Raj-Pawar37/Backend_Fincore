@@ -113,5 +113,31 @@ namespace Backend_Fincore.Controllers
             });
         }
 
+
+        [HttpGet("getQuotationComparsion/{rfqId}")]
+        public async Task<IActionResult> getQuotationComparsion(int rfqId)
+        {
+            var data = await quotationService.getQuotationComparsion(rfqId);
+            return Ok(new ApiResponse<QuotationComparisonDTO>
+            {
+                Success = true,
+                Message = "Quotation comparison fetched successfully.",
+                Data = data
+            });
+        }
+
+
+        [HttpPost("SelectQuotation")]
+        public async Task<IActionResult> SelectQuotation([FromBody] QuotationSelectionDTO dto)
+        {
+
+            await quotationService.SelectQuotation(dto);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Quotation comparison completed successfully."
+            });
+        }
+
     }
 }

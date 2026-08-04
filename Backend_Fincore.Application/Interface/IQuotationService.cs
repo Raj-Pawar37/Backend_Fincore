@@ -22,5 +22,9 @@ namespace Backend_Fincore.Application.Interface
         Task<QuotationDTO> GetQuotationById(int quotationId);
 
         Task<List<QuotationDTO>> GetQuotationByRFQId(int rfqId);
+
+        Task<QuotationComparisonDTO> getQuotationComparsion(int rfqId);
+
+        Task SelectQuotation(QuotationSelectionDTO dto);
     }
 }
