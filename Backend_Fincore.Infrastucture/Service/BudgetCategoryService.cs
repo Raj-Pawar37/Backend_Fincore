@@ -33,7 +33,7 @@ namespace Backend_Fincore.Infrastucture.Service
             var data = mapper.Map<BudgetCategory>(dto);
 
             //int userId = 1;
-
+            data.IsActive = 1;
             data.CreatedBy = currentUser.UserId;
             data.CreatedAt = DateTime.Now;
 
@@ -62,7 +62,10 @@ namespace Backend_Fincore.Infrastucture.Service
                     "Budget category cannot be deleted because it is used in budget lines.");
             }
 
-            db.BudgetCategory.Remove(data);
+            //db.BudgetCategory.Remove(data);
+            data.IsActive = 0;
+            data.ModifiedBy = currentUser.UserId;
+            data.ModifiedAt = DateTime.Now;
 
             await db.SaveChangesAsync();
 
@@ -107,7 +110,7 @@ namespace Backend_Fincore.Infrastucture.Service
            return await db.BudgetCategory.CountAsync();
         }
 
-        public async Task<bool> UpdateBudgetCategory(int id,BudgetCategoryWriteDTO dto)
+        public async Task<bool> UpdateBudgetCategory(int id, BudgetCategoryUpdateDTO dto)
         {
             var data = await db.BudgetCategory
                 .FirstOrDefaultAsync(x => x.BudgetCategoryId == id);

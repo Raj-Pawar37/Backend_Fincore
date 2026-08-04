@@ -24,10 +24,18 @@ namespace Backend_Fincore.Infrastucture.Service
 
         public async Task<ApprovalReadDTO> AddApproval(ApprovalWriteDTO dto)
         {
-            if (dto.MinAmount > dto.MaxAmount)
+            if (dto.MinAmount < 0 || dto.MaxAmount < 0)
+            {
+                throw new Exception("Amount cannot be negative.");
+            }
+            if (dto.MinAmount >= dto.MaxAmount)
             {
                 throw new Exception("Minimum Amount cannot be greater than Maximum Amount.");
             }
+            //if (dto.MinAmount < dto.MaxAmount)
+            //{
+            //    throw new Exception("Maximun Amount cannot be greater than Minimum Amount.");
+            //}
             if (dto.ApprovalLevel <= 0)
             {
                 throw new Exception("Approval Level must be greater than zero.");
@@ -125,7 +133,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception(
                     "Approval amount range already exists.");
             }
-            if (dto.MinAmount > dto.MaxAmount)
+            if (dto.MinAmount >= dto.MaxAmount)
             {
                 throw new Exception(
                     "Minimum Amount cannot be greater than Maximum Amount.");

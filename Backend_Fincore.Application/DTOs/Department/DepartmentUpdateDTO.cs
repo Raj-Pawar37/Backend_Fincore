@@ -21,7 +21,7 @@ namespace Backend_Fincore.Application.DTOs.Department
         public string? Description { get; set; }
 
         [Required]
-        public byte IsActive { get; set; } = 1;
+        public byte IsActive { get; set; } 
 
     }
 }

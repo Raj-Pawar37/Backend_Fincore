@@ -15,7 +15,7 @@ namespace Backend_Fincore.Application.DTOs.Approval
         public decimal MaxAmount { get; set; }
 
         public int ApprovalLevel { get; set; }
-
+        public int RoleId { get; set; }
         public string RoleName { get; set; } = null!;
 
         public bool IsActive { get; set; }
