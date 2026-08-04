@@ -12,11 +12,13 @@ namespace Backend_Fincore.Application.Interface
 
         Task<PurchaseOrderItemDTO> getItemById(int id);
 
-        Task AddPurchasedItem(PurchaseOrderItemCUDTO PT);
+        //Task AddPurchasedItem(PurchaseOrderItemCUDTO PT);
 
         Task UpdatePurchaseOrderItem(PurchaseOrderItemCUDTO dto, int id);
 
         Task DeleteItem(int id);
+
+        //Task<List<POItemsSearchDTO>> FetchPOIBygrnId(int grnId);
 
         Task<List<POItemsSearchDTO>> SearchPOItem(SearchPoiDTO dto);
     }

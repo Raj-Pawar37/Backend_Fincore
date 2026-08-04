@@ -82,6 +82,8 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception(
                     "Budget category cannot be deleted because it is used in budget lines.");
             }
+
+            //db.BudgetCategory.Remove(data);
             data.IsActive = 0;
             data.ModifiedBy = currentUser.UserId;
             data.ModifiedAt = DateTime.Now;
@@ -131,7 +133,7 @@ namespace Backend_Fincore.Infrastucture.Service
            return await db.BudgetCategory.CountAsync(x => x.IsActive == 1);
         }
 
-        public async Task<bool> UpdateBudgetCategory(int id,BudgetCategoryWriteDTO dto)
+        public async Task<bool> UpdateBudgetCategory(int id, BudgetCategoryUpdateDTO dto)
         {
             var data = await db.BudgetCategory
                 .FirstOrDefaultAsync(x => x.BudgetCategoryId == id &&

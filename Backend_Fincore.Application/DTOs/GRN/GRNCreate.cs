@@ -1,12 +1,15 @@
-﻿namespace Backend_Fincore.DTOs.GRN
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Backend_Fincore.Application.DTOs.GRN
 {
-    public class GRNCUDTO
+    public class GRNCreate
     {
-        public int GRNId { get; set; }
-
+        //public int GRNId { get; set; }
         public int PurchaseOrderId { get; set; }
-
-        //public string PONumber { get; set; } = null!;
 
         public string GRNNumber { get; set; } = null!;
 
@@ -18,8 +21,5 @@
 
         public string? DeliveryChallanNumber { get; set; }
 
-        //public string Status { get; set; } = null!;
-
-       
     }
 }

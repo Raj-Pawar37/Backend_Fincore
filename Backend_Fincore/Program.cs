@@ -239,6 +239,16 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
+});
+
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
@@ -258,9 +268,13 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseRateLimiter();
 
+app.UseCors("AngularApp");
+
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+
 
 app.MapControllers();
 

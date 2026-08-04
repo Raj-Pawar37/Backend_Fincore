@@ -6,18 +6,20 @@ namespace Backend_Fincore.Application.Interface
 {
     public interface IGRNService
     {
-        Task<List<GRNDTO>> GetAllGrns(GrnStatusDTO dto,PaginationDTO pagination);
+        Task<List<GRNDTO>> GetAllGrns(PaginationDTO pagination);
 
         Task<int> GetAllGRNCount();
 
         Task<GRNDTO> GetGrnById(int id);
 
-        Task AddGrn(GRNCUDTO grn);
+        Task AddGrn(GRNCreate grn);
 
         Task UpdateGRN(GRNCUDTO grn, int id);
 
         Task DeletegrnById(int id);
 
         Task UpdateGRNStatus(int id, GrnStatusDTO dto);
+
+        Task<List<GRNDTO>> FetchDraftGRN();
     }
 }
