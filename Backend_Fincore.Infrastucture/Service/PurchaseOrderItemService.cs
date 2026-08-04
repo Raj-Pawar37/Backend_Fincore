@@ -180,11 +180,17 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Only Draft Purchase Orders can be edited.");
             }
 
-          
-            if (item.Status == "Received")
+            if (item.Status != "Pending")
+            {
+                throw new Exception("Only Pending Purchase Order Items can be edited.");
+            }
+
+
+            if (item.Status == "Received" )
             {
                 throw new Exception("Received Purchase Order Item cannot be edited.");
             }
+
 
           
             bool itemExists = await db.PurchaseOrderItem.AnyAsync(x => x.PurchaseOrderId == item.PurchaseOrderId &&
@@ -234,7 +240,11 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("Only Draft Purchase Orders can be modified.");
             }
 
-           
+            if (item.Status != "Pending")
+            {
+                throw new Exception("Only Pending Purchase Order Items can be deleted.");
+            }
+
             if (item.Status == "Received")
             {
                 throw new Exception("Received Purchase Order Item cannot be deleted.");
