@@ -1,5 +1,6 @@
 ﻿using Backend_Fincore.Application.DTOs.Quotation;
 using Backend_Fincore.Application.Interface;
+using Backend_Fincore.Infrastucture.Service;
 using Backend_Fincore.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -62,16 +63,25 @@ namespace Backend_Fincore.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult>GetAllQuotation()
+        public async Task<ActionResult>GetAllQuotation([FromQuery] QuotationPaginationDTO pagination)
         {
-            var data = await quotationService.GetAllQuotation();
-
+            var data = await quotationService.GetAllQuotation(pagination);
+            int totalRecords = await quotationService.GetQuotationCount(pagination);
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)pagination.PageSize);
             return Ok(new ApiResponse<List<QuotationDTO>>
             {
                 Success = true,
                 Message = "Quotations fetched successfully.",
                 Data = data,
-                TotalNumberRecord = data.Count
+                TotalNumberRecord = totalRecords,
+                Metadata = new
+                {
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    pagination.Search,
+                    TotalPages = totalPages,
+                    RecordsOnCurrentPage = data.Count
+                }
             });
         }
 
@@ -100,6 +110,32 @@ namespace Backend_Fincore.Controllers
                 Message = "RFQ quotations fetched successfully.",
                 Data = data,
                 TotalNumberRecord = data.Count
+            });
+        }
+
+
+        [HttpGet("getQuotationComparsion/{rfqId}")]
+        public async Task<IActionResult> getQuotationComparsion(int rfqId)
+        {
+            var data = await quotationService.getQuotationComparsion(rfqId);
+            return Ok(new ApiResponse<QuotationComparisonDTO>
+            {
+                Success = true,
+                Message = "Quotation comparison fetched successfully.",
+                Data = data
+            });
+        }
+
+
+        [HttpPost("SelectQuotation")]
+        public async Task<IActionResult> SelectQuotation([FromBody] QuotationSelectionDTO dto)
+        {
+
+            await quotationService.SelectQuotation(dto);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Quotation comparison completed successfully."
             });
         }
 

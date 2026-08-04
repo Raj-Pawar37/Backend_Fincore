@@ -1,4 +1,5 @@
-﻿using Backend_Fincore.Application.DTOs.QuotationItem;
+﻿using AutoMapper;
+using Backend_Fincore.Application.DTOs.QuotationItem;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
 using Backend_Fincore.Domain.Models;
@@ -8,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AutoMapper;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Backend_Fincore.Infrastucture.Service
 {
@@ -115,9 +116,9 @@ namespace Backend_Fincore.Infrastucture.Service
 
 
 
-            var data = mapper.Map<QuotationItem>(dto);
-            data.ModifiedBy = currentUser.UserId;
-            data.ModifiedAt = DateTime.UtcNow;
+            mapper.Map(dto, quotationItem);
+            quotationItem.ModifiedBy = currentUser.UserId;
+            quotationItem.ModifiedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();
 
@@ -183,6 +184,7 @@ namespace Backend_Fincore.Infrastucture.Service
 
             var data = await db.QuotationItem.AsNoTracking()
                 .Where(x =>x.QuotationId == quotationId && x.IsActive == 1)
+                .Include(x => x.RFQItem)
                 .OrderBy(x => x.QuotationItemId)
                 .ToListAsync();
 
@@ -228,8 +230,8 @@ namespace Backend_Fincore.Infrastucture.Service
 
         private async Task UpdateQuotationAmount(int quotationId)
         {
-            decimal totalAmount =await db.QuotationItem.Where(x =>x.QuotationId == quotationId && x.IsActive == 1).SumAsync(x =>(decimal?)
-                        ((x.Quantity * x.UnitPrice) + x.Tax - x.Discount)) ?? 0;
+            decimal totalAmount =await db.QuotationItem.Where(x =>x.QuotationId == quotationId && x.IsActive == 1)
+                .SumAsync(x =>(decimal?) ((x.UnitPrice + x.Tax - x.Discount) * x.Quantity)) ?? 0;
 
             var quotation = await db.Quotation.FirstOrDefaultAsync(x => x.QuotationId == quotationId && x.IsActive == 1);
 

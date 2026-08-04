@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Backend_Fincore.Controllers
 {
     [Authorize]
-    [Route("api/v1/quoatationItem")]
+    [Route("api/v1/quotationItem")]
     [ApiController]
     [EnableRateLimiting("fixed")]
     public class QuotationItemController : ControllerBase
@@ -99,8 +99,8 @@ namespace Backend_Fincore.Controllers
 
 
 
-        [HttpGet("quotation/{quotationId:int}")]
-        public async Task<ActionResult>GetQuotationItemsByQuotationId(int quotationId)
+        [HttpGet("quotation")]
+        public async Task<ActionResult>GetQuotationItemsByQuotationId([FromQuery] int quotationId)
         {
             var data = await quotationItemService.GetQuotationItemsByQuotationId(quotationId);
 

@@ -12,5 +12,6 @@ namespace Backend_Fincore.Application.Interface
         Task CreateAsync(RFQItemCreateDto dto);
         Task UpdateAsync(int id, RFQItemUpdateDto dto);
         Task DeleteAsync(int id);
+        Task<List<RFQItemResponseDto>> ReadbyRFQId(RFQItemReadbyRfqDTO data);
     }
 }

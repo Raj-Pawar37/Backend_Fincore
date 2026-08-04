@@ -271,5 +271,67 @@ namespace Backend_Fincore.Infrastucture.Service
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<RFQDropdownDto>> GetDropdownAsync(string? searchText, int? vendorId, string? status)
+        {
+            IQueryable<RFQ> query = _context.RFQ.AsNoTracking().Where(x => x.IsActive == 1);
+
+            // Filter RFQs by vendor when VendorId is supplied
+            if (vendorId.HasValue && vendorId.Value > 0)
+            {
+                int selectedVendorId = vendorId.Value;
+
+                query = query.Where(rfq =>
+                // Vendor must be invited for this RFQ
+                rfq.RFQVendors.Any(rfqVendor =>
+                    rfqVendor.VendorId == selectedVendorId &&
+                    rfqVendor.IsActive == 1)
+
+                // Same RFQ + Vendor quotation must not already exist
+                && !_context.Quotation.Any(quotation =>
+                    quotation.RFQId == rfq.RFQId &&
+                    quotation.RFQVendor.VendorId == selectedVendorId &&
+                    quotation.IsActive == 1));
+
+
+            }
+
+            // Filter by status when supplied
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                string normalizedStatus = status.Trim();
+                query = query.Where(x => x.Status == normalizedStatus);
+            }
+
+            // Search by RFQ number or title
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                string search = searchText.Trim();
+                query = query.Where(x => x.RFQNumber.Contains(search) || x.Title.Contains(search));
+            }
+
+            var data = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(20)
+                .Select(x => new
+                {
+                    RFQ = x,
+                    Vendor = x.RFQVendors
+                        .Where(v => !vendorId.HasValue || v.VendorId == vendorId)
+                        .FirstOrDefault()
+                })
+                .Select(x => new RFQDropdownDto
+                {
+                    RFQId = x.RFQ.RFQId,
+                    RFQNumber = x.RFQ.RFQNumber,
+                    Title = x.RFQ.Title,
+                    Status = x.RFQ.Status,
+                    RFQVendorId = x.Vendor != null ? x.Vendor.RFQVendorId : 0,
+                    VendorId = x.Vendor != null ? x.Vendor.VendorId : 0
+                })
+                .ToListAsync();
+
+            return data;
+        }
     }
 }

@@ -15,10 +15,16 @@ namespace Backend_Fincore.Application.Interface
 
         Task DeleteQuotation(int quotationId);
 
-        Task<List<QuotationDTO>> GetAllQuotation();
+        Task<List<QuotationDTO>> GetAllQuotation(QuotationPaginationDTO pagination);
+
+        Task<int> GetQuotationCount(QuotationPaginationDTO pagination);
 
         Task<QuotationDTO> GetQuotationById(int quotationId);
 
         Task<List<QuotationDTO>> GetQuotationByRFQId(int rfqId);
+
+        Task<QuotationComparisonDTO> getQuotationComparsion(int rfqId);
+
+        Task SelectQuotation(QuotationSelectionDTO dto);
     }
 }

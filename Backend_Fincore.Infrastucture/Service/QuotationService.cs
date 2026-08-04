@@ -2,6 +2,7 @@
 using Backend_Fincore.Application.DTOs.Quotation;
 using Backend_Fincore.Application.Interface;
 using Backend_Fincore.Data;
+using Backend_Fincore.Domain.Models;
 using Backend_Fincore.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,14 @@ namespace Backend_Fincore.Infrastucture.Service
         }
 
 
+        public async Task<int> GetQuotationCount(QuotationPaginationDTO pagination)
+        {
+            IQueryable<Quotation> query = GetQuotationQuery(pagination);
+
+            return await query.CountAsync();
+        }
+
+
         public async Task AddQuotation(QuotationCDTO dto)
         {
             var rfqExists = await db.RFQ.AnyAsync(x => x.RFQId == dto.RFQId && x.IsActive == 1);
@@ -38,7 +47,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("The selected vendor does not belong to this RFQ.");
             }
 
-            var duplicateQuotationNo = await db.Quotation.AnyAsync(x =>x.QuotationNumber == dto.QuotationNumber);
+            var duplicateQuotationNo = await db.Quotation.AnyAsync(x =>x.QuotationNumber == dto.QuotationNumber && x.IsActive == 1);
             if (duplicateQuotationNo)
             {
                 throw new Exception("Quotation number already exists.");
@@ -81,22 +90,41 @@ namespace Backend_Fincore.Infrastucture.Service
 
         }
 
-        public async Task<List<QuotationDTO>> GetAllQuotation()
+        public async Task<List<QuotationDTO>> GetAllQuotation(QuotationPaginationDTO pagination)
         {
-            var data = await db.Quotation
-                .AsNoTracking()
-                .Where(x=> x.IsActive == 1)
+            if (pagination.PageNumber <= 0)
+            {
+                pagination.PageNumber = 1;
+            }
+
+            if (pagination.PageSize <= 0)
+            {
+                pagination.PageSize = 10;
+            }
+
+
+            IQueryable<Quotation> query = GetQuotationQuery(pagination);
+
+            var data = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
                 .Select(x => new QuotationDTO
                 {
                     QuotationId = x.QuotationId,
+
                     RFQId = x.RFQId,
+                    RFQNumber = x.RFQ.RFQNumber,
+
                     RFQVendorId = x.RFQVendorId,
+                    VendorId = x.RFQVendor.VendorId,
+                    VendorName = x.RFQVendor.Vendor.VendorName,
+
+                    QuotationDate = x.CreatedAt,
                     QuotationNumber = x.QuotationNumber,
                     Amount = x.Amount,
                     Status = x.Status,
-                    Desc = x.Description,
-                    // Change navigation properties as per your model.
-                    VendorName = x.RFQVendor.Vendor.VendorName
+                    Desc = x.Description
                 })
                 .ToListAsync();
 
@@ -163,7 +191,7 @@ namespace Backend_Fincore.Infrastucture.Service
                 throw new Exception("The selected vendor does not belong to this RFQ.");
             }
 
-            var duplicateQuotationNo = await db.Quotation.AnyAsync(x => x.QuotationNumber == dto.QuotationNumber && x.QuotationId != dto.QuotationId);
+            var duplicateQuotationNo = await db.Quotation.AnyAsync(x => x.QuotationNumber == dto.QuotationNumber && x.QuotationId != dto.QuotationId && x.IsActive == 1);
             if (duplicateQuotationNo)
             {
                 throw new Exception("Another quotation already exists with this quotation number.");
@@ -192,5 +220,132 @@ namespace Backend_Fincore.Infrastucture.Service
 
 
         }
+
+
+
+
+
+
+
+        //Helper Functions 
+
+
+        private IQueryable<Quotation> GetQuotationQuery(QuotationPaginationDTO pagination)
+        {
+            IQueryable<Quotation> query = db.Quotation.AsNoTracking().Where(x => x.IsActive == 1);
+
+            // Vendor filter
+            if (pagination.VendorId.HasValue && pagination.VendorId.Value > 0)
+            {
+                int vendorId = pagination.VendorId.Value;
+                query = query.Where(x =>x.RFQVendor.VendorId == vendorId);
+            }
+
+            // Status filter
+            if (!string.IsNullOrWhiteSpace(pagination.Status))
+            {
+                string status = pagination.Status.Trim();
+                query = query.Where(x => x.Status == status);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(pagination.Search))
+            {
+                string search = pagination.Search.Trim();
+
+                query = query.Where(x =>
+                    x.QuotationNumber.Contains(search) ||
+                    x.RFQ.RFQNumber.Contains(search) ||
+                    x.RFQ.Title.Contains(search) ||
+                    x.RFQVendor.Vendor.VendorName.Contains(search) ||
+                    x.Status.Contains(search));
+            }
+
+            return query;
+        }
+
+        public async Task<QuotationComparisonDTO> getQuotationComparsion(int rfqId)
+        {
+            var rfq = await db.RFQ.AsNoTracking().FirstOrDefaultAsync(x => x.RFQId == rfqId && x.IsActive == 1);
+
+            if (rfq == null) throw new Exception("RFQ not found.");
+
+            var quotationItems = await db.QuotationItem.AsNoTracking()
+                .Include(x => x.RFQItem)
+                .Include(x => x.Quotation)
+                .ThenInclude(x => x.RFQVendor)
+                .ThenInclude(x => x.Vendor)
+                .Where(x => x.Quotation.RFQId == rfqId && x.IsActive == 1 && x.Quotation.IsActive == 1)
+                .ToListAsync();
+
+            var response = mapper.Map<QuotationComparisonDTO>(rfq);
+            response.Items = mapper.Map<List<QuotationComparisonItemDTO>>(quotationItems);
+            return response;
+        }
+
+
+
+        public async Task SelectQuotation(QuotationSelectionDTO dto)
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            try
+            {
+                var rfq = await db.RFQ.FirstOrDefaultAsync(x=> x.RFQId == dto.RFQId && x.Status != "Closed" && x.IsActive == 1);
+                if (rfq == null) throw new Exception("RFQ Not Found");
+
+                var quotations = await db.Quotation.Where(x => x.RFQId == rfq.RFQId && x.IsActive == 1).ToListAsync();
+                if (quotations.Count == 0) throw new Exception("No quotation Found for this RFQ");
+
+                var quotationIds = quotations.Select(x => x.QuotationId).ToList();
+                var quotationItems = await db.QuotationItem.Where(x => quotationIds.Contains(x.QuotationItemId) && x.IsActive == 1).ToListAsync();
+                if (quotationItems.Count != dto.SelectedQuotationItemIds.Distinct().Count()) throw new Exception("Quoatation Selected Item May be not present in this ");
+
+                var selectedQuotationItems = quotationItems.Where(x => dto.SelectedQuotationItemIds.Contains(x.QuotationItemId)).ToList();
+                if (selectedQuotationItems.Count != dto.SelectedQuotationItemIds.Distinct().Count()) throw new Exception("Invalid quotation item selected.");
+                
+                var duplicateRFQ = selectedQuotationItems.GroupBy(x => x.RFQItemId).Any(x => x.Count() > 1);
+                if (duplicateRFQ) throw new Exception("Multiple RFQItem Ids Has been Selected");
+
+                //Main Logic Starts here 
+                foreach (var item in quotationItems)
+                {
+                    item.Status = "Rejected";
+                    item.ModifiedBy = currentUser.UserId;
+                    item.ModifiedAt = DateTime.Now;
+                }
+
+                foreach (var item in selectedQuotationItems)
+                {
+                    item.Status = "Selected";
+                    item.ModifiedBy = currentUser.UserId;
+                    item.ModifiedAt = DateTime.Now;
+                }
+
+
+                var selectedQuotationIds = selectedQuotationItems.Select(x => x.QuotationId).Distinct().ToList();
+                foreach (var quotation in quotations)
+                {
+                    quotation.Status = selectedQuotationIds.Contains(quotation.QuotationId) ? "Approved" : "Rejected";
+                    quotation.ModifiedBy = currentUser.UserId;
+                    quotation.ModifiedAt = DateTime.Now;
+                }
+
+                rfq.Status = "Closed";
+                rfq.ModifiedBy = currentUser.UserId;
+                rfq.ModifiedAt = DateTime.Now;
+
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+
+            
+        }
     }
 }
+    
