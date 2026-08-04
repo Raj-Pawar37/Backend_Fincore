@@ -13,7 +13,7 @@ namespace Backend_Fincore.Application.Interface
 
         Task<BudgetCategoryReadDTO?> GetById(int id);
 
-        Task<bool> UpdateBudgetCategory(int id,BudgetCategoryWriteDTO dto);
+        Task<bool> UpdateBudgetCategory(int id, BudgetCategoryUpdateDTO dto);
 
         Task<bool> DeleteBudgetCategory(int id);
     }

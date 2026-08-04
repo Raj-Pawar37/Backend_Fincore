@@ -1,27 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Backend_Fincore.DTOs
+namespace Backend_Fincore.Application.DTOs
 {
-    public class BudgetCategoryReadDTO
+    public class BudgetCategoryUpdateDTO
     {
-        public int BudgetCategoryId { get; set; }
-
+        [Required]
+        [MaxLength(100)]
         public string CategoryName { get; set; } = string.Empty;
 
+        [Required]
+        [MaxLength(50)]
         public string CategoryCode { get; set; } = string.Empty;
 
+        [MaxLength(500)]
         public string? Description { get; set; }
         public byte IsActive { get; set; }
-        public int CreatedBy { get; set; }
 
-        public DateTime CreatedAt { get; set; }
-
-        public int? ModifiedBy { get; set; }
-
-        public DateTime? ModifiedAt { get; set; }
     }
 }

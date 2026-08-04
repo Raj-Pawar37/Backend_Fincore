@@ -195,6 +195,8 @@ public class MappingData : Profile
         CreateMap<BudgetCategory, BudgetCategoryReadDTO>();
 
         CreateMap<BudgetCategoryWriteDTO, BudgetCategory>().ReverseMap();
+        CreateMap<BudgetCategoryUpdateDTO, BudgetCategory>().ReverseMap();
+
 
         CreateMap<BudgetWriteDTO, Budget>();
 
@@ -292,7 +294,9 @@ public class MappingData : Profile
         CreateMap<Document, DocumentReadDTO>().ForMember(d => d.DocumentTypeName, x => x.MapFrom(y => y.DocumentType.DocumentTypeName));
         CreateMap<DocumentWriteDTO, Document>();
         CreateMap<DocumentUpdateDTO, Document>();
-        CreateMap<Approval, ApprovalReadDTO>().ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName));
+        CreateMap<Approval, ApprovalReadDTO>().
+            ForMember(d => d.RoleName, x => x.MapFrom(y => y.Role.RoleName))
+            .ForMember(d => d.RoleId, opt => opt.MapFrom(src => src.RoleId));
         CreateMap<ApprovalWriteDTO, Approval>().ReverseMap();
         CreateMap<ApprovalUpdateDTO, Approval>().ReverseMap();
 

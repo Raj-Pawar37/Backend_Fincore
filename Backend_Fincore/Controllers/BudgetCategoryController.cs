@@ -99,7 +99,7 @@ namespace Backend_Fincore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBudgetCategory(int id, BudgetCategoryWriteDTO dto)
+        public async Task<IActionResult> UpdateBudgetCategory(int id, BudgetCategoryUpdateDTO dto)
         {
             var result = await service.UpdateBudgetCategory(id, dto);
 
